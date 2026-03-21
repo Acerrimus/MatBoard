@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
 import GraphPage from './pages/GraphPage'
+import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import './styles/globals.css'
 
@@ -15,6 +16,7 @@ function getInitialTheme() {
 // ── Protected route — redirects to /login if no user ─────────────────────────
 function Protected({ children }) {
   const { user, loading } = useAuth()
+  if (import.meta.env.DEV) return children
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
   return children
@@ -22,14 +24,15 @@ function Protected({ children }) {
 
 // ── App shell — only rendered when logged in ──────────────────────────────────
 function AppShell({ theme, onToggleTheme }) {
-  const { signOut, user } = useAuth()
+  const { signOut, user, profile } = useAuth()
 
   return (
     <div className="app-shell">
-      <Sidebar theme={theme} onToggleTheme={onToggleTheme} user={user} onSignOut={signOut} />
+      <Sidebar theme={theme} onToggleTheme={onToggleTheme} user={user} profile={profile} onSignOut={signOut} />
       <main className="main-content">
         <Routes>
-          <Route path="/"          element={<Navigate to="/graph" replace />} />
+          <Route path="/"          element={<Navigate to="/home" replace />} />
+          <Route path="/home"      element={<HomePage />} />
           <Route path="/graph"     element={<GraphPage />} />
           <Route path="/progress"  element={<Placeholder title="My Progress" />} />
           <Route path="/club"      element={<Placeholder title="My Club" />} />

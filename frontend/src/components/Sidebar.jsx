@@ -1,25 +1,67 @@
-import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 
-const NAV = [
-  {
-    section: 'Navigate',
-    items: [
-      { label: 'Graph',       to: '/graph'    },
-      { label: 'My Progress', to: '/progress' },
-    ]
-  },
-  {
-    section: 'Coach',
-    items: [
-      { label: 'My Club',   to: '/club'      },
-      { label: 'Athletes',  to: '/athletes'  },
-      { label: 'Curricula', to: '/curricula' },
-    ]
-  }
+const NAVIGATE_ITEMS = [
+  { label: 'Home',        to: '/home'     },
+  { label: 'Graph',       to: '/graph'    },
+  { label: 'My Progress', to: '/progress' },
 ]
 
-export default function Sidebar({ theme, onToggleTheme, user, onSignOut }) {
+const COACH_ITEMS = [
+  { label: 'My Club',   to: '/club'      },
+  { label: 'Athletes',  to: '/athletes'  },
+  { label: 'Curricula', to: '/curricula' },
+]
+
+function NavItem({ to, label }) {
+  return (
+    <NavLink
+      to={to}
+      style={({ isActive }) => ({
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '7px 14px',
+        margin: '1px 8px',
+        borderRadius: 'var(--radius-sm)',
+        fontSize: 13,
+        fontWeight: 500,
+        textDecoration: 'none',
+        color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+        background: isActive ? 'var(--accent-soft)' : 'transparent',
+        transition: 'all var(--transition)',
+      })}
+    >
+      <span style={{
+        width: 5,
+        height: 5,
+        borderRadius: '50%',
+        background: 'currentColor',
+        flexShrink: 0,
+        opacity: 0.6,
+      }} />
+      {label}
+    </NavLink>
+  )
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: 9,
+      fontWeight: 600,
+      letterSpacing: '0.14em',
+      textTransform: 'uppercase',
+      color: 'var(--text-muted)',
+      padding: '14px 20px 5px',
+    }}>
+      {children}
+    </div>
+  )
+}
+
+export default function Sidebar({ theme, onToggleTheme, user, profile, onSignOut }) {
+  const isCoach = profile?.role === 'coach' || profile?.role === 'admin'
+
   return (
     <aside style={{
       width: 'var(--sidebar-width)',
@@ -49,50 +91,21 @@ export default function Sidebar({ theme, onToggleTheme, user, onSignOut }) {
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
-        {NAV.map(group => (
-          <div key={group.section}>
-            <div style={{
-              fontSize: 9,
-              fontWeight: 600,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-              padding: '14px 20px 5px',
-            }}>
-              {group.section}
-            </div>
-            {group.items.map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '7px 14px',
-                  margin: '1px 8px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  textDecoration: 'none',
-                  color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-                  background: isActive ? 'var(--accent-soft)' : 'transparent',
-                  transition: 'all var(--transition)',
-                })}
-              >
-                <span style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: 'currentColor',
-                  flexShrink: 0,
-                  opacity: 0.6,
-                }} />
-                {item.label}
-              </NavLink>
-            ))}
-          </div>
+
+        <SectionLabel>Navigate</SectionLabel>
+        {NAVIGATE_ITEMS.map(item => (
+          <NavItem key={item.to} {...item} />
         ))}
+
+        {isCoach && (
+          <>
+            <SectionLabel>Coach</SectionLabel>
+            {COACH_ITEMS.map(item => (
+              <NavItem key={item.to} {...item} />
+            ))}
+          </>
+        )}
+
       </nav>
 
       {/* Footer */}
@@ -122,8 +135,15 @@ export default function Sidebar({ theme, onToggleTheme, user, onSignOut }) {
             {user?.email?.[0]?.toUpperCase() ?? '?'}
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.user_metadata?.full_name ?? user?.email ?? 'User'}
+            <div style={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: 'var(--text-primary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email ?? 'User'}
             </div>
             <button
               onClick={onSignOut}

@@ -1,18 +1,21 @@
 import { supabase } from './supabase'
 
-const BASE_URL = 'https://matboard.onrender.com:8000'
+const BASE_URL = import.meta.env.DEV
+  ? 'http://localhost:8000'
+  : 'https://matboard.onrender.com'
 
 async function request(path) {
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token
+  const isDev = import.meta.env.DEV
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    }
-  })
+  let headers = { 'Content-Type': 'application/json' }
 
+  if (!isDev) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, { headers })
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   return res.json()
 }
