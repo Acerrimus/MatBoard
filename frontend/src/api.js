@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-const BASE_URL = 'http://localhost:8000'
+const BASE_URL = 'https://matboard.onrender.com:8000'
 
 async function request(path) {
   const { data: { session } } = await supabase.auth.getSession()
