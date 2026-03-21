@@ -3,8 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
 import GraphPage from './pages/GraphPage'
-import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import OnboardingPage from './pages/OnboardingPage'
+import ClubSetupPage from './pages/ClubSetupPage'
 import './styles/globals.css'
 
 function getInitialTheme() {
@@ -13,31 +14,40 @@ function getInitialTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-// ── Protected route — redirects to /login if no user ─────────────────────────
+// ── Route guard — handles auth + onboarding state ─────────────────────────────
 function Protected({ children }) {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
+
   if (import.meta.env.DEV) return children
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
+
+  // Profile exists but role not set — send to onboarding
+  if (profile && profile.role === null) return <Navigate to="/onboarding" replace />
+
   return children
 }
 
-// ── App shell — only rendered when logged in ──────────────────────────────────
 function AppShell({ theme, onToggleTheme }) {
   const { signOut, user, profile } = useAuth()
 
   return (
     <div className="app-shell">
-      <Sidebar theme={theme} onToggleTheme={onToggleTheme} user={user} profile={profile} onSignOut={signOut} />
+      <Sidebar
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        user={user}
+        profile={profile}
+        onSignOut={signOut}
+      />
       <main className="main-content">
         <Routes>
-          <Route path="/"          element={<Navigate to="/home" replace />} />
-          <Route path="/home"      element={<HomePage />} />
-          <Route path="/graph"     element={<GraphPage />} />
-          <Route path="/progress"  element={<Placeholder title="My Progress" />} />
-          <Route path="/club"      element={<Placeholder title="My Club" />} />
-          <Route path="/athletes"  element={<Placeholder title="Athletes" />} />
-          <Route path="/curricula" element={<Placeholder title="Curricula" />} />
+          <Route path="/"           element={<Navigate to="/graph" replace />} />
+          <Route path="/graph"      element={<GraphPage />} />
+          <Route path="/progress"   element={<Placeholder title="My Progress" />} />
+          <Route path="/club"       element={<Placeholder title="My Club" />} />
+          <Route path="/athletes"   element={<Placeholder title="Athletes" />} />
+          <Route path="/curricula"  element={<Placeholder title="Curricula" />} />
         </Routes>
       </main>
     </div>
@@ -58,7 +68,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login"      element={<LoginPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/club-setup" element={<ClubSetupPage />} />
           <Route path="/*" element={
             <Protected>
               <AppShell theme={theme} onToggleTheme={toggleTheme} />

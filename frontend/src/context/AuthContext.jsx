@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../supabase'
 
 const AuthContext = createContext(null)
@@ -6,56 +6,46 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [session, setSession] = useState(null)
-  const [profile, setProfile] = useState(null)   // { role, display_name, avatar_url, ... }
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Fetch profile row from public.profiles for a given user id
-  const fetchProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-      if (error) throw error
-      setProfile(data)
-    } catch {
-      // Profile may not exist yet (first login before trigger fires).
-      // Fail silently — role-aware UI should handle profile === null gracefully.
-      setProfile(null)
-    }
-  }
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false))
-      } else {
-        setLoading(false)
-      }
-    })
-
-    // Listen for auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          fetchProfile(session.user.id)
-        } else {
-          setProfile(null)
-        }
-      }
-    )
-
-    return () => subscription.unsubscribe()
+  const fetchProfile = useCallback(async (userId) => {
+    if (!userId) { setProfile(null); return }
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    setProfile(data ?? null)
   }, [])
 
+  const refreshProfile = useCallback(async () => {
+    if (user) await fetchProfile(user.id)
+  }, [user, fetchProfile])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      await fetchProfile(session?.user?.id)
+      setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      await fetchProfile(session?.user?.id)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [fetchProfile])
+
   const signInWithGoogle = () =>
-    supabase.auth.signInWithOAuth({ provider: 'google' })
+    supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    })
 
   const signInWithEmail = (email, password) =>
     supabase.auth.signInWithPassword({ email, password })
@@ -69,8 +59,9 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user,
       session,
-      profile,      // expose profile (includes role, display_name, avatar_url)
+      profile,
       loading,
+      refreshProfile,
       signInWithGoogle,
       signInWithEmail,
       signUp,
@@ -81,8 +72,4 @@ export function AuthProvider({ children }) {
   )
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider')
-  return ctx
-}
+export const useAuth = () => useContext(AuthContext)
