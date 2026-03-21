@@ -22,8 +22,7 @@ function Protected({ children }) {
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
 
-  // Profile exists but role not set — send to onboarding
-  if (profile && profile.role === null) return <Navigate to="/onboarding" replace />
+  if (!profile || profile.role === null) return <Navigate to="/onboarding" replace />
 
   return children
 }
