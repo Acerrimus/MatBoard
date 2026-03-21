@@ -19,7 +19,7 @@ const NAV = [
   }
 ]
 
-export default function Sidebar({ theme, onToggleTheme }) {
+export default function Sidebar({ theme, onToggleTheme, user, onSignOut }) {
   return (
     <aside style={{
       width: 'var(--sidebar-width)',
@@ -103,8 +103,9 @@ export default function Sidebar({ theme, onToggleTheme }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexShrink: 0,
+        gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <div style={{
             width: 28,
             height: 28,
@@ -118,11 +119,26 @@ export default function Sidebar({ theme, onToggleTheme }) {
             color: 'var(--accent)',
             flexShrink: 0,
           }}>
-            CR
+            {user?.email?.[0]?.toUpperCase() ?? '?'}
           </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>Coach Riley</div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Freestyle Wrestling</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.user_metadata?.full_name ?? user?.email ?? 'User'}
+            </div>
+            <button
+              onClick={onSignOut}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              Sign out
+            </button>
           </div>
         </div>
 

@@ -1,13 +1,44 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
 import GraphPage from './pages/GraphPage'
+import LoginPage from './pages/LoginPage'
 import './styles/globals.css'
 
 function getInitialTheme() {
   const stored = localStorage.getItem('mb-theme')
   if (stored) return stored
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+// ── Protected route — redirects to /login if no user ─────────────────────────
+function Protected({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  return children
+}
+
+// ── App shell — only rendered when logged in ──────────────────────────────────
+function AppShell({ theme, onToggleTheme }) {
+  const { signOut, user } = useAuth()
+
+  return (
+    <div className="app-shell">
+      <Sidebar theme={theme} onToggleTheme={onToggleTheme} user={user} onSignOut={signOut} />
+      <main className="main-content">
+        <Routes>
+          <Route path="/"          element={<Navigate to="/graph" replace />} />
+          <Route path="/graph"     element={<GraphPage />} />
+          <Route path="/progress"  element={<Placeholder title="My Progress" />} />
+          <Route path="/club"      element={<Placeholder title="My Club" />} />
+          <Route path="/athletes"  element={<Placeholder title="Athletes" />} />
+          <Route path="/curricula" element={<Placeholder title="Curricula" />} />
+        </Routes>
+      </main>
+    </div>
+  )
 }
 
 export default function App() {
@@ -22,19 +53,16 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell">
-        <Sidebar theme={theme} onToggleTheme={toggleTheme} />
-        <main className="main-content">
-          <Routes>
-            <Route path="/"         element={<Navigate to="/graph" replace />} />
-            <Route path="/graph"    element={<GraphPage />} />
-            <Route path="/progress" element={<Placeholder title="My Progress" />} />
-            <Route path="/club"     element={<Placeholder title="My Club" />} />
-            <Route path="/athletes" element={<Placeholder title="Athletes" />} />
-            <Route path="/curricula" element={<Placeholder title="Curricula" />} />
-          </Routes>
-        </main>
-      </div>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/*" element={
+            <Protected>
+              <AppShell theme={theme} onToggleTheme={toggleTheme} />
+            </Protected>
+          } />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }
