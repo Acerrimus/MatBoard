@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { supabase } from '../supabase'
+import { setMyRole } from '../api'
 
 export default function OnboardingPage() {
   const { user, refreshProfile } = useAuth()
@@ -13,18 +13,15 @@ export default function OnboardingPage() {
     setSelected(role)
     setLoading(true)
     try {
-      await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('id', user.id)
-
+      await setMyRole(role)
       await refreshProfile()
-
       if (role === 'coach') {
         navigate('/club-setup')
       } else {
         navigate('/')
       }
+    } catch (e) {
+      console.error('Failed to set role:', e)
     } finally {
       setLoading(false)
     }
@@ -41,7 +38,6 @@ export default function OnboardingPage() {
     }}>
       <div style={{ width: '100%', maxWidth: 480 }}>
 
-        {/* Logo */}
         <div style={{
           fontFamily: 'var(--font-display)',
           fontSize: 22,
@@ -129,11 +125,7 @@ function RoleCard({ role, title, description, icon, selected, loading, onSelect 
       }}>
         {title}
       </div>
-      <div style={{
-        fontSize: 12,
-        color: 'var(--text-muted)',
-        lineHeight: 1.5,
-      }}>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
         {description}
       </div>
     </button>

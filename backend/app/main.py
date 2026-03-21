@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import positions, moves, progress, auth
+from app.routers import positions, moves, progress, auth, profiles, clubs
 
 app = FastAPI(title="Matboard API")
 
@@ -19,9 +19,11 @@ app.add_middleware(
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(positions.router, prefix="/positions", tags=["positions"])
-app.include_router(moves.router, prefix="/moves", tags=["moves"])
-app.include_router(progress.router, prefix="/progress", tags=["progress"])
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(moves.router,     prefix="/moves",     tags=["moves"])
+app.include_router(progress.router,  prefix="/progress",  tags=["progress"])
+app.include_router(auth.router,      prefix="/auth",      tags=["auth"])
+app.include_router(profiles.router,  prefix="/profiles",  tags=["profiles"])
+app.include_router(clubs.router,     prefix="/clubs",     tags=["clubs"])
 
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/")

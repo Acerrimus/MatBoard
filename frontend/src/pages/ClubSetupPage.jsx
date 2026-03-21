@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { supabase } from '../supabase'
+import { createClub, joinClub, skipClubSetup } from '../api'
 
 export default function ClubSetupPage() {
-  const { user, refreshProfile } = useAuth()
+  const { refreshProfile } = useAuth()
   const navigate = useNavigate()
-  const [mode, setMode] = useState(null) // 'create' | 'join'
+  const [mode, setMode] = useState(null)
   const [clubName, setClubName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,22 +17,7 @@ export default function ClubSetupPage() {
     setLoading(true)
     setError(null)
     try {
-      const slug = clubName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-      const { data, error: clubError } = await supabase
-        .from('clubs')
-        .insert({ name: clubName.trim(), slug, owner_id: user.id })
-        .select()
-        .single()
-
-      if (clubError) throw clubError
-
-      // Add owner as coach member
-      await supabase.from('club_memberships').insert({
-        club_id: data.id,
-        user_id: user.id,
-        role: 'coach'
-      })
-
+      await createClub(clubName)
       await refreshProfile()
       navigate('/')
     } catch (e) {
@@ -47,20 +32,7 @@ export default function ClubSetupPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data: club, error: clubError } = await supabase
-        .from('clubs')
-        .select('id')
-        .eq('invite_code', inviteCode.trim().toUpperCase())
-        .single()
-
-      if (clubError || !club) throw new Error('Invalid invite code')
-
-      await supabase.from('club_memberships').insert({
-        club_id: club.id,
-        user_id: user.id,
-        role: 'coach'
-      })
-
+      await joinClub(inviteCode)
       await refreshProfile()
       navigate('/')
     } catch (e) {
@@ -71,11 +43,7 @@ export default function ClubSetupPage() {
   }
 
   const handleSkip = async () => {
-    // Mark profile with a flag so sidebar knows to show the prompt
-    await supabase
-      .from('profiles')
-      .update({ club_setup_skipped: true })
-      .eq('id', user.id)
+    await skipClubSetup()
     navigate('/')
   }
 
@@ -111,7 +79,6 @@ export default function ClubSetupPage() {
           Set up your club
         </div>
 
-        {/* Mode selection */}
         {!mode && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <OptionButton
@@ -142,7 +109,6 @@ export default function ClubSetupPage() {
           </div>
         )}
 
-        {/* Create club */}
         {mode === 'create' && (
           <div style={{
             background: 'var(--bg-surface)',
@@ -173,7 +139,6 @@ export default function ClubSetupPage() {
           </div>
         )}
 
-        {/* Join club */}
         {mode === 'join' && (
           <div style={{
             background: 'var(--bg-surface)',
