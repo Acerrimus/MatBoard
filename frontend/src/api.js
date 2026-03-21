@@ -1,21 +1,23 @@
-const BASE_URL = "http://localhost:8000"
+import { supabase } from './supabase'
 
-export const getPositions = async () => {
-    const res = await fetch(`${BASE_URL}/positions`)
-    return res.json()
+const BASE_URL = 'http://localhost:8000'
+
+async function request(path) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    }
+  })
+
+  if (!res.ok) throw new Error(`API error: ${res.status}`)
+  return res.json()
 }
 
-export const getPosition = async (slug) => {
-    const res = await fetch(`${BASE_URL}/positions/${slug}`)
-    return res.json()
-}
-
-export const getMovesFromPosition = async (slug) => {
-    const res = await fetch(`${BASE_URL}/positions/${slug}/moves`)
-    return res.json()
-}
-
-export const getMove = async (slug) => {
-    const res = await fetch(`${BASE_URL}/moves/${slug}`)
-    return res.json()
-}
+export const getPositions         = ()     => request('/positions')
+export const getPosition          = (slug) => request(`/positions/${slug}`)
+export const getMovesFromPosition = (slug) => request(`/positions/${slug}/moves`)
+export const getMove              = (slug) => request(`/moves/${slug}`)
