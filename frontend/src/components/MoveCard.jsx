@@ -1,10 +1,25 @@
-export default function MoveCard({ move, onClick }) {
+export function confidenceColor(confidence) {
+  if (!confidence) return 'var(--border)'
+  if (confidence <= 2) return '#EF4444'
+  if (confidence === 3) return '#F59E0B'
+  return '#22C55E'
+}
+
+export function confidenceBg(confidence) {
+  if (!confidence) return 'transparent'
+  if (confidence <= 2) return 'rgba(239,68,68,0.08)'
+  if (confidence === 3) return 'rgba(245,158,11,0.08)'
+  return 'rgba(34,197,94,0.08)'
+}
+
+export default function MoveCard({ move, onClick, isOnBoard }) {
   return (
     <div
       onClick={() => onClick(move)}
       style={{
         background: 'var(--bg-surface)',
-        border: '0.5px solid var(--border)',
+        border: `0.5px solid ${isOnBoard ? confidenceColor(null) : 'var(--border)'}`,
+        borderLeft: isOnBoard ? `3px solid var(--move-color)` : '0.5px solid var(--border)',
         borderRadius: 'var(--radius-md)',
         padding: '13px 16px',
         marginBottom: 6,
@@ -19,7 +34,7 @@ export default function MoveCard({ move, onClick }) {
         e.currentTarget.style.background = 'var(--accent-soft)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.borderColor = isOnBoard ? 'var(--move-color)' : 'var(--border)'
         e.currentTarget.style.background = 'var(--bg-surface)'
       }}
     >
@@ -34,6 +49,7 @@ export default function MoveCard({ move, onClick }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Chip type="move">move</Chip>
+          {isOnBoard && <Chip type="board">on board</Chip>}
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             → {move.to_position?.name ?? '—'} · Risk {move.risk_rating ?? '?'}/5
           </span>
@@ -61,7 +77,12 @@ export default function MoveCard({ move, onClick }) {
 }
 
 export function Chip({ type, children }) {
-  const isMove = type === 'move'
+  const styles = {
+    move:     { background: 'var(--move-soft)',   color: 'var(--move-color)' },
+    position: { background: 'var(--accent-soft)', color: 'var(--accent)'     },
+    board:    { background: 'var(--bg-subtle)',    color: 'var(--text-muted)' },
+  }
+  const s = styles[type] ?? styles.move
   return (
     <span style={{
       fontSize: 9,
@@ -70,9 +91,8 @@ export function Chip({ type, children }) {
       textTransform: 'uppercase',
       padding: '2px 7px',
       borderRadius: 20,
-      background: isMove ? 'var(--move-soft)' : 'var(--accent-soft)',
-      color: isMove ? 'var(--move-color)' : 'var(--accent)',
       display: 'inline-block',
+      ...s,
     }}>
       {children}
     </span>

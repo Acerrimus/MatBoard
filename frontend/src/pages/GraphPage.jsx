@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getMovesFromPosition, getMove } from '../api'
+import { getMovesFromPosition, getMove, getMyBoard, getMyProgress } from '../api'
 import MoveCard, { Chip } from '../components/MoveCard'
 import MoveDetail from '../components/MoveDetail'
 
 const STARTING_POSITION = 'neutral'
 
+// ── Breadcrumb ────────────────────────────────────────────────────────────────
 function Breadcrumb({ trail, onNavigateTo }) {
   return (
     <div style={{
@@ -43,6 +44,7 @@ function Breadcrumb({ trail, onNavigateTo }) {
   )
 }
 
+// ── Position node ─────────────────────────────────────────────────────────────
 function PositionNode({ position, movesCount }) {
   if (!position) return null
   return (
@@ -66,12 +68,15 @@ function PositionNode({ position, movesCount }) {
         {position.name}
       </div>
       {position.description && (
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14 }}>
+        <p style={{
+          fontSize: 13,
+          color: 'var(--text-secondary)',
+          lineHeight: 1.6,
+          marginBottom: 14,
+        }}>
           {position.description}
         </p>
       )}
-
-      {/* Stat cards */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <StatPill label="Moves available" value={movesCount} />
       </div>
@@ -87,10 +92,23 @@ function StatPill({ label, value }) {
       borderRadius: 'var(--radius-sm)',
       padding: '7px 14px',
     }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+      <div style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: 18,
+        fontWeight: 700,
+        color: 'var(--text-primary)',
+        lineHeight: 1,
+      }}>
         {value}
       </div>
-      <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 3 }}>
+      <div style={{
+        fontSize: 9,
+        fontWeight: 600,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        color: 'var(--text-muted)',
+        marginTop: 3,
+      }}>
         {label}
       </div>
     </div>
@@ -113,6 +131,7 @@ function LoadingState() {
   )
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function GraphPage() {
   const [position, setPosition]         = useState(null)
   const [moves, setMoves]               = useState([])
@@ -121,6 +140,25 @@ export default function GraphPage() {
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
 
+  // Board + progress state owned here, passed down to MoveDetail
+  const [boardMoveIds, setBoardMoveIds]   = useState(new Set())
+  const [progressMap, setProgressMap]     = useState({})
+  const [boardLoading, setBoardLoading]   = useState(true)
+
+  // ── Load board + progress once on mount ────────────────────────────────────
+  useEffect(() => {
+    Promise.all([getMyBoard(), getMyProgress()])
+      .then(([boardData, progressData]) => {
+        setBoardMoveIds(new Set(boardData.map(item => item.move.id)))
+        const pm = {}
+        progressData.forEach(p => { pm[p.move_id] = p })
+        setProgressMap(pm)
+      })
+      .catch(() => {}) // non-fatal — board just shows empty
+      .finally(() => setBoardLoading(false))
+  }, [])
+
+  // ── Load position ───────────────────────────────────────────────────────────
   const loadPosition = useCallback(async (slug, newTrail) => {
     setLoading(true)
     setSelectedMove(null)
@@ -130,20 +168,19 @@ export default function GraphPage() {
       setPosition(data.position)
       setMoves(data.moves)
       setTrail(newTrail ?? [{ name: data.position.name, slug }])
-    } catch (e) {
+    } catch {
       setError('Could not load position. Is the backend running?')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // Load starting position on mount
   useEffect(() => {
     loadPosition(STARTING_POSITION)
   }, [loadPosition])
 
+  // ── Move click ──────────────────────────────────────────────────────────────
   const handleMoveClick = async (move) => {
-    // fetch full move detail with positions embedded
     try {
       const full = await getMove(move.slug)
       setSelectedMove(full)
@@ -152,23 +189,54 @@ export default function GraphPage() {
     }
   }
 
+  // ── Navigate to position ────────────────────────────────────────────────────
   const handleNavigateToPosition = (pos) => {
     if (!pos?.slug) return
-    const newTrail = [...trail, { name: pos.name, slug: pos.slug }]
-    loadPosition(pos.slug, newTrail)
+    loadPosition(pos.slug, [...trail, { name: pos.name, slug: pos.slug }])
   }
 
+  // ── Breadcrumb nav ──────────────────────────────────────────────────────────
   const handleBreadcrumbNav = (index) => {
     const crumb = trail[index]
     loadPosition(crumb.slug, trail.slice(0, index + 1))
   }
 
+  // ── Board change callback — called by MoveDetail ────────────────────────────
+  const handleBoardChange = (moveId, added) => {
+    setBoardMoveIds(prev => {
+      const next = new Set(prev)
+      added ? next.add(moveId) : next.delete(moveId)
+      return next
+    })
+  }
+
+  // ── Progress change callback — called by MoveDetail ────────────────────────
+  const handleProgressChange = (moveId, progressData) => {
+    setProgressMap(prev => {
+      const next = { ...prev }
+      if (progressData === null) {
+        delete next[moveId]
+      } else {
+        next[moveId] = progressData
+      }
+      return next
+    })
+  }
+
+  const selectedMoveId = selectedMove?.id
+
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 32px' }}>
 
-      {/* Page header */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>
+        <div style={{
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: 'var(--text-muted)',
+          marginBottom: 4,
+        }}>
           Technique Graph
         </div>
         <h1 style={{
@@ -182,7 +250,6 @@ export default function GraphPage() {
         </h1>
       </div>
 
-      {/* Breadcrumb trail */}
       {trail.length > 0 && (
         <Breadcrumb trail={trail} onNavigateTo={handleBreadcrumbNav} />
       )}
@@ -201,21 +268,22 @@ export default function GraphPage() {
         </div>
       )}
 
-      {/* Current position node */}
       {!loading && position && (
         <PositionNode position={position} movesCount={moves.length} />
       )}
 
-      {/* Selected move detail */}
       {selectedMove && (
         <MoveDetail
           move={selectedMove}
           onNavigate={handleNavigateToPosition}
           onBack={() => setSelectedMove(null)}
+          isOnBoard={boardMoveIds.has(selectedMoveId)}
+          progress={progressMap[selectedMoveId] ?? null}
+          onBoardChange={handleBoardChange}
+          onProgressChange={handleProgressChange}
         />
       )}
 
-      {/* Moves list */}
       {!selectedMove && (
         <>
           <div style={{
@@ -226,7 +294,11 @@ export default function GraphPage() {
             color: 'var(--text-muted)',
             margin: '18px 0 10px',
           }}>
-            {loading ? 'Loading...' : moves.length === 0 ? 'No moves mapped yet' : `${moves.length} move${moves.length !== 1 ? 's' : ''} from here`}
+            {loading
+              ? 'Loading...'
+              : moves.length === 0
+                ? 'No moves mapped yet'
+                : `${moves.length} move${moves.length !== 1 ? 's' : ''} from here`}
           </div>
 
           {loading ? (
@@ -237,6 +309,7 @@ export default function GraphPage() {
                 key={move.id}
                 move={move}
                 onClick={handleMoveClick}
+                isOnBoard={boardMoveIds.has(move.id)}
               />
             ))
           )}
