@@ -694,7 +694,7 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
       )}
 
       {/* Legend */}
-      <div style={{
+      {window.innerWidth >= 768 && <div style={{
         position: 'absolute', bottom: 80, left: 16, zIndex: 10,
         background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
         borderRadius: 'var(--radius-md)', padding: '10px 14px',
@@ -724,7 +724,7 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
             <LegendItem dot color="var(--border-strong)" label="Not explored" />
           </>
         )}
-      </div>
+      </div>}
 
       {/* MoveDetail panel */}
       {panelMove && (
