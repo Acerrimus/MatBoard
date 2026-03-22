@@ -24,21 +24,29 @@ export function AuthProvider({ children }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
-    const timeout = setTimeout(() => setLoading(false), 8000)
+    // Step 1: wire up the listener FIRST so we don't miss events
+    // NOTE: onAuthStateChange does NOT call setLoading(false) —
+    // that's owned entirely by getSession below.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      await fetchProfile(session?.user?.id)
+      // No setLoading(false) here — avoids the race where loading goes false
+      // before getSession's fetchProfile has resolved on initial load.
+    })
+
+    // Step 2: one-shot initial load — this drives the loading state
+    const timeout = setTimeout(() => {
+      setProfile(prev => prev === undefined ? null : prev)
+      setLoading(false)
+    }, 8000)
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(timeout)
       setSession(session)
       setUser(session?.user ?? null)
       await fetchProfile(session?.user?.id)
-      setLoading(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      await fetchProfile(session?.user?.id)
-      setLoading(false)
+      setLoading(false)  // only set here, after profile is fetched
     })
 
     return () => { subscription.unsubscribe(); clearTimeout(timeout) }
