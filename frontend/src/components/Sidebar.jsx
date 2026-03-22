@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 
 const NAVIGATE_ITEMS = [
   { label: 'Home',        to: '/home'     },
+  { label: 'Explore',     to: '/explore'  },
   { label: 'Graph',       to: '/graph'    },
   { label: 'My Progress', to: '/progress' },
 ]

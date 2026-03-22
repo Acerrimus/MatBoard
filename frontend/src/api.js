@@ -95,3 +95,6 @@ export const createChain          = (name)                    => requestPost('/c
 export const renameChain          = (chainId, name)           => requestPatch(`/chains/${chainId}/rename`, { name })
 export const setChainMoves        = (chainId, moveIds)        => requestPut(`/chains/${chainId}/moves`, { move_ids: moveIds })
 export const deleteChain          = (chainId)                 => requestDelete(`/chains/${chainId}`)
+
+// ── Explore Graph ────────────────────────────────────────────────────────────────────
+export const getGraph = () => request('/graph/')

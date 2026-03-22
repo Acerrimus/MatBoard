@@ -140,4 +140,5 @@ body {
   overflow-y: auto;
   background: var(--bg-page);
   padding: 0;
+  height: 100%
 }
