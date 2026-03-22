@@ -614,7 +614,7 @@ function ExploreInner({
 
   useEffect(() => {
     if (!fitQueued.current) return
-    const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued.current = false }, 60)
+const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued.current = false }, 200)
     return () => clearTimeout(t)
   }, [nodes, fitView])
 
