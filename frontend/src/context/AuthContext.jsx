@@ -24,7 +24,11 @@ export function AuthProvider({ children }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
+    // Failsafe — if session check hangs, unblock the UI after 8s
+    const timeout = setTimeout(() => setLoading(false), 8000)
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(timeout)
       setSession(session)
       setUser(session?.user ?? null)
       await fetchProfile(session?.user?.id)
@@ -38,7 +42,7 @@ export function AuthProvider({ children }) {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => { subscription.unsubscribe(); clearTimeout(timeout) }
   }, [fetchProfile])
 
   const signInWithGoogle = () =>
