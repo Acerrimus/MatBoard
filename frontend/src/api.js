@@ -14,54 +14,78 @@ async function buildHeaders() {
   return headers
 }
 
+function withTimeout(ms) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ms)
+  return { signal: controller.signal, clear: () => clearTimeout(timer) }
+}
+
 async function request(path) {
-  const headers = await buildHeaders()
-  const res = await fetch(`${BASE_URL}${path}`, { headers })
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  return res.json()
+  const { signal, clear } = withTimeout(15000)
+  try {
+    const headers = await buildHeaders()
+    const res = await fetch(`${BASE_URL}${path}`, { headers, signal })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  } finally {
+    clear()
+  }
 }
 
 async function requestPost(path, body) {
-  const headers = await buildHeaders()
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  return res.json()
+  const { signal, clear } = withTimeout(15000)
+  try {
+    const headers = await buildHeaders()
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST', headers, body: JSON.stringify(body), signal,
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  } finally {
+    clear()
+  }
 }
 
 async function requestPatch(path, body) {
-  const headers = await buildHeaders()
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  return res.json()
+  const { signal, clear } = withTimeout(15000)
+  try {
+    const headers = await buildHeaders()
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'PATCH', headers, body: JSON.stringify(body), signal,
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  } finally {
+    clear()
+  }
 }
 
 async function requestPut(path, body) {
-  const headers = await buildHeaders()
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  return res.json()
+  const { signal, clear } = withTimeout(15000)
+  try {
+    const headers = await buildHeaders()
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'PUT', headers, body: JSON.stringify(body), signal,
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  } finally {
+    clear()
+  }
 }
 
 async function requestDelete(path) {
-  const headers = await buildHeaders()
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'DELETE',
-    headers,
-  })
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  return res.json()
+  const { signal, clear } = withTimeout(15000)
+  try {
+    const headers = await buildHeaders()
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'DELETE', headers, signal,
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json()
+  } finally {
+    clear()
+  }
 }
 
 // ── Positions & moves ─────────────────────────────────────────────────────────
@@ -96,5 +120,5 @@ export const renameChain          = (chainId, name)           => requestPatch(`/
 export const setChainMoves        = (chainId, moveIds)        => requestPut(`/chains/${chainId}/moves`, { move_ids: moveIds })
 export const deleteChain          = (chainId)                 => requestDelete(`/chains/${chainId}`)
 
-// ── Explore Graph ────────────────────────────────────────────────────────────────────
-export const getGraph = () => request('/graph/')
+// ── Graph ─────────────────────────────────────────────────────────────────────
+export const getGraph             = () => request('/graph/')
