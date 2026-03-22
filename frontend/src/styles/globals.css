@@ -139,4 +139,5 @@ body {
   flex: 1;
   overflow-y: auto;
   background: var(--bg-page);
+  height: 100%;
 }

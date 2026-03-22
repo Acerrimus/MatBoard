@@ -46,7 +46,7 @@ function AppShell({ theme, onToggleTheme }) {
           <Route path="/"           element={<Navigate to="/graph" replace />} />
           <Route path="/graph"      element={<GraphPage />} />
           <Route path="/progress"   element={<ProgressPage />} />
-          <Route path="/explore"    element={<ExplorePage />} />
+          <Route path="/explore" element={<div style={{ height: '100%', overflow: 'hidden' }}><ExplorePage /></div>} />          
           <Route path="/club"       element={<Placeholder title="My Club" />} />
           <Route path="/athletes"   element={<Placeholder title="Athletes" />} />
           <Route path="/curricula"  element={<Placeholder title="Curricula" />} />
