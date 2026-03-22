@@ -8,10 +8,12 @@ export default function OnboardingPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [error, setError] = useState(null)
 
   const handleSelect = async (role) => {
     setSelected(role)
     setLoading(true)
+    setError(null)
     try {
       await setMyRole(role)
       setProfile(prev => ({ ...prev, role }))  
@@ -22,7 +24,8 @@ export default function OnboardingPage() {
       }
     } catch (e) {
       console.error('Failed to set role:', e)
-    } finally {
+      setError('Could not save — the server may be waking up. Please try again.')
+      setSelected(null)
       setLoading(false)
     }
   }
@@ -71,6 +74,21 @@ export default function OnboardingPage() {
           I am a
         </div>
 
+        {error && (
+          <div style={{
+            background: 'var(--accent-soft)',
+            border: '0.5px solid var(--border-accent)',
+            borderRadius: 'var(--radius-md)',
+            padding: '10px 14px',
+            fontSize: 12,
+            color: 'var(--accent)',
+            marginBottom: 16,
+            textAlign: 'center',
+          }}>
+            {error}
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <RoleCard
             role="coach"
@@ -91,6 +109,17 @@ export default function OnboardingPage() {
             onSelect={handleSelect}
           />
         </div>
+
+        {loading && (
+          <div style={{
+            textAlign: 'center',
+            marginTop: 20,
+            fontSize: 12,
+            color: 'var(--text-muted)',
+          }}>
+            This may take a moment if the server is waking up…
+          </div>
+        )}
       </div>
     </div>
   )
