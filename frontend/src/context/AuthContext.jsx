@@ -11,12 +11,15 @@ export function AuthProvider({ children }) {
 
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) { setProfile(null); return }
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-    setProfile(data ?? null)
+    try {
+      const { data } = await Promise.race([
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+      ])
+      setProfile(data ?? null)
+    } catch {
+      setProfile(null)
+    }
   }, [])
 
   const refreshProfile = useCallback(async () => {
@@ -24,26 +27,17 @@ export function AuthProvider({ children }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
-    // Use ONLY onAuthStateChange — it fires INITIAL_SESSION on page load
-    // with the restored session, so we never need getSession separately.
-    // This eliminates the dual-fetch race entirely.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
         await fetchProfile(session?.user?.id)
-
-        // Only set loading=false after the INITIAL_SESSION event resolves.
-        // Subsequent events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED) don't
-        // touch loading.
         if (event === 'INITIAL_SESSION') {
           setLoading(false)
         }
       }
     )
 
-    // Fallback: if INITIAL_SESSION never fires (e.g. network issue),
-    // unblock after 10s. Don't reset profile — just unblock loading.
     const timeout = setTimeout(() => setLoading(false), 10000)
 
     return () => { subscription.unsubscribe(); clearTimeout(timeout) }
