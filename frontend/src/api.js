@@ -1,3 +1,5 @@
+// frontend/src/api.js
+
 import { supabase } from './supabase'
 
 const BASE_URL = import.meta.env.DEV
@@ -6,10 +8,10 @@ const BASE_URL = import.meta.env.DEV
 
 // ── Base fetch helpers ────────────────────────────────────────────────────────
 async function buildHeaders() {
+  const { data: { session } } = await supabase.auth.getSession()
   const headers = { 'Content-Type': 'application/json' }
-  if (!import.meta.env.DEV) {
-    const { data: { session } } = await supabase.auth.getSession()
-    headers['Authorization'] = `Bearer ${session?.access_token}`
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
   }
   return headers
 }
@@ -105,8 +107,11 @@ export const setMyRole            = (role) => requestPatch('/profiles/me/role', 
 export const skipClubSetup        = ()     => requestPatch('/profiles/me/skip-club-setup', {})
 
 // ── Clubs ─────────────────────────────────────────────────────────────────────
-export const createClub           = (name)        => requestPost('/clubs/', { name })
-export const joinClub             = (invite_code) => requestPost('/clubs/join', { invite_code })
+export const createClub           = (name)                       => requestPost('/clubs/', { name })
+export const joinClub             = (invite_code)                => requestPost('/clubs/join', { invite_code })
+export const getMyClub            = ()                           => request('/clubs/mine')
+export const getClubMembers       = (clubId)                     => request(`/clubs/${clubId}/members`)
+export const updateMemberRole     = (clubId, userId, role)       => requestPatch(`/clubs/${clubId}/members/${userId}/role`, { role })
 
 // ── Board ─────────────────────────────────────────────────────────────────────
 export const getMyBoard           = ()        => request('/board/')

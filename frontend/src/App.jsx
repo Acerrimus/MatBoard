@@ -1,3 +1,5 @@
+// frontend/src/App.jsx
+
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -8,6 +10,7 @@ import LoginPage from './pages/LoginPage'
 import OnboardingPage from './pages/OnboardingPage'
 import ClubSetupPage from './pages/ClubSetupPage'
 import ProgressPage from './pages/ProgressPage'
+import ClubPage from './pages/ClubPage'
 import './styles/globals.css'
 
 function getInitialTheme() {
@@ -20,16 +23,9 @@ function getInitialTheme() {
 function Protected({ children }) {
   const { user, profile, loading } = useAuth()
 
-  // Show spinner while auth session is resolving
   if (loading) return <LoadingScreen />
-
-  // Not logged in
   if (!user) return <Navigate to="/login" replace />
-
-  // Profile not yet fetched (undefined = still loading, null = confirmed missing)
   if (profile === undefined) return <LoadingScreen />
-
-  // Profile missing or role not set — send to onboarding
   if (!profile || profile.role === null) return <Navigate to="/onboarding" replace />
 
   return children
@@ -90,7 +86,7 @@ function AppShell({ theme, onToggleTheme }) {
         <Route path="/graph"     element={<GraphPage />} />
         <Route path="/progress"  element={<ProgressPage />} />
         <Route path="/home"      element={<Placeholder title="Home Feed" />} />
-        <Route path="/club"      element={<Placeholder title="My Club" />} />
+        <Route path="/club"      element={<ClubPage />} />
         <Route path="/athletes"  element={<Placeholder title="Athletes" />} />
         <Route path="/curricula" element={<Placeholder title="Curricula" />} />
       </Routes>
