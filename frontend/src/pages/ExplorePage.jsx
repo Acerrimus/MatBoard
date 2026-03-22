@@ -10,49 +10,73 @@ import {
   Position,
   BaseEdge,
   EdgeLabelRenderer,
-  getSmoothStepPath,
+  getBezierPath,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { getGraph, getMyBoard, getMyProgress, getMove } from '../api'
 import { confidenceColor } from '../components/MoveCard'
 import MoveDetail from '../components/MoveDetail'
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
+const NODE_W         = 160
+const NODE_H         = 48
+const H_GAP          = 60
+const BAND_GAP       = 500
+const MOVE_SPACING   = 180
+const MOVE_ROW_OFFSET = 80
+
 const POSITION_COLOR = '#DC2626'
 const MOVE_COLOR     = '#3B82F6'
 const UNDISCOVERED   = '#A1A1AA'
 
-// ── Layout constants ──────────────────────────────────────────────────────────
-const NODE_W    = 148
-const NODE_H    = 44
-const H_GAP     = 36
-const PHASE_GAP = 120
+const BAND_CONFIG = {
+  standing:   { y: 0,            label: 'Standing' },
+  transition: { y: BAND_GAP,     label: 'Transitions' },
+  ground:     { y: BAND_GAP * 2, label: 'Ground' },
+}
 
 const PHASE_ORDER = ['standing', 'transition', 'ground']
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 function computeLayout(positions, moves, expandedPairs) {
+  // Count connectivity per position
+  const connectivity = {}
+  positions.forEach(p => { connectivity[p.id] = 0 })
+  moves.forEach(m => {
+    if (connectivity[m.from_position_id] !== undefined) connectivity[m.from_position_id]++
+    if (connectivity[m.to_position_id]   !== undefined) connectivity[m.to_position_id]++
+  })
+
+  // Group and sort positions by phase
   const byPhase = { standing: [], transition: [], ground: [] }
   positions.forEach(p => {
     const ph = p.phase ?? 'ground'
     if (!byPhase[ph]) byPhase[ph] = []
     byPhase[ph].push(p)
   })
+  PHASE_ORDER.forEach(phase => {
+    byPhase[phase].sort((a, b) => {
+      const diff = (connectivity[b.id] ?? 0) - (connectivity[a.id] ?? 0)
+      return diff !== 0 ? diff : a.name.localeCompare(b.name)
+    })
+  })
 
+  // Assign positions
   const posXY = {}
-  PHASE_ORDER.forEach((phase, pi) => {
+  PHASE_ORDER.forEach(phase => {
     const ps     = byPhase[phase] ?? []
     const totalW = ps.length * NODE_W + (ps.length - 1) * H_GAP
-    const baseY  = pi * (NODE_H + PHASE_GAP) * 2.2
+    const startX = -totalW / 2
+    const bandY  = BAND_CONFIG[phase]?.y ?? 0
     ps.forEach((p, i) => {
       posXY[p.id] = {
-        x: i * (NODE_W + H_GAP) - totalW / 2,
-        y: baseY,
+        x: startX + i * (NODE_W + H_GAP),
+        y: bandY,
       }
     })
   })
 
-  // Group moves by from→to pair
+  // Group moves by directional pair
   const pairMoves = {}
   moves.forEach(m => {
     const key = `${m.from_position_id}__${m.to_position_id}`
@@ -60,8 +84,10 @@ function computeLayout(positions, moves, expandedPairs) {
     pairMoves[key].push(m)
   })
 
-  const moveXY = {}
+  // Place expanded move nodes
+  const moveXY         = {}
   const visibleMoveIds = new Set()
+  const placedMoveRects = [] // for collision detection: {x, y, w, h}
 
   Object.entries(pairMoves).forEach(([key, ms]) => {
     if (!expandedPairs.has(key)) return
@@ -69,62 +95,103 @@ function computeLayout(positions, moves, expandedPairs) {
     const to   = posXY[ms[0].to_position_id]
     if (!from || !to) return
 
-    const total = ms.length
+    ms.forEach(m => visibleMoveIds.add(m.id))
+
+    const fromPhase = positions.find(p => p.id === ms[0].from_position_id)?.phase
+    const toPhase   = positions.find(p => p.id === ms[0].to_position_id)?.phase
+    const sameBand  = fromPhase === toPhase
+
+    const centerX = (from.x + to.x) / 2
+    let   rowY
+
+    if (sameBand) {
+      rowY = (BAND_CONFIG[fromPhase]?.y ?? 0) + MOVE_ROW_OFFSET
+    } else {
+      rowY = (from.y + to.y) / 2 - NODE_H / 2
+    }
+
+    const count = ms.length
     ms.forEach((m, i) => {
-      visibleMoveIds.add(m.id)
+      let x = centerX + (i - (count - 1) / 2) * MOVE_SPACING - NODE_W / 2
+      let y = rowY
 
-      const mx = (from.x + to.x) / 2
-      const my = (from.y + to.y) / 2
-
-      const dx  = to.x - from.x
-      const dy  = to.y - from.y
-      const len = Math.sqrt(dx * dx + dy * dy) || 1
-      const px  = -dy / len
-      const py  =  dx / len
-
-      const spread = 60
-      const offset = (i - (total - 1) / 2) * spread
-
-      moveXY[m.id] = {
-        x: mx + px * offset - NODE_W / 2,
-        y: my + py * offset - NODE_H / 2,
+      // Simple collision resolution: shift down if overlapping a placed node
+      let attempts = 0
+      while (attempts < 10) {
+        const overlaps = placedMoveRects.some(r =>
+          Math.abs(r.x - x) < NODE_W + 20 &&
+          Math.abs(r.y - y) < NODE_H + 20
+        )
+        if (!overlaps) break
+        y += NODE_H + 30
+        attempts++
       }
+
+      moveXY[m.id] = { x, y }
+      placedMoveRects.push({ x, y, w: NODE_W, h: NODE_H })
     })
   })
 
   return { posXY, moveXY, pairMoves, visibleMoveIds }
 }
 
+// ── Band label node ───────────────────────────────────────────────────────────
+function BandLabelNode({ data }) {
+  return (
+    <div style={{
+      pointerEvents: 'none',
+      userSelect: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6,
+      width: 200,
+    }}>
+      <span style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: '0.14em',
+        textTransform: 'uppercase',
+        color: 'var(--text-muted)',
+        opacity: 0.7,
+      }}>
+        {data.label}
+      </span>
+      <div style={{
+        width: 120,
+        height: 1,
+        background: 'var(--border)',
+        opacity: 0.5,
+      }} />
+    </div>
+  )
+}
+
 // ── Position node ─────────────────────────────────────────────────────────────
 function PositionNode({ data }) {
   return (
     <>
-      <Handle type="target" position={Position.Top}    style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left}   style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Bottom} style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Right}  style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top}  style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       <div style={{
         width: NODE_W, height: NODE_H,
         background: 'var(--bg-surface)',
         border: `2px solid ${POSITION_COLOR}`,
-        borderRadius: 8,
+        borderRadius: 10,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 12px',
+        padding: '0 14px',
         userSelect: 'none',
       }}>
         <span style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 12, fontWeight: 700,
+          fontSize: 13, fontWeight: 700,
           color: 'var(--text-primary)',
-          textAlign: 'center', lineHeight: 1.2,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {data.name}
         </span>
       </div>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Left}   style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Top}    style={{ opacity: 0 }} />
       <Handle type="source" position={Position.Right}  style={{ opacity: 0 }} />
     </>
   )
@@ -142,32 +209,26 @@ function MoveNode({ data }) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top}   style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left}  style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top}  style={{ opacity: 0 }} />
       <div
         onClick={data.onClick}
         style={{
           width: NODE_W, height: NODE_H,
           background: bg,
           border: `2px solid ${border}`,
-          borderRadius: 8,
+          borderRadius: 10,
           display: 'flex', alignItems: 'center',
           padding: '0 10px', gap: 8,
           cursor: 'pointer',
-          transition: 'border-color 0.15s, background 0.15s',
         }}
       >
-        {/* Icon placeholder with confidence dot */}
         <div style={{
-          width: 24, height: 24, borderRadius: 5, flexShrink: 0,
+          width: 26, height: 26, borderRadius: 6, flexShrink: 0,
           background: isOnBoard ? 'rgba(59,130,246,0.1)' : 'var(--bg-subtle)',
           border: `1px solid ${isOnBoard ? 'rgba(59,130,246,0.25)' : 'var(--border)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: dotColor,
-          }} />
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor }} />
         </div>
         <span style={{
           fontFamily: 'var(--font-body)',
@@ -179,64 +240,70 @@ function MoveNode({ data }) {
         </span>
       </div>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Right}  style={{ opacity: 0 }} />
     </>
   )
 }
 
 // ── Aggregate edge ────────────────────────────────────────────────────────────
 function AggregateEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX, sourceY, targetX, targetY, borderRadius: 16,
+  const curvature = data.curvature ?? 0.25
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX, sourceY, targetX, targetY, curvature,
   })
 
-  const onBoard = data.onBoardCount ?? 0
-  const avg     = data.avgConfidence
-  const color   = avg
+  const onBoard   = data.onBoardCount ?? 0
+  const avg       = data.avgConfidence
+  const color     = avg
     ? confidenceColor(avg)
     : onBoard > 0 ? '#7C3AED' : 'var(--border-strong)'
+  const isExpanded = data.isExpanded ?? false
 
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
+        markerEnd={`url(#arrow-${color.replace('#', '')})`}
         style={{
           stroke: color,
-          strokeWidth: onBoard > 0 ? 2 : 1.5,
-          opacity: onBoard > 0 ? 0.9 : 0.35,
+          strokeWidth: onBoard > 0 ? 2.5 : 1.5,
+          opacity: onBoard > 0 ? 0.85 : 0.3,
         }}
       />
       <EdgeLabelRenderer>
         <div
-          onClick={data.onExpand}
+          onClick={data.onToggle}
           style={{
             position: 'absolute',
             transform: `translate(-50%,-50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
             cursor: 'pointer',
             background: 'var(--bg-surface)',
-            border: `1.5px solid ${color}`,
+            border: `1.5px solid ${isExpanded ? color : 'var(--border-strong)'}`,
             borderRadius: 20,
-            padding: '2px 9px',
-            fontSize: 10,
-            fontWeight: 700,
-            color,
+            padding: '3px 12px',
+            fontSize: 11,
+            fontWeight: 600,
+            color: isExpanded ? color : 'var(--text-secondary)',
             fontFamily: 'var(--font-display)',
             whiteSpace: 'nowrap',
             userSelect: 'none',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+            boxShadow: 'var(--shadow-sm)',
+            transition: 'all 0.15s',
           }}
-          title="Click to expand moves"
         >
-          {data.count} move{data.count !== 1 ? 's' : ''} +
+          {data.count} move{data.count !== 1 ? 's' : ''} {isExpanded ? '▴' : '▾'}
         </div>
       </EdgeLabelRenderer>
     </>
   )
 }
 
-const nodeTypes = { position: PositionNode, move: MoveNode }
+const nodeTypes = {
+  position:  PositionNode,
+  move:      MoveNode,
+  bandLabel: BandLabelNode,
+}
 const edgeTypes = { aggregate: AggregateEdge }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -244,15 +311,15 @@ export default function ExplorePage() {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  const [rawPositions, setRawPositions]     = useState([])
-  const [rawMoves, setRawMoves]             = useState([])
-  const [boardMoveIds, setBoardMoveIds]     = useState(new Set())
-  const [progressMap, setProgressMap]       = useState({})
-  const [expandedPairs, setExpandedPairs]   = useState(new Set())
-  const [activeSport, setActiveSport]       = useState('all')
-  const [panelMove, setPanelMove]           = useState(null)
-  const [loading, setLoading]               = useState(true)
-  const [error, setError]                   = useState(null)
+  const [rawPositions, setRawPositions]   = useState([])
+  const [rawMoves, setRawMoves]           = useState([])
+  const [boardMoveIds, setBoardMoveIds]   = useState(new Set())
+  const [progressMap, setProgressMap]     = useState({})
+  const [expandedPairs, setExpandedPairs] = useState(new Set())
+  const [activeSport, setActiveSport]     = useState('all')
+  const [panelMove, setPanelMove]         = useState(null)
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -270,17 +337,52 @@ export default function ExplorePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // ── Filter by sport ─────────────────────────────────────────────────────────
+  // ── Derived: filter by sport ────────────────────────────────────────────────
   const filteredMoves = useMemo(() => {
     if (activeSport === 'all') return rawMoves
     return rawMoves.filter(m => (m.sport ?? 'wrestling') === activeSport)
   }, [rawMoves, activeSport])
 
-  // ── Rebuild on any change ───────────────────────────────────────────────────
-  const rebuildGraph = useCallback((positions, moves, boardIds, pm, expanded) => {
-    const { posXY, moveXY, pairMoves, visibleMoveIds } = computeLayout(positions, moves, expanded)
+  const filteredPositions = useMemo(() => {
+    if (activeSport === 'all') return rawPositions
+    const connectedIds = new Set(filteredMoves.flatMap(m => [m.from_position_id, m.to_position_id]))
+    return rawPositions.filter(p => connectedIds.has(p.id))
+  }, [rawPositions, filteredMoves, activeSport])
 
-    const posNodes = positions.map(p => ({
+  const sports = useMemo(() => {
+    const set = new Set(rawMoves.map(m => m.sport ?? 'wrestling'))
+    return ['all', ...Array.from(set)]
+  }, [rawMoves])
+
+  // ── Toggle pair ─────────────────────────────────────────────────────────────
+  const togglePair = useCallback((key) => {
+    setExpandedPairs(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }, [])
+
+  // ── Build graph ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!filteredPositions.length) return
+
+    const { posXY, moveXY, pairMoves, visibleMoveIds } =
+      computeLayout(filteredPositions, filteredMoves, expandedPairs)
+
+    // Band label nodes
+    const bandNodes = PHASE_ORDER.map(phase => ({
+      id:          `band-${phase}`,
+      type:        'bandLabel',
+      position:    { x: -700, y: (BAND_CONFIG[phase]?.y ?? 0) - 10 },
+      data:        { label: BAND_CONFIG[phase]?.label ?? phase },
+      draggable:   false,
+      selectable:  false,
+      connectable: false,
+    }))
+
+    // Position nodes
+    const posNodes = filteredPositions.map(p => ({
       id:        `pos-${p.id}`,
       type:      'position',
       position:  posXY[p.id] ?? { x: 0, y: 0 },
@@ -288,76 +390,78 @@ export default function ExplorePage() {
       draggable: false,
     }))
 
-    const moveNodes = moves
+    // Move nodes
+    const moveNodes = filteredMoves
       .filter(m => visibleMoveIds.has(m.id))
       .map(m => ({
         id:        `move-${m.id}`,
         type:      'move',
         position:  moveXY[m.id] ?? { x: 0, y: 0 },
         data:      {
-          name:             m.name,
-          slug:             m.slug,
-          from_position_id: m.from_position_id,
-          to_position_id:   m.to_position_id,
-          isOnBoard:        boardIds.has(m.id),
-          confidence:       pm[m.id]?.confidence ?? null,
-          onClick:          () => handleMoveClick(m),
+          name:      m.name,
+          slug:      m.slug,
+          isOnBoard: boardMoveIds.has(m.id),
+          confidence: progressMap[m.id]?.confidence ?? null,
+          onClick:   () => handleMoveClick(m),
         },
         draggable: false,
       }))
 
+    // Edges
     const edgeList = []
 
-    Object.entries(pairMoves).forEach(([key, ms]) => {
+    // Track how many aggregate edges share a source/target for curvature offset
+    const pairKeys = Object.keys(pairMoves)
+
+    pairKeys.forEach(key => {
+      const ms         = pairMoves[key]
       const [fromId, toId] = key.split('__')
-      const isExpanded = expanded.has(key)
+      const isExpanded = expandedPairs.has(key)
+
+      // Check if reverse also exists — if so, apply curvature offset
+      const reverseKey = `${toId}__${fromId}`
+      const hasReverse = !!pairMoves[reverseKey]
+      const curvature  = hasReverse ? 0.35 : 0.25
 
       if (isExpanded) {
+        const edgeStyle  = { stroke: 'var(--border-strong)', strokeWidth: 1.5 }
+        const markerEnd  = { type: 'ArrowClosed', width: 10, height: 10, color: 'var(--border-strong)' }
         ms.forEach(m => {
           if (!visibleMoveIds.has(m.id)) return
-          const edgeStyle = { stroke: 'var(--border-strong)', strokeWidth: 1.5 }
-          const marker    = { type: 'ArrowClosed', width: 10, height: 10, color: 'var(--border-strong)' }
           edgeList.push({
-            id: `ein-${m.id}`, source: `pos-${m.from_position_id}`, target: `move-${m.id}`,
-            type: 'smoothstep', style: edgeStyle, markerEnd: marker,
+            id: `ein-${m.id}`, source: `pos-${fromId}`, target: `move-${m.id}`,
+            type: 'bezier', style: edgeStyle, markerEnd,
           })
           edgeList.push({
-            id: `eout-${m.id}`, source: `move-${m.id}`, target: `pos-${m.to_position_id}`,
-            type: 'smoothstep', style: edgeStyle, markerEnd: marker,
+            id: `eout-${m.id}`, source: `move-${m.id}`, target: `pos-${toId}`,
+            type: 'bezier', style: edgeStyle, markerEnd,
           })
         })
       } else {
-        const onBoardCount = ms.filter(m => boardIds.has(m.id)).length
-        const confs        = ms.map(m => pm[m.id]?.confidence).filter(Boolean)
+        const onBoardCount = ms.filter(m => boardMoveIds.has(m.id)).length
+        const confs        = ms.map(m => progressMap[m.id]?.confidence).filter(Boolean)
         const avgConf      = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length : null
 
         edgeList.push({
-          id:     `agg-${key}`,
-          source: `pos-${fromId}`,
-          target: `pos-${toId}`,
-          type:   'aggregate',
-          data:   {
-            count: ms.length,
+          id:       `agg-${key}`,
+          source:   `pos-${fromId}`,
+          target:   `pos-${toId}`,
+          type:     'aggregate',
+          data: {
+            count:        ms.length,
             onBoardCount,
             avgConfidence: avgConf,
-            onExpand: () => setExpandedPairs(prev => {
-              const next = new Set(prev)
-              next.has(key) ? next.delete(key) : next.add(key)
-              return next
-            }),
+            curvature,
+            isExpanded:   false,
+            onToggle:     () => togglePair(key),
           },
         })
       }
     })
 
-    setNodes([...posNodes, ...moveNodes])
+    setNodes([...bandNodes, ...posNodes, ...moveNodes])
     setEdges(edgeList)
-  }, [])
-
-  useEffect(() => {
-    if (!rawPositions.length) return
-    rebuildGraph(rawPositions, filteredMoves, boardMoveIds, progressMap, expandedPairs)
-  }, [rawPositions, filteredMoves, boardMoveIds, progressMap, expandedPairs, rebuildGraph])
+  }, [filteredPositions, filteredMoves, boardMoveIds, progressMap, expandedPairs, togglePair])
 
   // ── Move click ──────────────────────────────────────────────────────────────
   const handleMoveClick = async (move) => {
@@ -386,11 +490,6 @@ export default function ExplorePage() {
       return next
     })
   }, [])
-
-  const sports = useMemo(() => {
-    const set = new Set(rawMoves.map(m => m.sport ?? 'wrestling'))
-    return ['all', ...Array.from(set)]
-  }, [rawMoves])
 
   if (loading) return (
     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
@@ -449,8 +548,7 @@ export default function ExplorePage() {
         <LegendItem dot color="#EF4444" label="Confidence 1–2" />
         <LegendItem dot color="#7C3AED" label="On board, unrated" />
         <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
-        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Click edge pill to expand moves</div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Click move node to view detail</div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Click pill to expand · Click move for detail</div>
       </div>
 
       {/* MoveDetail panel */}
@@ -480,8 +578,8 @@ export default function ExplorePage() {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        fitViewOptions={{ padding: 0.3 }}
-        minZoom={0.1}
+        fitViewOptions={{ padding: 0.25 }}
+        minZoom={0.08}
         maxZoom={2.5}
         style={{ background: 'var(--bg-page)' }}
         proOptions={{ hideAttribution: true }}
@@ -489,7 +587,10 @@ export default function ExplorePage() {
         <Background color="var(--border)" gap={28} size={1} />
         <Controls showInteractive={false} />
         <MiniMap
-          nodeColor={n => n.type === 'position' ? POSITION_COLOR : n.data?.isOnBoard ? MOVE_COLOR : UNDISCOVERED}
+          nodeColor={n => {
+            if (n.type === 'bandLabel') return 'transparent'
+            return n.type === 'position' ? POSITION_COLOR : n.data?.isOnBoard ? MOVE_COLOR : UNDISCOVERED
+          }}
           maskColor="rgba(0,0,0,0.05)"
           style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border)' }}
         />
@@ -498,12 +599,12 @@ export default function ExplorePage() {
   )
 }
 
-function LegendItem({ color, label, square, dot }) {
+function LegendItem({ color, label, square }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
       {square
         ? <div style={{ width: 13, height: 13, borderRadius: 3, border: `2px solid ${color}`, flexShrink: 0 }} />
-        : <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        : <div style={{ width: 8,  height: 8,  borderRadius: '50%', background: color, flexShrink: 0 }} />
       }
       <span>{label}</span>
     </div>
