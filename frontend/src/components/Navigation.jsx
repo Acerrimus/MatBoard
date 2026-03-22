@@ -386,6 +386,7 @@ export default function Navigation({ theme, onToggleTheme, user, profile, onSign
         />
         <main style={{
           flex: 1,
+          height: 0
           overflow: 'auto',
           background: 'var(--bg-page)',
           // Pad bottom so content clears the tab bar
