@@ -1,21 +1,6 @@
 import { useState } from 'react'
-import { Chip } from './MoveCard'
+import { Chip, confidenceColor, confidenceBg } from './MoveCard'
 import { addToBoard, removeFromBoard, upsertProgress, deleteProgress } from '../api'
-
-// ── Confidence colours ────────────────────────────────────────────────────────
-export function confidenceColor(confidence) {
-  if (!confidence) return 'var(--border)'
-  if (confidence <= 2) return '#EF4444'
-  if (confidence === 3) return '#F59E0B'
-  return '#22C55E'
-}
-
-export function confidenceBg(confidence) {
-  if (!confidence) return 'transparent'
-  if (confidence <= 2) return 'rgba(239,68,68,0.08)'
-  if (confidence === 3) return 'rgba(245,158,11,0.08)'
-  return 'rgba(34,197,94,0.08)'
-}
 
 // ── Risk dots ─────────────────────────────────────────────────────────────────
 function RiskDots({ value }) {
@@ -124,7 +109,7 @@ export default function MoveDetail({
   onBoardChange,
   onProgressChange,
 }) {
-  const [boardLoading, setBoardLoading]     = useState(false)
+  const [boardLoading, setBoardLoading]       = useState(false)
   const [progressLoading, setProgressLoading] = useState(false)
 
   if (!move) return null
@@ -155,19 +140,22 @@ export default function MoveDetail({
   }
 
   // ── Favourite toggle ────────────────────────────────────────────────────────
+  // Favourite is independent of confidence — it just flips is_favourite.
+  // If there's no progress row at all yet, we create one with just is_favourite.
+  // If there's no confidence and we're unfavouriting, delete the row entirely.
   const handleFavouriteToggle = async () => {
+    if (progressLoading) return
     setProgressLoading(true)
     try {
-      if (!confidence && isFavourite) {
-        // No confidence set — if unfavouriting with no confidence, delete the row
+      const newFavourite = !isFavourite
+      if (!newFavourite && confidence === null) {
+        // Nothing left to store — delete the row
         await deleteProgress(move.id)
         onProgressChange(move.id, null)
       } else {
-        const updated = await upsertProgress(
-          move.id,
-          confidence ?? 1,
-          !isFavourite
-        )
+        const body = { is_favourite: newFavourite }
+        if (confidence !== null) body.confidence = confidence
+        const updated = await upsertProgress(move.id, body.confidence ?? null, newFavourite)
         onProgressChange(move.id, updated)
       }
     } catch (e) {
@@ -178,19 +166,24 @@ export default function MoveDetail({
   }
 
   // ── Confidence change ───────────────────────────────────────────────────────
+  // Clicking the active value clears confidence but keeps the row if favourited.
   const handleConfidenceChange = async (value) => {
+    if (progressLoading) return
     setProgressLoading(true)
     try {
       if (value === confidence) {
-        // Clicking the same value — clear the rating
-        if (!isFavourite) {
+        // Clear confidence
+        if (isFavourite) {
+          // Keep row, just remove confidence
+          const updated = await upsertProgress(move.id, null, true)
+          onProgressChange(move.id, updated)
+        } else {
+          // Nothing left — delete row
           await deleteProgress(move.id)
           onProgressChange(move.id, null)
-        } else {
-          const updated = await upsertProgress(move.id, null, isFavourite)
-          onProgressChange(move.id, updated)
         }
       } else {
+        // Set new confidence, preserve favourite state
         const updated = await upsertProgress(move.id, value, isFavourite)
         onProgressChange(move.id, updated)
       }
@@ -206,7 +199,7 @@ export default function MoveDetail({
 
   return (
     <div style={{
-      background: `var(--bg-surface)`,
+      background: 'var(--bg-surface)',
       border: `1.5px solid ${borderColor}`,
       borderRadius: 'var(--radius-lg)',
       overflow: 'hidden',
@@ -264,7 +257,6 @@ export default function MoveDetail({
           {/* Action buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
 
-            {/* Close */}
             <button
               onClick={onBack}
               style={{
@@ -281,7 +273,6 @@ export default function MoveDetail({
               ✕ close
             </button>
 
-            {/* Add to board */}
             <button
               onClick={handleBoardToggle}
               disabled={boardLoading}
@@ -300,10 +291,9 @@ export default function MoveDetail({
                 whiteSpace: 'nowrap',
               }}
             >
-              {isOnBoard ? '✓ On board' : '+ Add to board'}
+              {boardLoading ? '...' : isOnBoard ? '✓ On board' : '+ Add to board'}
             </button>
 
-            {/* Favourite — only shown if on board */}
             {isOnBoard && (
               <button
                 onClick={handleFavouriteToggle}
@@ -327,7 +317,7 @@ export default function MoveDetail({
         </div>
       </div>
 
-      {/* Video embed */}
+      {/* Video */}
       {videoId ? (
         <div style={{ position: 'relative', paddingBottom: '40%', background: '#000' }}>
           <iframe
@@ -335,12 +325,7 @@ export default function MoveDetail({
             title={move.name}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            style={{
-              position: 'absolute',
-              top: 0, left: 0,
-              width: '100%', height: '100%',
-              border: 'none',
-            }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
           />
         </div>
       ) : (
@@ -369,12 +354,7 @@ export default function MoveDetail({
         alignItems: 'flex-start',
       }}>
         <StatCard label="Scoring value">
-          <span style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 20,
-            fontWeight: 700,
-            color: 'var(--success)',
-          }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--success)' }}>
             {move.scoring_value ?? 0}pts
           </span>
         </StatCard>
@@ -410,7 +390,6 @@ export default function MoveDetail({
           </button>
         </StatCard>
 
-        {/* Confidence selector — only shown if on board */}
         {isOnBoard && (
           <div style={{ marginLeft: 'auto' }}>
             <ConfidenceSelector

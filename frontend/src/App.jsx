@@ -18,7 +18,7 @@ function getInitialTheme() {
 function Protected({ children }) {
   const { user, profile, loading } = useAuth()
 
-  if (import.meta.env.DEV) return children
+  // if (import.meta.env.DEV) return children
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
 

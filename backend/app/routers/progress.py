@@ -1,17 +1,26 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional
 from app.auth import get_current_user, get_supabase_client
 
 router = APIRouter()
 
-# ── Request body schema ───────────────────────────────────────────────────────
+
 class ProgressUpsert(BaseModel):
     move_id: str
-    confidence: int = Field(..., ge=1, le=5)   # 1–5, required
+    confidence: Optional[int] = None
     is_favourite: Optional[bool] = False
 
-# ── GET all progress for current user ────────────────────────────────────────
+    @model_validator(mode='after')
+    def validate_confidence(self):
+        if self.confidence is not None and not (1 <= self.confidence <= 5):
+            raise ValueError('confidence must be between 1 and 5')
+        # Must have at least one of confidence or is_favourite
+        if self.confidence is None and not self.is_favourite:
+            raise ValueError('must provide confidence or is_favourite')
+        return self
+
+
 @router.get("/")
 def get_my_progress(
     user=Depends(get_current_user),
@@ -23,7 +32,7 @@ def get_my_progress(
         .execute()
     return response.data
 
-# ── GET progress for one move ─────────────────────────────────────────────────
+
 @router.get("/{move_id}")
 def get_progress_for_move(
     move_id: str,
@@ -40,24 +49,27 @@ def get_progress_for_move(
         raise HTTPException(status_code=404, detail="No progress found for this move")
     return response.data[0]
 
-# ── POST upsert a rating ──────────────────────────────────────────────────────
+
 @router.post("/")
 def upsert_progress(
     body: ProgressUpsert,
     user=Depends(get_current_user),
     client=Depends(get_supabase_client)
 ):
+    row = {
+        "user_id": user.id,
+        "move_id": body.move_id,
+        "is_favourite": body.is_favourite,
+    }
+    if body.confidence is not None:
+        row["confidence"] = body.confidence
+
     response = client.table("user_move_progress") \
-        .upsert({
-            "user_id": user.id,
-            "move_id": body.move_id,
-            "confidence": body.confidence,
-            "is_favourite": body.is_favourite,
-        }, on_conflict="user_id,move_id") \
+        .upsert(row, on_conflict="user_id,move_id") \
         .execute()
     return response.data[0]
 
-# ── DELETE a rating ───────────────────────────────────────────────────────────
+
 @router.delete("/{move_id}")
 def delete_progress(
     move_id: str,
