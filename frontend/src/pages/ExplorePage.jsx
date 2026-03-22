@@ -627,7 +627,7 @@ function ExploreInner({
   }, [setProgressMap])
 
   return (
-    <div style={{ height: '100%', position: 'relative' }}>
+    <div style={{ height: '100dvh', position: 'relative' }}>
 
       {/* Top bar */}
       <div style={{
