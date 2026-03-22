@@ -767,8 +767,8 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
         onNodeClick={(_, node) => { if (node.data?.onSelect) node.data.onSelect(); else if (node.data?.onFocus) node.data.onFocus() }}
       >
         <Background color="var(--border)" gap={28} size={1} />
-        <Controls showInteractive={false} />
-        <MiniMap
+        {window.innerWidth >= 768 && <Controls showInteractive={false} />}
+        {window.innerWidth >= 768 && <MiniMap
           nodeColor={n => {
             if (n.type === 'bandLabel') return 'transparent'
             if (['mapPosition','focusCenter','focusDest'].includes(n.type)) return POSITION_COLOR
@@ -776,7 +776,7 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
           }}
           maskColor="rgba(0,0,0,0.05)"
           style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border)' }}
-        />
+        />}
       </ReactFlow>
     </div>
   )
