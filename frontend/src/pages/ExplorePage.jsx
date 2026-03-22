@@ -113,8 +113,7 @@ function buildFocusLayout(levels, allMoves, allPositions, boardMoveIds, progress
           onSelect:    () => callbacks.onSelectMove(li, m),
           onDetail:    () => callbacks.onDetail(m),
         },
-        draggable:  false,
-        selectable: false,
+        draggable: false,
       })
 
       // Edge: position → move
@@ -763,6 +762,9 @@ function ExploreInner({
         minZoom={0.08} maxZoom={2.5}
         style={{ background: 'var(--bg-page)' }}
         proOptions={{ hideAttribution: true }}
+        nodesFocusable={false}
+        nodesConnectable={false}
+        onNodeClick={(_, node) => { if (node.data?.onSelect) node.data.onSelect(); else if (node.data?.onFocus) node.data.onFocus() }}
       >
         <Background color="var(--border)" gap={28} size={1} />
         <Controls showInteractive={false} />
