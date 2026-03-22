@@ -60,6 +60,7 @@ export function AuthProvider({ children }) {
       user,
       session,
       profile,
+      setProfile,
       loading,
       refreshProfile,
       signInWithGoogle,
