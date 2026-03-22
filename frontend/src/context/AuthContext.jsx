@@ -6,7 +6,7 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [session, setSession] = useState(null)
-  const [profile, setProfile] = useState(null)
+  const [profile, setProfile] = useState(undefined) // undefined = not yet fetched, null = confirmed no profile
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = useCallback(async (userId) => {
@@ -24,7 +24,6 @@ export function AuthProvider({ children }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
-    // Failsafe — if session check hangs, unblock the UI after 8s
     const timeout = setTimeout(() => setLoading(false), 8000)
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {

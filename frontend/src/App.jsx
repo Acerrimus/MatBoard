@@ -20,7 +20,24 @@ function getInitialTheme() {
 function Protected({ children }) {
   const { user, profile, loading } = useAuth()
 
-  if (loading) return (
+  // Show spinner while auth session is resolving
+  if (loading) return <LoadingScreen />
+
+  // Not logged in
+  if (!user) return <Navigate to="/login" replace />
+
+  // Profile not yet fetched (undefined = still loading, null = confirmed missing)
+  if (profile === undefined) return <LoadingScreen />
+
+  // Profile missing or role not set — send to onboarding
+  if (!profile || profile.role === null) return <Navigate to="/onboarding" replace />
+
+  return children
+}
+
+// ── Loading screen ────────────────────────────────────────────────────────────
+function LoadingScreen() {
+  return (
     <div style={{
       minHeight: '100vh',
       background: 'var(--bg-page)',
@@ -53,10 +70,6 @@ function Protected({ children }) {
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
-
-  if (!user) return <Navigate to="/login" replace />
-  if (!profile || profile.role === null) return <Navigate to="/onboarding" replace />
-  return children
 }
 
 // ── App shell ─────────────────────────────────────────────────────────────────
