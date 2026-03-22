@@ -6,6 +6,7 @@ import GraphPage from './pages/GraphPage'
 import LoginPage from './pages/LoginPage'
 import OnboardingPage from './pages/OnboardingPage'
 import ClubSetupPage from './pages/ClubSetupPage'
+import ProgressPage from './pages/ProgressPage'
 import './styles/globals.css'
 
 function getInitialTheme() {
@@ -43,7 +44,7 @@ function AppShell({ theme, onToggleTheme }) {
         <Routes>
           <Route path="/"           element={<Navigate to="/graph" replace />} />
           <Route path="/graph"      element={<GraphPage />} />
-          <Route path="/progress"   element={<Placeholder title="My Progress" />} />
+          <Route path="/progress"   element={<ProgressPage />} />
           <Route path="/club"       element={<Placeholder title="My Club" />} />
           <Route path="/athletes"   element={<Placeholder title="Athletes" />} />
           <Route path="/curricula"  element={<Placeholder title="Curricula" />} />
