@@ -58,7 +58,7 @@ def create_club(
     slug = "".join(c for c in slug if c.isalnum() or c == "-")
 
     club_res = client.table("clubs") \
-        .insert({
+        .upsert({
             "name": body.name.strip(),
             "slug": slug,
             "owner_id": user.id,
