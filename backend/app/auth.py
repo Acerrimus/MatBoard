@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 from app.config import settings
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -9,9 +9,13 @@ def get_supabase_client(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ) -> Client:
     token = credentials.credentials
-    client = create_client(settings.supabase_url, settings.supabase_key)
-    client.postgrest.auth(token)
-    return client
+    return create_client(
+        settings.supabase_url,
+        settings.supabase_key,
+        options=ClientOptions(
+            headers={"Authorization": f"Bearer {token}"}
+        )
+    )
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
