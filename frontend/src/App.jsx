@@ -8,7 +8,7 @@ import GraphPage from './pages/GraphPage'
 import ExplorePage from './pages/ExplorePage'
 import LoginPage from './pages/LoginPage'
 import OnboardingPage from './pages/OnboardingPage'
-import ClubSetupPage from './pages/ClubSetupPage'
+// import ClubSetupPage from './pages/ClubSetupPage'
 import ProgressPage from './pages/ProgressPage'
 import ClubPage from './pages/ClubPage'
 import './styles/globals.css'
@@ -110,7 +110,6 @@ export default function App() {
         <Routes>
           <Route path="/login"      element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/club-setup" element={<ClubSetupPage />} />
           <Route path="/*" element={
             <Protected>
               <AppShell theme={theme} onToggleTheme={toggleTheme} />
