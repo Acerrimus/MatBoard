@@ -74,112 +74,372 @@ function SectionLabel({ children, count }) {
   )
 }
 
-// ── Confidence cell ───────────────────────────────────────────────────────────
-function ConfidenceCell({ data }) {
+// ── Confidence badge (card style, not table cell) ─────────────────────────────
+function ConfidenceBadge({ data }) {
   if (!data) {
     return (
-      <td style={{
-        padding: '8px 6px',
-        textAlign: 'center',
-        borderBottom: '0.5px solid var(--border)',
+      <div style={{
+        width: 28,
+        height: 28,
+        borderRadius: 'var(--radius-sm)',
+        border: '0.5px solid var(--border)',
+        background: 'var(--bg-subtle)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 11,
+        color: 'var(--text-muted)',
+        fontFamily: 'var(--font-display)',
+        flexShrink: 0,
       }}>
-        <div style={{
-          width: 26,
-          height: 26,
-          borderRadius: 'var(--radius-sm)',
-          border: '0.5px solid var(--border)',
-          background: 'var(--bg-subtle)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 11,
-          color: 'var(--text-muted)',
-          fontFamily: 'var(--font-display)',
-        }}>
-          ·
-        </div>
-      </td>
+        ·
+      </div>
     )
   }
   const conf = data.confidence
   return (
-    <td style={{
-      padding: '8px 6px',
-      textAlign: 'center',
-      borderBottom: '0.5px solid var(--border)',
+    <div style={{
+      width: 28,
+      height: 28,
+      borderRadius: 'var(--radius-sm)',
+      border: `1.5px solid ${confidenceColor(conf)}`,
+      background: confidenceBg(conf),
+      color: confidenceColor(conf),
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 11,
+      fontWeight: 700,
+      fontFamily: 'var(--font-display)',
+      flexShrink: 0,
     }}>
-      <div style={{
-        width: 26,
-        height: 26,
-        borderRadius: 'var(--radius-sm)',
-        border: `1.5px solid ${confidenceColor(conf)}`,
-        background: confidenceBg(conf),
-        color: confidenceColor(conf),
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 11,
-        fontWeight: 700,
-        fontFamily: 'var(--font-display)',
-      }}>
-        {conf}
-      </div>
-    </td>
+      {conf}
+    </div>
   )
 }
 
-// ── Avg cell ──────────────────────────────────────────────────────────────────
-function AvgCell({ value }) {
-  if (value == null) {
+// ── Chain card for curriculum view ────────────────────────────────────────────
+function ChainDashboardCard({ chain, athletes, matrix, athleteAggregates }) {
+  const moves = chain.moves || []
+
+  if (moves.length === 0) {
     return (
-      <td style={{
-        padding: '8px 6px',
-        textAlign: 'center',
-        borderBottom: '0.5px solid var(--border)',
-        fontSize: 11,
-        color: 'var(--text-muted)',
+      <div style={{
+        background: 'var(--bg-surface)',
+        border: '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '16px 20px',
+        marginBottom: 12,
       }}>
-        —
-      </td>
+        <div style={{
+          fontSize: 13,
+          fontWeight: 600,
+          color: 'var(--text-primary)',
+          marginBottom: 4,
+        }}>
+          {chain.name}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          No moves in this chain
+        </div>
+      </div>
     )
   }
-  const color = value <= 2 ? confidenceColor(1) : value <= 3.5 ? confidenceColor(3) : confidenceColor(5)
+
   return (
-    <td style={{
-      padding: '8px 6px',
-      textAlign: 'center',
-      borderBottom: '0.5px solid var(--border)',
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '0.5px solid var(--border)',
+      borderLeft: '3px solid var(--move-color)',
+      borderRadius: 'var(--radius-lg)',
+      padding: '16px 20px',
+      marginBottom: 12,
     }}>
-      <span style={{
+      {/* Chain name */}
+      <div style={{
+        fontSize: 14,
+        fontWeight: 600,
+        color: 'var(--text-primary)',
         fontFamily: 'var(--font-display)',
-        fontWeight: 700,
-        fontSize: 13,
-        color,
+        marginBottom: 4,
       }}>
-        {value.toFixed(1)}
-      </span>
-    </td>
+        {chain.name}
+      </div>
+
+      {/* Chain flow preview */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0,
+        flexWrap: 'wrap',
+        marginBottom: 16,
+      }}>
+        {moves.map((move, i) => (
+          <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{
+              padding: '3px 8px',
+              fontSize: 11,
+              fontWeight: 500,
+              color: 'var(--text-move)',
+              background: 'var(--move-soft)',
+              border: '0.5px solid var(--move-color)',
+              borderRadius: 'var(--radius-sm)',
+              whiteSpace: 'nowrap',
+            }}>
+              {move.name}
+            </div>
+            {i < moves.length - 1 && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 4px' }}>→</div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Athlete rows */}
+      {athletes.map((athlete, ai) => {
+        const athleteProgress = matrix[athlete.id] || {}
+        const chainConfs = moves
+          .map(m => athleteProgress[m.id]?.confidence)
+          .filter(Boolean)
+        const chainAvg = chainConfs.length > 0
+          ? (chainConfs.reduce((a, b) => a + b, 0) / chainConfs.length).toFixed(1)
+          : null
+
+        return (
+          <div key={athlete.id} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 0',
+            borderTop: ai === 0 ? '0.5px solid var(--border)' : 'none',
+            borderBottom: '0.5px solid var(--border)',
+          }}>
+            {/* Name */}
+            <div style={{
+              width: 130,
+              flexShrink: 0,
+              fontSize: 13,
+              fontWeight: 500,
+              color: 'var(--text-primary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {athlete.display_name || 'Unnamed'}
+            </div>
+
+            {/* Chain avg */}
+            <div style={{
+              width: 40,
+              flexShrink: 0,
+              textAlign: 'center',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              fontSize: 12,
+              color: chainAvg
+                ? (parseFloat(chainAvg) <= 2 ? confidenceColor(1) : parseFloat(chainAvg) <= 3.5 ? confidenceColor(3) : confidenceColor(5))
+                : 'var(--text-muted)',
+            }}>
+              {chainAvg || '—'}
+            </div>
+
+            {/* Move badges */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {moves.map((move, mi) => (
+                <ConfidenceBadge key={`${move.id}-${mi}`} data={athleteProgress[move.id]} />
+              ))}
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Squad avg row */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '8px 0 0',
+      }}>
+        <div style={{
+          width: 130,
+          flexShrink: 0,
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: 'var(--text-muted)',
+        }}>
+          Squad Avg
+        </div>
+        <div style={{ width: 40, flexShrink: 0 }} />
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {moves.map((move, mi) => {
+            const confs = athletes
+              .map(a => matrix[a.id]?.[move.id]?.confidence)
+              .filter(Boolean)
+            const avg = confs.length > 0
+              ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1)
+              : null
+            return (
+              <div key={`${move.id}-${mi}`} style={{
+                width: 28,
+                height: 28,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 10,
+                fontWeight: 700,
+                fontFamily: 'var(--font-display)',
+                flexShrink: 0,
+                color: avg
+                  ? (parseFloat(avg) <= 2 ? confidenceColor(1) : parseFloat(avg) <= 3.5 ? confidenceColor(3) : confidenceColor(5))
+                  : 'var(--text-muted)',
+              }}>
+                {avg || '—'}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   )
 }
 
-// ── Athlete row label ─────────────────────────────────────────────────────────
-function AthleteLabel({ name, even }) {
+// ── Flat matrix for "All moves" view ──────────────────────────────────────────
+function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates, squadAvg }) {
   return (
-    <td style={{
-      position: 'sticky',
-      left: 0,
-      zIndex: 1,
-      background: even ? 'var(--bg-surface)' : 'var(--bg-subtle)',
-      padding: '8px 14px',
-      fontWeight: 500,
-      fontSize: 13,
-      color: 'var(--text-primary)',
-      borderBottom: '0.5px solid var(--border)',
-      whiteSpace: 'nowrap',
-      minWidth: 160,
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '0.5px solid var(--border)',
+      borderRadius: 'var(--radius-lg)',
+      overflow: 'hidden',
     }}>
-      {name || 'Unnamed'}
-    </td>
+      <div style={{
+        overflow: 'auto',
+        maxHeight: 'calc(100vh - 360px)',
+      }}>
+        <table style={{
+          borderCollapse: 'collapse',
+          width: 'max-content',
+          minWidth: '100%',
+          fontFamily: 'var(--font-body)',
+        }}>
+          <thead>
+            <tr>
+              <th style={{
+                position: 'sticky', top: 0, left: 0, zIndex: 3,
+                background: 'var(--bg-subtle)', padding: '10px 14px',
+                textAlign: 'left', fontSize: 10, fontWeight: 600,
+                letterSpacing: '0.14em', textTransform: 'uppercase',
+                color: 'var(--text-muted)', borderBottom: '0.5px solid var(--border)',
+                minWidth: 160,
+              }}>Athlete</th>
+              <th style={{
+                position: 'sticky', top: 0, zIndex: 2,
+                background: 'var(--bg-subtle)', padding: '10px 8px',
+                textAlign: 'center', fontSize: 10, fontWeight: 600,
+                letterSpacing: '0.14em', textTransform: 'uppercase',
+                color: 'var(--text-muted)', borderBottom: '0.5px solid var(--border)',
+                minWidth: 50,
+              }}>Avg</th>
+              {moves.map(move => (
+                <th key={move.id} style={{
+                  position: 'sticky', top: 0, zIndex: 2,
+                  background: 'var(--bg-subtle)', padding: '10px 6px',
+                  textAlign: 'center', fontSize: 11, fontWeight: 500,
+                  color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)',
+                  minWidth: 70, maxWidth: 90,
+                }}>
+                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {move.name}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {athletes.map((athlete, i) => {
+              const agg = athleteAggregates[athlete.id]
+              const even = i % 2 === 0
+              return (
+                <tr key={athlete.id} style={{ background: even ? 'transparent' : 'var(--bg-subtle)' }}>
+                  <td style={{
+                    position: 'sticky', left: 0, zIndex: 1,
+                    background: even ? 'var(--bg-surface)' : 'var(--bg-subtle)',
+                    padding: '8px 14px', fontWeight: 500, fontSize: 13,
+                    color: 'var(--text-primary)', borderBottom: '0.5px solid var(--border)',
+                    whiteSpace: 'nowrap', minWidth: 160,
+                  }}>{athlete.display_name || 'Unnamed'}</td>
+                  <td style={{
+                    padding: '8px 6px', textAlign: 'center',
+                    borderBottom: '0.5px solid var(--border)',
+                  }}>
+                    {agg?.avg_confidence != null ? (
+                      <span style={{
+                        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13,
+                        color: agg.avg_confidence <= 2 ? confidenceColor(1) : agg.avg_confidence <= 3.5 ? confidenceColor(3) : confidenceColor(5),
+                      }}>{agg.avg_confidence.toFixed(1)}</span>
+                    ) : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>}
+                  </td>
+                  {moves.map(move => {
+                    const data = matrix[athlete.id]?.[move.id]
+                    if (!data) {
+                      return (
+                        <td key={move.id} style={{ padding: '8px 6px', textAlign: 'center', borderBottom: '0.5px solid var(--border)' }}>
+                          <div style={{
+                            width: 26, height: 26, borderRadius: 'var(--radius-sm)',
+                            border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-display)',
+                          }}>·</div>
+                        </td>
+                      )
+                    }
+                    const conf = data.confidence
+                    return (
+                      <td key={move.id} style={{ padding: '8px 6px', textAlign: 'center', borderBottom: '0.5px solid var(--border)' }}>
+                        <div style={{
+                          width: 26, height: 26, borderRadius: 'var(--radius-sm)',
+                          border: `1.5px solid ${confidenceColor(conf)}`, background: confidenceBg(conf),
+                          color: confidenceColor(conf), display: 'inline-flex', alignItems: 'center',
+                          justifyContent: 'center', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-display)',
+                        }}>{conf}</div>
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            })}
+            <tr style={{ background: 'var(--bg-subtle)' }}>
+              <td style={{
+                position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-subtle)',
+                padding: '10px 14px', fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+                textTransform: 'uppercase', color: 'var(--text-muted)',
+                borderTop: '1.5px solid var(--border-strong)',
+              }}>Squad Avg</td>
+              <td style={{ padding: '8px 6px', textAlign: 'center', borderTop: '1.5px solid var(--border-strong)' }}>
+                {squadAvg ? (
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{squadAvg}</span>
+                ) : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>}
+              </td>
+              {moves.map(move => {
+                const agg = moveAggregates[move.id]
+                return (
+                  <td key={move.id} style={{ padding: '8px 6px', textAlign: 'center', borderTop: '1.5px solid var(--border-strong)' }}>
+                    {agg?.avg_confidence != null ? (
+                      <span style={{
+                        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12,
+                        color: agg.avg_confidence <= 2 ? confidenceColor(1) : agg.avg_confidence <= 3.5 ? confidenceColor(3) : confidenceColor(5),
+                      }}>{agg.avg_confidence.toFixed(1)}</span>
+                    ) : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>}
+                  </td>
+                )
+              })}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
 
@@ -187,39 +447,23 @@ function AthleteLabel({ name, even }) {
 function EmptySquad({ clubName, inviteCode }) {
   return (
     <div style={{
-      background: 'var(--bg-surface)',
-      border: '0.5px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-      padding: '40px 24px',
-      textAlign: 'center',
+      background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+      borderRadius: 'var(--radius-lg)', padding: '40px 24px', textAlign: 'center',
     }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>🤼</div>
       <div style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 16,
-        fontWeight: 600,
-        color: 'var(--text-primary)',
-        marginBottom: 6,
-      }}>
-        No athletes yet
-      </div>
+        fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600,
+        color: 'var(--text-primary)', marginBottom: 6,
+      }}>No athletes yet</div>
       <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 16 }}>
         Share your invite code so athletes can join {clubName}.
       </div>
       <code style={{
-        display: 'inline-block',
-        padding: '8px 18px',
-        background: 'var(--bg-subtle)',
-        border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-md)',
-        fontSize: 18,
-        fontWeight: 700,
-        fontFamily: 'var(--font-display)',
-        letterSpacing: '0.15em',
-        color: 'var(--accent)',
-      }}>
-        {inviteCode}
-      </code>
+        display: 'inline-block', padding: '8px 18px', background: 'var(--bg-subtle)',
+        border: '0.5px solid var(--border)', borderRadius: 'var(--radius-md)',
+        fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)',
+        letterSpacing: '0.15em', color: 'var(--accent)',
+      }}>{inviteCode}</code>
     </div>
   )
 }
@@ -276,20 +520,12 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[1, 2, 3, 4].map(i => (
             <div key={i} style={{
-              height: 52,
-              background: 'var(--bg-subtle)',
-              borderRadius: 'var(--radius-md)',
-              animation: 'pulse 1.4s ease infinite',
-              animationDelay: `${i * 0.1}s`,
+              height: 52, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)',
+              animation: 'pulse 1.4s ease infinite', animationDelay: `${i * 0.1}s`,
             }} />
           ))}
         </div>
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.4; }
-          }
-        `}</style>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
       </div>
     )
   }
@@ -298,15 +534,9 @@ export default function DashboardPage() {
     return (
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
         <div style={{
-          background: 'var(--accent-soft)',
-          border: '0.5px solid var(--border-accent)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 16px',
-          fontSize: 13,
-          color: 'var(--accent)',
-        }}>
-          {error}
-        </div>
+          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+          borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: 'var(--accent)',
+        }}>{error}</div>
       </div>
     )
   }
@@ -315,20 +545,14 @@ export default function DashboardPage() {
     return (
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
         <div style={{
-          background: 'var(--accent-soft)',
-          border: '0.5px solid var(--border-accent)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 16px',
-          fontSize: 13,
-          color: 'var(--accent)',
-        }}>
-          No club found. Create or join a club first.
-        </div>
+          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+          borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: 'var(--accent)',
+        }}>No club found. Create or join a club first.</div>
       </div>
     )
   }
 
-  const { athletes, moves, matrix, athlete_aggregates, move_aggregates } = dashboard
+  const { athletes, moves, chains, matrix, athlete_aggregates, move_aggregates } = dashboard
 
   const athleteAggs = Object.values(athlete_aggregates)
   const ratedAthletes = athleteAggs.filter(a => a.avg_confidence != null)
@@ -341,275 +565,102 @@ export default function DashboardPage() {
   const weakMoves = moveAggs.filter(([, v]) => v.avg_confidence != null && v.avg_confidence <= 2)
   const weakCount = weakMoves.length
 
+  const isCurriculumView = selectedCurriculum && chains && chains.length > 0
+
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
 
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-          marginBottom: 4,
-        }}>
-          Squad Dashboard
-        </div>
+          fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+          textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4,
+        }}>Squad Dashboard</div>
         <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 28,
-          fontWeight: 700,
-          letterSpacing: '-0.5px',
-          color: 'var(--text-primary)',
-          margin: 0,
-        }}>
-          {club.name}
-        </h1>
+          fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700,
+          letterSpacing: '-0.5px', color: 'var(--text-primary)', margin: 0,
+        }}>{club.name}</h1>
       </div>
 
       {athletes.length === 0 ? (
         <EmptySquad clubName={club.name} inviteCode={club.invite_code} />
       ) : (
         <>
-          {/* Stats row */}
+          {/* Stats */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
             <StatPill label="Athletes" value={athletes.length} />
             <StatPill label="Ratings" value={totalRatings} />
             <StatPill label="Squad Avg" value={squadAvg} />
             <StatPill label="Moves" value={moves.length} />
-            {weakCount > 0 && (
-              <StatPill label="Weak Moves" value={weakCount} accent />
-            )}
+            {weakCount > 0 && <StatPill label="Weak Moves" value={weakCount} accent />}
           </div>
 
           {/* Curriculum filter */}
           {curricula.length > 0 && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 20,
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
               <span style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}>
-                Filter
-              </span>
+                fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}>Filter</span>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => handleCurriculumChange(null)}
                   style={{
-                    padding: '4px 10px',
-                    fontSize: 11,
-                    fontWeight: 600,
+                    padding: '4px 10px', fontSize: 11, fontWeight: 600,
                     borderRadius: 'var(--radius-sm)',
                     border: `0.5px solid ${!selectedCurriculum ? 'var(--accent)' : 'var(--border)'}`,
                     background: !selectedCurriculum ? 'var(--accent-soft)' : 'var(--bg-subtle)',
                     color: !selectedCurriculum ? 'var(--accent)' : 'var(--text-muted)',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-body)',
-                    transition: 'all var(--transition)',
+                    cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all var(--transition)',
                   }}
-                >
-                  All moves
-                </button>
+                >All moves</button>
                 {curricula.map(c => (
                   <button
                     key={c.id}
                     onClick={() => handleCurriculumChange(c.id)}
                     style={{
-                      padding: '4px 10px',
-                      fontSize: 11,
-                      fontWeight: 600,
+                      padding: '4px 10px', fontSize: 11, fontWeight: 600,
                       borderRadius: 'var(--radius-sm)',
                       border: `0.5px solid ${selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--border)'}`,
                       background: selectedCurriculum === c.id ? 'var(--move-soft)' : 'var(--bg-subtle)',
                       color: selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--text-muted)',
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-body)',
-                      transition: 'all var(--transition)',
+                      cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all var(--transition)',
                     }}
-                  >
-                    {c.name}
-                  </button>
+                  >{c.name}</button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Matrix */}
-          <SectionLabel count={`${athletes.length} × ${moves.length}`}>
-            Progress Matrix
-          </SectionLabel>
-
-          <div style={{
-            background: 'var(--bg-surface)',
-            border: '0.5px solid var(--border)',
-            borderRadius: 'var(--radius-lg)',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              overflow: 'auto',
-              maxHeight: 'calc(100vh - 360px)',
-            }}>
-              <table style={{
-                borderCollapse: 'collapse',
-                width: 'max-content',
-                minWidth: '100%',
-                fontFamily: 'var(--font-body)',
-              }}>
-                <thead>
-                  <tr>
-                    <th style={{
-                      position: 'sticky',
-                      top: 0,
-                      left: 0,
-                      zIndex: 3,
-                      background: 'var(--bg-subtle)',
-                      padding: '10px 14px',
-                      textAlign: 'left',
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: '0.14em',
-                      textTransform: 'uppercase',
-                      color: 'var(--text-muted)',
-                      borderBottom: '0.5px solid var(--border)',
-                      minWidth: 160,
-                    }}>
-                      Athlete
-                    </th>
-                    <th style={{
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 2,
-                      background: 'var(--bg-subtle)',
-                      padding: '10px 8px',
-                      textAlign: 'center',
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: '0.14em',
-                      textTransform: 'uppercase',
-                      color: 'var(--text-muted)',
-                      borderBottom: '0.5px solid var(--border)',
-                      minWidth: 50,
-                    }}>
-                      Avg
-                    </th>
-                    {moves.map(move => (
-                      <th key={move.id} style={{
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 2,
-                        background: 'var(--bg-subtle)',
-                        padding: '10px 6px',
-                        textAlign: 'center',
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: 'var(--text-secondary)',
-                        borderBottom: '0.5px solid var(--border)',
-                        minWidth: 70,
-                        maxWidth: 90,
-                      }}>
-                        <div style={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {move.name}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {athletes.map((athlete, i) => {
-                    const agg = athlete_aggregates[athlete.id]
-                    const even = i % 2 === 0
-                    return (
-                      <tr key={athlete.id} style={{
-                        background: even ? 'transparent' : 'var(--bg-subtle)',
-                      }}>
-                        <AthleteLabel name={athlete.display_name} even={even} />
-                        <AvgCell value={agg?.avg_confidence} />
-                        {moves.map(move => (
-                          <ConfidenceCell key={move.id} data={matrix[athlete.id]?.[move.id]} />
-                        ))}
-                      </tr>
-                    )
-                  })}
-
-                  {/* Squad avg row */}
-                  <tr style={{ background: 'var(--bg-subtle)' }}>
-                    <td style={{
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 1,
-                      background: 'var(--bg-subtle)',
-                      padding: '10px 14px',
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: '0.14em',
-                      textTransform: 'uppercase',
-                      color: 'var(--text-muted)',
-                      borderTop: '1.5px solid var(--border-strong)',
-                    }}>
-                      Squad Avg
-                    </td>
-                    <td style={{
-                      padding: '8px 6px',
-                      textAlign: 'center',
-                      borderTop: '1.5px solid var(--border-strong)',
-                    }}>
-                      {squadAvg ? (
-                        <span style={{
-                          fontFamily: 'var(--font-display)',
-                          fontWeight: 700,
-                          fontSize: 13,
-                          color: 'var(--text-primary)',
-                        }}>
-                          {squadAvg}
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
-                      )}
-                    </td>
-                    {moves.map(move => {
-                      const agg = move_aggregates[move.id]
-                      return (
-                        <td key={move.id} style={{
-                          padding: '8px 6px',
-                          textAlign: 'center',
-                          borderTop: '1.5px solid var(--border-strong)',
-                        }}>
-                          {agg?.avg_confidence != null ? (
-                            <span style={{
-                              fontFamily: 'var(--font-display)',
-                              fontWeight: 700,
-                              fontSize: 12,
-                              color: agg.avg_confidence <= 2
-                                ? confidenceColor(1)
-                                : agg.avg_confidence <= 3.5
-                                  ? confidenceColor(3)
-                                  : confidenceColor(5),
-                            }}>
-                              {agg.avg_confidence.toFixed(1)}
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
-                          )}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          {/* Content */}
+          {isCurriculumView ? (
+            <>
+              <SectionLabel count={chains.length}>Chains</SectionLabel>
+              {chains.map(chain => (
+                <ChainDashboardCard
+                  key={chain.id}
+                  chain={chain}
+                  athletes={athletes}
+                  matrix={matrix}
+                  athleteAggregates={athlete_aggregates}
+                />
+              ))}
+            </>
+          ) : (
+            <>
+              <SectionLabel count={`${athletes.length} × ${moves.length}`}>
+                Progress Matrix
+              </SectionLabel>
+              <FlatMatrix
+                athletes={athletes}
+                moves={moves}
+                matrix={matrix}
+                athleteAggregates={athlete_aggregates}
+                moveAggregates={move_aggregates}
+                squadAvg={squadAvg}
+              />
+            </>
+          )}
         </>
       )}
     </div>

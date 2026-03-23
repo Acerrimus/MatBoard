@@ -4,7 +4,6 @@ from app.auth import get_current_user, get_supabase_client
 
 router = APIRouter(tags=["dashboard"])
 
-
 @router.get("/{club_id}")
 async def get_club_dashboard(
     club_id: str,
@@ -37,6 +36,7 @@ async def get_club_dashboard(
         return {
             "athletes": [],
             "moves": [],
+            "chains": [],
             "matrix": {},
             "athlete_aggregates": {},
             "move_aggregates": {},
@@ -54,7 +54,29 @@ async def get_club_dashboard(
         key=lambda p: (p["display_name"] or "").lower(),
     )
 
-    # 4 — Get moves (all, or filtered by curriculum chains)
+    # 4 — Get all progress rows for these athletes
+    progress_resp = (
+        supabase.table("user_move_progress")
+        .select("user_id, move_id, confidence, is_favourite")
+        .in_("user_id", athlete_ids)
+        .execute()
+    )
+
+    # Build progress lookup
+    progress_lookup = {}
+    for row in progress_resp.data:
+        uid = row["user_id"]
+        mid = row["move_id"]
+        if uid not in progress_lookup:
+            progress_lookup[uid] = {}
+        progress_lookup[uid][mid] = {
+            "confidence": row["confidence"],
+            "is_favourite": row["is_favourite"],
+        }
+
+    # 5 — Get moves (chain-grouped if curriculum, flat otherwise)
+    chains_data = []
+
     if curriculum_id:
         curr_resp = (
             supabase.table("curricula")
@@ -70,42 +92,57 @@ async def get_club_dashboard(
 
         chains_resp = (
             supabase.table("curriculum_chains")
-            .select("id")
+            .select("id, name, position")
             .eq("curriculum_id", curriculum_id)
+            .order("position")
             .execute()
         )
-        chain_ids = [c["id"] for c in chains_resp.data]
 
-        move_ids = []
-        if chain_ids:
+        all_move_ids = set()
+
+        for chain in chains_resp.data:
             chain_moves_resp = (
                 supabase.table("curriculum_chain_moves")
-                .select("move_id")
-                .in_("chain_id", chain_ids)
+                .select("move_id, position")
+                .eq("chain_id", chain["id"])
                 .order("position")
                 .execute()
             )
-            # Deduplicate while preserving order
-            seen = set()
-            for cm in chain_moves_resp.data:
-                if cm["move_id"] not in seen:
-                    move_ids.append(cm["move_id"])
-                    seen.add(cm["move_id"])
 
-        if move_ids:
+            chain_move_ids = [cm["move_id"] for cm in chain_moves_resp.data]
+            all_move_ids.update(chain_move_ids)
+
+            chains_data.append({
+                "id": chain["id"],
+                "name": chain["name"],
+                "position": chain["position"],
+                "move_ids": chain_move_ids,
+            })
+
+        # Fetch all moves referenced by any chain
+        all_move_ids = list(all_move_ids)
+        if all_move_ids:
             moves_resp = (
                 supabase.table("moves")
                 .select("id, name, slug")
-                .in_("id", move_ids)
+                .in_("id", all_move_ids)
                 .execute()
             )
-            move_order = {mid: i for i, mid in enumerate(move_ids)}
-            moves = sorted(
-                moves_resp.data, key=lambda m: move_order.get(m["id"], 999)
-            )
+            moves_map = {m["id"]: m for m in moves_resp.data}
         else:
-            moves = []
-            move_ids = []
+            moves_map = {}
+
+        # Attach move objects to chains
+        for chain in chains_data:
+            chain["moves"] = [
+                moves_map[mid] for mid in chain["move_ids"] if mid in moves_map
+            ]
+            del chain["move_ids"]
+
+        # Flat list of all unique moves for aggregates
+        moves = list(moves_map.values())
+        move_ids = [m["id"] for m in moves]
+
     else:
         moves_resp = (
             supabase.table("moves")
@@ -116,40 +153,25 @@ async def get_club_dashboard(
         moves = moves_resp.data
         move_ids = [m["id"] for m in moves]
 
-    # 5 — Get all progress rows for these athletes
-    progress_resp = (
-        supabase.table("user_move_progress")
-        .select("user_id, move_id, confidence, is_favourite")
-        .in_("user_id", athlete_ids)
-        .execute()
-    )
-
     # 6 — Build matrix + aggregates
     move_id_set = set(move_ids)
     matrix = {}
     athlete_stats = {aid: {"rated": 0, "total": 0} for aid in athlete_ids}
     move_stats = {mid: {"rated": 0, "total": 0} for mid in move_ids}
 
-    for row in progress_resp.data:
-        uid = row["user_id"]
-        mid = row["move_id"]
-        conf = row["confidence"]
-
-        if mid not in move_id_set:
-            continue
-
-        if uid not in matrix:
-            matrix[uid] = {}
-        matrix[uid][mid] = {
-            "confidence": conf,
-            "is_favourite": row["is_favourite"],
-        }
-
-        athlete_stats[uid]["rated"] += 1
-        athlete_stats[uid]["total"] += conf
-        if mid in move_stats:
-            move_stats[mid]["rated"] += 1
-            move_stats[mid]["total"] += conf
+    for aid in athlete_ids:
+        athlete_progress = progress_lookup.get(aid, {})
+        for mid in move_ids:
+            prog = athlete_progress.get(mid)
+            if prog and prog["confidence"] is not None:
+                if aid not in matrix:
+                    matrix[aid] = {}
+                matrix[aid][mid] = prog
+                athlete_stats[aid]["rated"] += 1
+                athlete_stats[aid]["total"] += prog["confidence"]
+                if mid in move_stats:
+                    move_stats[mid]["rated"] += 1
+                    move_stats[mid]["total"] += prog["confidence"]
 
     athlete_aggregates = {}
     for aid in athlete_ids:
@@ -174,7 +196,8 @@ async def get_club_dashboard(
     return {
         "athletes": athletes,
         "moves": moves,
+        "chains": chains_data,
         "matrix": matrix,
         "athlete_aggregates": athlete_aggregates,
         "move_aggregates": move_aggregates,
-    }
+    }       
