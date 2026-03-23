@@ -102,8 +102,8 @@ function CurriculumCard({ curriculum, onSelect, onDelete }) {
 function ChainCard({ chain, curriculumId, onAddMove, onRemoveMove, onDeleteChain }) {
   const [picking, setPicking] = useState(false)
 
-  const existingIds = new Set(chain.moves.map(m => m.id))
-
+  const existingIds = new Set() // Allow duplicate moves in chains
+  
   // Determine the "next" position based on last move's to_position
   const lastMove = chain.moves.length > 0 ? chain.moves[chain.moves.length - 1] : null
   const nextPositionSlug = lastMove?.to_position?.slug || null

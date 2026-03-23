@@ -124,6 +124,9 @@ async def get_curriculum(
             move = moves_map.get(cm["move_id"])
             if move:
                 moves.append({**move, "position": cm["position"]})
+        
+        # Sort by position to maintain chain order
+        moves.sort(key=lambda m: m["position"])
 
         chains.append({
             "id": chain["id"],
