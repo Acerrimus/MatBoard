@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getMyClub, getClubDashboard } from '../api'
-import { confidenceColor, confidenceBg } from '../components/MoveCard'
 import { getMyClub, getClubDashboard, getCurricula } from '../api'
+import { confidenceColor, confidenceBg } from '../components/MoveCard'
 
-// ── Stat pill (same as ProgressPage) ──────────────────────────────────────────
+// ── Stat pill ─────────────────────────────────────────────────────────────────
 function StatPill({ label, value, accent }) {
   return (
     <div style={{
@@ -40,69 +39,7 @@ function StatPill({ label, value, accent }) {
   )
 }
 
-// ── Curriculum filter ──────────────────────────────────────
-
-{/* Curriculum filter */}
-{curricula.length > 0 && (
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 20,
-  }}>
-    <span style={{
-      fontSize: 11,
-      fontWeight: 600,
-      color: 'var(--text-muted)',
-      textTransform: 'uppercase',
-      letterSpacing: '0.08em',
-    }}>
-      Filter
-    </span>
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-      <button
-        onClick={() => handleCurriculumChange(null)}
-        style={{
-          padding: '4px 10px',
-          fontSize: 11,
-          fontWeight: 600,
-          borderRadius: 'var(--radius-sm)',
-          border: `0.5px solid ${!selectedCurriculum ? 'var(--accent)' : 'var(--border)'}`,
-          background: !selectedCurriculum ? 'var(--accent-soft)' : 'var(--bg-subtle)',
-          color: !selectedCurriculum ? 'var(--accent)' : 'var(--text-muted)',
-          cursor: 'pointer',
-          fontFamily: 'var(--font-body)',
-          transition: 'all var(--transition)',
-        }}
-      >
-        All moves
-      </button>
-      {curricula.map(c => (
-        <button
-          key={c.id}
-          onClick={() => handleCurriculumChange(c.id)}
-          style={{
-            padding: '4px 10px',
-            fontSize: 11,
-            fontWeight: 600,
-            borderRadius: 'var(--radius-sm)',
-            border: `0.5px solid ${selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--border)'}`,
-            background: selectedCurriculum === c.id ? 'var(--move-soft)' : 'var(--bg-subtle)',
-            color: selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            transition: 'all var(--transition)',
-          }}
-        >
-          {c.name}
-        </button>
-      ))}
-    </div>
-  </div>
-)}
-
-
-// ── Section label (same as ProgressPage) ──────────────────────────────────────
+// ── Section label ─────────────────────────────────────────────────────────────
 function SectionLabel({ children, count }) {
   return (
     <div style={{
@@ -297,44 +234,42 @@ export default function DashboardPage() {
   const [curricula, setCurricula] = useState([])
   const [selectedCurriculum, setSelectedCurriculum] = useState(null)
 
+  useEffect(() => {
+    async function load() {
+      try {
+        const clubData = await getMyClub()
+        setClub(clubData)
+        const [dash, currList] = await Promise.all([
+          getClubDashboard(clubData.id),
+          getCurricula(),
+        ])
+        setDashboard(dash)
+        setCurricula(currList)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
   const reloadDashboard = async (curriculumId = null) => {
-  if (!club) return
-  try {
-    const dash = await getClubDashboard(club.id, curriculumId)
-    setDashboard(dash)
-  } catch (err) {
-    setError(err.message)
-  }
-}
-
-const handleCurriculumChange = (currId) => {
-  const val = currId || null
-  setSelectedCurriculum(val)
-  reloadDashboard(val)
-}
-
-
-useEffect(() => {
-  async function load() {
+    if (!club) return
     try {
-      const clubData = await getMyClub()
-      setClub(clubData)
-      const [dash, currList] = await Promise.all([
-        getClubDashboard(clubData.id),
-        getCurricula(),
-      ])
+      const dash = await getClubDashboard(club.id, curriculumId)
       setDashboard(dash)
-      setCurricula(currList)
     } catch (err) {
       setError(err.message)
-    } finally {
-      setLoading(false)
     }
   }
-  load()
-}, [])
 
-  // ── Loading skeleton (same pattern as ProgressPage) ─────────────────────────
+  const handleCurriculumChange = (currId) => {
+    const val = currId || null
+    setSelectedCurriculum(val)
+    reloadDashboard(val)
+  }
+
   if (loading) {
     return (
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
@@ -395,7 +330,6 @@ useEffect(() => {
 
   const { athletes, moves, matrix, athlete_aggregates, move_aggregates } = dashboard
 
-  // ── Derived stats ───────────────────────────────────────────────────────────
   const athleteAggs = Object.values(athlete_aggregates)
   const ratedAthletes = athleteAggs.filter(a => a.avg_confidence != null)
   const totalRatings = athleteAggs.reduce((s, a) => s + a.rated_count, 0)
@@ -404,8 +338,7 @@ useEffect(() => {
     : null
 
   const moveAggs = Object.entries(move_aggregates)
-  const weakMoves = moveAggs
-    .filter(([, v]) => v.avg_confidence != null && v.avg_confidence <= 2)
+  const weakMoves = moveAggs.filter(([, v]) => v.avg_confidence != null && v.avg_confidence <= 2)
   const weakCount = weakMoves.length
 
   return (
@@ -449,6 +382,65 @@ useEffect(() => {
               <StatPill label="Weak Moves" value={weakCount} accent />
             )}
           </div>
+
+          {/* Curriculum filter */}
+          {curricula.length > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 20,
+            }}>
+              <span style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}>
+                Filter
+              </span>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => handleCurriculumChange(null)}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-sm)',
+                    border: `0.5px solid ${!selectedCurriculum ? 'var(--accent)' : 'var(--border)'}`,
+                    background: !selectedCurriculum ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+                    color: !selectedCurriculum ? 'var(--accent)' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    transition: 'all var(--transition)',
+                  }}
+                >
+                  All moves
+                </button>
+                {curricula.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleCurriculumChange(c.id)}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      borderRadius: 'var(--radius-sm)',
+                      border: `0.5px solid ${selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--border)'}`,
+                      background: selectedCurriculum === c.id ? 'var(--move-soft)' : 'var(--bg-subtle)',
+                      color: selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-body)',
+                      transition: 'all var(--transition)',
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Matrix */}
           <SectionLabel count={`${athletes.length} × ${moves.length}`}>
