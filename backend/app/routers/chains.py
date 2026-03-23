@@ -122,11 +122,6 @@ def set_chain_moves(
     user=Depends(get_current_user),
     client=Depends(get_supabase_client)
 ):
-    """
-    Replace the full ordered move list for a chain.
-    We delete existing entries and re-insert — simplest way to handle
-    reordering and removal without diffing.
-    """
     # Verify ownership
     existing = client.table("chains") \
         .select("id") \
@@ -136,20 +131,6 @@ def set_chain_moves(
 
     if not existing.data:
         raise HTTPException(status_code=404, detail="Chain not found")
-
-    # Verify all moves are on the user's board
-    board_res = client.table("user_board") \
-        .select("move_id") \
-        .eq("user_id", user.id) \
-        .execute()
-
-    board_move_ids = {row["move_id"] for row in board_res.data}
-    for move_id in body.move_ids:
-        if move_id not in board_move_ids:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Move {move_id} is not on your board"
-            )
 
     # Delete existing and re-insert in order
     client.table("chain_moves") \
@@ -164,7 +145,6 @@ def set_chain_moves(
         ]
         client.table("chain_moves").insert(rows).execute()
 
-    # Return the updated chain
     return get_my_chains(user=user, client=client)
 
 
