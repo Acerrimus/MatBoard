@@ -241,6 +241,21 @@ async def get_club_dashboard(
         if values:
             squad_position_comfort[pid] = round(sum(values) / len(values), 2)
 
+    # ── Comp-ready flags ──────────────────────────────────────────────────────
+    comp_ready_resp = (
+        supabase.table("coach_comp_ready")
+        .select("athlete_id, move_id")
+        .eq("coach_id", user.id)
+        .in_("athlete_id", athlete_ids)
+        .execute()
+    )
+    comp_ready = {}
+    for row in comp_ready_resp.data:
+        aid = row["athlete_id"]
+        if aid not in comp_ready:
+            comp_ready[aid] = []
+        comp_ready[aid].append(row["move_id"])
+
     return {
         "athletes": athletes,
         "moves": moves,
@@ -251,4 +266,5 @@ async def get_club_dashboard(
         "positions": positions_list,
         "position_comfort": position_comfort,
         "squad_position_comfort": squad_position_comfort,
+        "comp_ready": comp_ready,   
     }
