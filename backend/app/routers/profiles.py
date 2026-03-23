@@ -36,9 +36,15 @@ def set_my_role(
     client=Depends(get_supabase_client)
 ):
     response = client.table("profiles") \
-        .update({"role": body.role}) \
-        .eq("id", user.id) \
+        .upsert({
+            "id": user.id,
+            "role": body.role
+        }) \
         .execute()
+
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Failed to update role")
+
     return response.data[0]
 
 
@@ -48,7 +54,13 @@ def skip_club_setup(
     client=Depends(get_supabase_client)
 ):
     response = client.table("profiles") \
-        .update({"club_setup_skipped": True}) \
-        .eq("id", user.id) \
+        .upsert({
+            "id": user.id,
+            "club_setup_skipped": True
+        }) \
         .execute()
+
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Failed to update profile")
+
     return response.data[0]
