@@ -2,7 +2,6 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase import create_client, Client
 from app.config import settings
-from types import SimpleNamespace
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -17,15 +16,11 @@ def get_supabase_client(
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
-    if settings.dev_mode:
-        return SimpleNamespace(id="dev-user-id", email="dev@matboard.com")
-
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No token provided"
         )
-
     token = credentials.credentials
     client = create_client(settings.supabase_url, settings.supabase_key)
     try:
