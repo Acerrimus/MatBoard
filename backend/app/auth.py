@@ -9,13 +9,9 @@ def get_supabase_client(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ) -> Client:
     token = credentials.credentials
-    return create_client(
-        settings.supabase_url,
-        settings.supabase_key,
-        options=ClientOptions(
-            headers={"Authorization": f"Bearer {token}"}
-        )
-    )
+    client = create_client(settings.supabase_url, settings.supabase_key)
+    client.postgrest = client.postgrest.auth(token)  # capture the return value
+    return client
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
