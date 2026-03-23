@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getMyClub, getClubDashboard } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
+import { getMyClub, getClubDashboard, getCurricula } from '../api'
 
 // ── Stat pill (same as ProgressPage) ──────────────────────────────────────────
 function StatPill({ label, value, accent }) {
@@ -38,6 +39,68 @@ function StatPill({ label, value, accent }) {
     </div>
   )
 }
+
+// ── Curriculum filter ──────────────────────────────────────
+
+{/* Curriculum filter */}
+{curricula.length > 0 && (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  }}>
+    <span style={{
+      fontSize: 11,
+      fontWeight: 600,
+      color: 'var(--text-muted)',
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
+    }}>
+      Filter
+    </span>
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+      <button
+        onClick={() => handleCurriculumChange(null)}
+        style={{
+          padding: '4px 10px',
+          fontSize: 11,
+          fontWeight: 600,
+          borderRadius: 'var(--radius-sm)',
+          border: `0.5px solid ${!selectedCurriculum ? 'var(--accent)' : 'var(--border)'}`,
+          background: !selectedCurriculum ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+          color: !selectedCurriculum ? 'var(--accent)' : 'var(--text-muted)',
+          cursor: 'pointer',
+          fontFamily: 'var(--font-body)',
+          transition: 'all var(--transition)',
+        }}
+      >
+        All moves
+      </button>
+      {curricula.map(c => (
+        <button
+          key={c.id}
+          onClick={() => handleCurriculumChange(c.id)}
+          style={{
+            padding: '4px 10px',
+            fontSize: 11,
+            fontWeight: 600,
+            borderRadius: 'var(--radius-sm)',
+            border: `0.5px solid ${selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--border)'}`,
+            background: selectedCurriculum === c.id ? 'var(--move-soft)' : 'var(--bg-subtle)',
+            color: selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--text-muted)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            transition: 'all var(--transition)',
+          }}
+        >
+          {c.name}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
 
 // ── Section label (same as ProgressPage) ──────────────────────────────────────
 function SectionLabel({ children, count }) {
@@ -231,22 +294,45 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [curricula, setCurricula] = useState([])
+  const [selectedCurriculum, setSelectedCurriculum] = useState(null)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const clubData = await getMyClub()
-        setClub(clubData)
-        const dash = await getClubDashboard(clubData.id)
-        setDashboard(dash)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+  const reloadDashboard = async (curriculumId = null) => {
+  if (!club) return
+  try {
+    const dash = await getClubDashboard(club.id, curriculumId)
+    setDashboard(dash)
+  } catch (err) {
+    setError(err.message)
+  }
+}
+
+const handleCurriculumChange = (currId) => {
+  const val = currId || null
+  setSelectedCurriculum(val)
+  reloadDashboard(val)
+}
+
+
+useEffect(() => {
+  async function load() {
+    try {
+      const clubData = await getMyClub()
+      setClub(clubData)
+      const [dash, currList] = await Promise.all([
+        getClubDashboard(clubData.id),
+        getCurricula(),
+      ])
+      setDashboard(dash)
+      setCurricula(currList)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-    load()
-  }, [])
+  }
+  load()
+}, [])
 
   // ── Loading skeleton (same pattern as ProgressPage) ─────────────────────────
   if (loading) {
