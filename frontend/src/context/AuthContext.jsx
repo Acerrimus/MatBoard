@@ -9,18 +9,32 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(undefined)
   const [loading, setLoading] = useState(true)
 
-  const fetchProfile = useCallback(async (userId) => {
-    if (!userId) { setProfile(null); return }
-    try {
-      const { data } = await Promise.race([
-        supabase.from('profiles').select('*').eq('id', userId).single(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 100))
-      ])
-      setProfile(data ?? null)
-    } catch {
-      setProfile(null)
+const fetchProfile = useCallback(async (userId) => {
+  if (!userId) {
+    setProfile(null)
+    return
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      // Real error
+      console.error('Profile fetch error:', error)
+      setProfile(undefined) // treat as loading failure, not no-profile
+      return
     }
-  }, [])
+
+    setProfile(data ?? null)
+  } catch (err) {
+    console.error('Profile fetch failed:', err)
+    setProfile(undefined) // do NOT treat failure as no profile
+  }
+}, [])
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id)
