@@ -153,3 +153,6 @@ export const getAthleteOverview   = (athleteId)           => request(`/athletes/
 export const getCompReady         = (athleteId)           => request(`/comp-ready/${athleteId}`)
 export const setCompReady         = (athleteId, moveId)   => requestPost(`/comp-ready/${athleteId}/${moveId}`, {})
 export const unsetCompReady       = (athleteId, moveId)   => requestDelete(`/comp-ready/${athleteId}/${moveId}`)
+
+// ── Club curricula (athlete-accessible) ───────────────────────────────────────
+export const getClubCurricula = (clubId) => request(`/curricula/club/${clubId}`)

@@ -305,3 +305,124 @@ async def remove_move_from_chain(
     await _require_chain_owner(supabase, chain_id, club_id)
     supabase.table("curriculum_chain_moves").delete().eq("chain_id", chain_id).eq("move_id", move_id).execute()
     return {"deleted": True}
+
+# ── List curricula for club members (athletes + coaches) ──────────────────────
+
+@router.get("/club/{club_id}")
+async def list_club_curricula(
+    club_id: str,
+    user=Depends(get_current_user),
+    supabase=Depends(get_supabase_client),
+):
+    """
+    Returns curricula with chains + moves for any club member.
+    Athletes get their own progress attached to each move.
+    """
+    # Verify membership
+    membership_resp = (
+        supabase.table("club_memberships")
+        .select("role")
+        .eq("club_id", club_id)
+        .eq("user_id", user.id)
+        .execute()
+    )
+    if not membership_resp.data:
+        raise HTTPException(status_code=403, detail="Not a member of this club")
+
+    # Get curricula
+    curricula_resp = (
+        supabase.table("curricula")
+        .select("id, name, description, created_at")
+        .eq("club_id", club_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    if not curricula_resp.data:
+        return []
+
+    curriculum_ids = [c["id"] for c in curricula_resp.data]
+
+    # Get all chains for all curricula in one query
+    chains_resp = (
+        supabase.table("curriculum_chains")
+        .select("id, name, position, curriculum_id")
+        .in_("curriculum_id", curriculum_ids)
+        .order("position")
+        .execute()
+    )
+    chain_ids = [c["id"] for c in chains_resp.data]
+
+    # Get all chain moves in one query
+    chain_moves_resp = (
+        supabase.table("curriculum_chain_moves")
+        .select("chain_id, move_id, position")
+        .in_("chain_id", chain_ids)
+        .order("position")
+        .execute()
+    ) if chain_ids else type("R", (), {"data": []})()
+
+    # Collect all move IDs
+    all_move_ids = list({cm["move_id"] for cm in chain_moves_resp.data})
+
+    # Fetch moves with positions
+    moves_map = {}
+    if all_move_ids:
+        moves_resp = (
+            supabase.table("moves")
+            .select("id, name, slug, from_position:positions!from_position_id(id, name, slug), to_position:positions!to_position_id(id, name, slug)")
+            .in_("id", all_move_ids)
+            .execute()
+        )
+        moves_map = {m["id"]: m for m in moves_resp.data}
+
+    # Fetch this user's progress for all relevant moves
+    progress_map = {}
+    if all_move_ids:
+        progress_resp = (
+            supabase.table("user_move_progress")
+            .select("move_id, confidence, is_favourite")
+            .eq("user_id", user.id)
+            .in_("move_id", all_move_ids)
+            .execute()
+        )
+        progress_map = {r["move_id"]: r for r in progress_resp.data}
+
+    # Build chain moves lookup
+    chain_moves_by_chain = {}
+    for cm in chain_moves_resp.data:
+        chain_moves_by_chain.setdefault(cm["chain_id"], []).append(cm)
+
+    # Build chains lookup by curriculum
+    chains_by_curriculum = {}
+    for chain in chains_resp.data:
+        cms = sorted(
+            chain_moves_by_chain.get(chain["id"], []),
+            key=lambda x: x["position"]
+        )
+        moves_list = []
+        for cm in cms:
+            move = moves_map.get(cm["move_id"])
+            if move:
+                prog = progress_map.get(cm["move_id"])
+                moves_list.append({
+                    **move,
+                    "confidence": prog["confidence"] if prog else None,
+                    "is_favourite": prog["is_favourite"] if prog else False,
+                })
+        chains_by_curriculum.setdefault(chain["curriculum_id"], []).append({
+            "id": chain["id"],
+            "name": chain["name"],
+            "position": chain["position"],
+            "moves": moves_list,
+        })
+
+    # Assemble final response
+    result = []
+    for curriculum in curricula_resp.data:
+        chains = chains_by_curriculum.get(curriculum["id"], [])
+        result.append({
+            **curriculum,
+            "chains": chains,
+        })
+
+    return result
