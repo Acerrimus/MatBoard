@@ -24,9 +24,21 @@ function Protected({ children }) {
   const { user, profile, loading } = useAuth()
 
   if (loading) return <LoadingScreen />
+
   if (!user) return <Navigate to="/login" replace />
+
+  // Still resolving profile
   if (profile === undefined) return <LoadingScreen />
-  if (!profile || profile.role === null) return <Navigate to="/onboarding" replace />
+
+  // Explicitly no profile
+  if (profile === null) {
+    return <Navigate to="/onboarding" replace />
+  }
+
+  // Profile exists but role not set
+  if (!profile.role) {
+    return <Navigate to="/onboarding" replace />
+  }
 
   return children
 }

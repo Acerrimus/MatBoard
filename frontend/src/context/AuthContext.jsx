@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await Promise.race([
         supabase.from('profiles').select('*').eq('id', userId).single(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 100))
       ])
       setProfile(data ?? null)
     } catch {
@@ -26,22 +26,39 @@ export function AuthProvider({ children }) {
     if (user) await fetchProfile(user.id)
   }, [user, fetchProfile])
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        await fetchProfile(session?.user?.id)
-        if (event === 'INITIAL_SESSION') {
-          setLoading(false)
-        }
+useEffect(() => {
+  const init = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+
+    setSession(session)
+    setUser(session?.user ?? null)
+
+    if (session?.user) {
+      await fetchProfile(session.user.id)
+    } else {
+      setProfile(null)
+    }
+
+    setLoading(false)
+  }
+
+  init()
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+
+      if (session?.user) {
+        await fetchProfile(session.user.id)
+      } else {
+        setProfile(null)
       }
-    )
+    }
+  )
 
-    const timeout = setTimeout(() => setLoading(false), 10000)
-
-    return () => { subscription.unsubscribe(); clearTimeout(timeout) }
-  }, [fetchProfile])
+  return () => subscription.unsubscribe()
+}, [fetchProfile])
 
   const signInWithGoogle = () =>
     supabase.auth.signInWithOAuth({
