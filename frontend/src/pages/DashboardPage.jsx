@@ -140,216 +140,249 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
     return pos
   }).filter(Boolean)
 
-  const NAME_COL = '9rem'
-  const cellFr = `repeat(${moves.length}, 1fr)`
-  const gridCols = `${NAME_COL} ${cellFr}`
+  // Squad-level stats for this chain
+  const squadConfs = []
+  const moveSquadAvgs = moves.map((move, mi) => {
+    const confs = athletes.map(a => matrix[a.id]?.[move.id]?.confidence).filter(Boolean)
+    const avg = confs.length > 0 ? confs.reduce((a, b) => a + b, 0) / confs.length : null
+    confs.forEach(c => squadConfs.push(c))
+    return { move, avg, index: mi }
+  })
+  const squadAvg = squadConfs.length > 0
+    ? (squadConfs.reduce((a, b) => a + b, 0) / squadConfs.length).toFixed(1)
+    : null
+  const weakest = moveSquadAvgs
+    .filter(m => m.avg !== null)
+    .sort((a, b) => a.avg - b.avg)[0]
 
   return (
     <div style={{ marginBottom: '1.75rem' }}>
-      {/* Chain name + flow — outside card */}
-      <div style={{ marginBottom: '0.4rem' }}>
+      {/* Section header — outside card */}
+      <div style={{
+        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+        marginBottom: '0.25rem',
+      }}>
         <div style={{
           fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)',
-          fontFamily: 'var(--font-display)', marginBottom: '0.25rem',
+          fontFamily: 'var(--font-display)',
         }}>{chain.name}</div>
         <div style={{
-          display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.15rem',
-        }}>
-          {moves.map((move, i) => (
-            <div key={`flow-${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
-              {i === 0 && move.from_position && (
-                <>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    {move.from_position.name}
-                  </span>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
-                </>
-              )}
-              <span style={{ fontSize: '0.55rem', fontWeight: 500, color: 'var(--text-move)' }}>
-                {move.name}
-              </span>
-              {i < moves.length - 1 && (
-                <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
-              )}
-              {i === moves.length - 1 && move.to_position && (
-                <>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
-                  <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    {move.to_position.name}
-                  </span>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
+          fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 500,
+        }}>{moves.length} move{moves.length !== 1 ? 's' : ''} · {athletes.length} athlete{athletes.length !== 1 ? 's' : ''}</div>
       </div>
 
-      {/* Card */}
+      {/* Chain flow breadcrumb */}
       <div style={{
-        background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-        borderLeft: '3px solid var(--move-color)',
-        borderRadius: 'var(--radius-lg)', padding: '1rem 1.25rem',
+        display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+        gap: '0.1rem', marginBottom: '0.75rem',
       }}>
-        {/* Header row */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: gridCols,
-          paddingBottom: '0.5rem',
-          borderBottom: '0.5px solid var(--border)',
-          alignItems: 'end',
-        }}>
-          <div style={{
-            fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: 'var(--text-muted)',
-          }}>Athlete</div>
-          {moves.map((move, i) => (
-            <div key={`hdr-${move.id}-${i}`} style={{
-              textAlign: 'center', fontSize: '0.65rem', fontWeight: 600,
-              color: 'var(--text-secondary)', padding: '0 0.125rem',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{move.name}</div>
-          ))}
-        </div>
+        {moves.map((move, i) => (
+          <div key={`flow-${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
+            {i === 0 && move.from_position && (
+              <>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{move.from_position.name}</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
+              </>
+            )}
+            <span style={{
+              fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-move)',
+            }}>{move.name}</span>
+            {i < moves.length - 1 && (
+              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
+            )}
+            {i === moves.length - 1 && move.to_position && (
+              <>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{move.to_position.name}</span>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
 
-        {/* Athlete rows */}
-        {athletes.map((athlete, ai) => {
-          const ap = matrix[athlete.id] || {}
-          const confs = moves.map(m => ap[m.id]?.confidence).filter(Boolean)
-          const avg = confs.length > 0
-            ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1)
-            : null
-          const avgColor = avg
-            ? (parseFloat(avg) <= 2 ? confidenceColor(1) : parseFloat(avg) <= 3.5 ? confidenceColor(3) : confidenceColor(5))
-            : 'var(--text-muted)'
+      {/* Athlete cards */}
+      {athletes.map(athlete => {
+        const ap = matrix[athlete.id] || {}
+        const confs = moves.map(m => ap[m.id]?.confidence).filter(Boolean)
+        const avg = confs.length > 0
+          ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1)
+          : null
+        const avgNum = avg ? parseFloat(avg) : 0
+        const borderColor = avg
+          ? (avgNum <= 2 ? confidenceColor(1) : avgNum <= 3.5 ? confidenceColor(3) : confidenceColor(5))
+          : 'var(--border)'
+        const ratedCount = confs.length
+        const completionPct = (ratedCount / moves.length) * 100
+        const hasFavourite = moves.some(m => ap[m.id]?.is_favourite)
 
-          return (
-            <div key={athlete.id} style={{
-              display: 'grid', gridTemplateColumns: gridCols,
-              alignItems: 'center',
-              padding: '0.5rem 0',
-              borderBottom: '0.5px solid var(--border)',
-              background: ai % 2 !== 0 ? 'var(--bg-subtle)' : 'transparent',
+        return (
+          <div key={athlete.id} style={{
+            background: 'var(--bg-surface)',
+            border: '0.5px solid var(--border)',
+            borderLeft: `3px solid ${borderColor}`,
+            borderRadius: 'var(--radius-md)',
+            padding: '0.75rem 1rem',
+            marginBottom: '0.375rem',
+          }}>
+            {/* Name row */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: '0.5rem',
             }}>
-              {/* Name + avg */}
-              <div>
-                <div style={{
-                  fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>{athlete.display_name || 'Unnamed'}</div>
-                <div style={{
-                  fontSize: '0.6rem', fontWeight: 700,
-                  fontFamily: 'var(--font-display)',
-                  color: avgColor, marginTop: '0.1rem',
-                }}>avg {avg || '—'}</div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.375rem',
+              }}>
+                <span style={{
+                  fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)',
+                }}>{athlete.display_name || 'Unnamed'}</span>
+                {hasFavourite && (
+                  <span style={{ fontSize: '0.85rem', color: '#FDE047' }}>★</span>
+                )}
               </div>
+              {avg && (
+                <div style={{
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: `1px solid ${borderColor}`,
+                  background: `${borderColor}12`,
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700, fontSize: '0.75rem',
+                  color: borderColor,
+                }}>avg {avg}</div>
+              )}
+            </div>
 
-              {/* Cells */}
-              {moves.map((move, mi) => {
+            {/* Move pills — same style as ChainCard in ProgressPage */}
+            <div style={{
+              display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+              gap: '0', marginBottom: '0.5rem',
+            }}>
+              {moves.map((move, i) => {
                 const data = ap[move.id]
                 const conf = data?.confidence
                 const color = conf ? confidenceColor(conf) : 'var(--border)'
                 const bg = conf ? confidenceBg(conf) : 'var(--bg-subtle)'
-                const barPct = conf ? (conf / 5) * 100 : 0
 
                 return (
-                  <div key={`${move.id}-${mi}`} style={{
-                    display: 'flex', justifyContent: 'center',
-                  }}>
+                  <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
                     <div style={{
-                      width: '2.75rem',
                       background: bg,
-                      border: `1px solid ${color}`,
-                      borderRadius: 'var(--radius-md)',
-                      padding: '0.35rem 0.2rem 0.25rem',
-                      display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', gap: '0.1rem',
-                      position: 'relative',
+                      border: `1.5px solid ${color}`,
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.25rem 0.5rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 500,
+                      color: conf ? color : 'var(--text-secondary)',
+                      whiteSpace: 'nowrap',
+                      display: 'flex', alignItems: 'center', gap: '0.3rem',
                     }}>
-                      {data?.is_favourite && (
-                        <div style={{
-                          position: 'absolute', top: '-0.15rem', right: '-0.15rem',
-                          fontSize: '0.85rem', color: '#FDE047', lineHeight: 1,
-                        }}>★</div>
+                      {move.name}
+                      {conf ? (
+                        <span style={{
+                          fontWeight: 700, fontSize: '0.65rem',
+                          fontFamily: 'var(--font-display)',
+                          opacity: 0.9,
+                        }}>{conf}</span>
+                      ) : (
+                        <span style={{
+                          fontSize: '0.6rem', color: 'var(--text-muted)',
+                        }}>—</span>
                       )}
-                      <div style={{
-                        fontFamily: 'var(--font-display)', fontWeight: 700,
-                        fontSize: '1rem', color: conf ? color : 'var(--text-muted)',
-                        lineHeight: 1,
-                      }}>{conf || '·'}</div>
-                      <div style={{
-                        width: '80%', height: '0.15rem', borderRadius: '0.075rem',
-                        background: 'var(--bg-page)', marginTop: '0.05rem',
-                      }}>
-                        <div style={{
-                          width: `${barPct}%`, height: '100%', borderRadius: '0.075rem',
-                          background: conf ? color : 'transparent',
-                          transition: 'width 0.3s ease',
-                        }} />
-                      </div>
                     </div>
+                    {i < moves.length - 1 && (
+                      <div style={{
+                        fontSize: '0.7rem', color: 'var(--text-muted)',
+                        padding: '0 0.2rem', flexShrink: 0,
+                      }}>→</div>
+                    )}
                   </div>
                 )
               })}
             </div>
-          )
-        })}
 
-        {/* Squad avg row */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: gridCols,
-          alignItems: 'center',
-          padding: '0.5rem 0 0.25rem',
-          borderTop: '1.5px solid var(--border-strong)',
-        }}>
-          <div style={{
-            fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: 'var(--text-muted)',
-          }}>Squad Avg</div>
-          {moves.map((move, mi) => {
-            const confs = athletes.map(a => matrix[a.id]?.[move.id]?.confidence).filter(Boolean)
-            const avg = confs.length > 0 ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1) : null
-            const color = avg
-              ? (parseFloat(avg) <= 2 ? confidenceColor(1) : parseFloat(avg) <= 3.5 ? confidenceColor(3) : confidenceColor(5))
-              : 'var(--text-muted)'
-            return (
-              <div key={`avg-${move.id}-${mi}`} style={{
-                textAlign: 'center',
-                fontFamily: 'var(--font-display)', fontWeight: 700,
-                fontSize: '0.8rem', color,
-              }}>{avg || '—'}</div>
-            )
-          })}
-        </div>
-
-        {/* Position comfort */}
-        {chainPositions.length > 0 && (
-          <div style={{
-            marginTop: '0.75rem', paddingTop: '0.75rem',
-            borderTop: '0.5px solid var(--border)',
-          }}>
+            {/* Progress bar */}
             <div style={{
-              fontSize: '0.55rem', fontWeight: 600, letterSpacing: '0.14em',
-              textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.4rem',
-            }}>Position Comfort</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+            }}>
+              <div style={{
+                flex: 1, height: '0.2rem', borderRadius: '0.1rem',
+                background: 'var(--bg-subtle)',
+              }}>
+                <div style={{
+                  width: `${completionPct}%`, height: '100%',
+                  borderRadius: '0.1rem', background: borderColor,
+                  transition: 'width 0.3s ease',
+                }} />
+              </div>
+              <span style={{
+                fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 500,
+                whiteSpace: 'nowrap',
+              }}>{ratedCount} of {moves.length} rated</span>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Squad summary card */}
+      <div style={{
+        background: 'var(--bg-subtle)',
+        border: '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        padding: '0.625rem 1rem',
+        marginTop: '0.25rem',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', flexWrap: 'wrap',
+          gap: '0.75rem', fontSize: '0.7rem', color: 'var(--text-secondary)',
+        }}>
+          {squadAvg && (
+            <span>
+              Squad avg{' '}
+              <strong style={{
+                fontFamily: 'var(--font-display)',
+                color: parseFloat(squadAvg) <= 2 ? confidenceColor(1)
+                  : parseFloat(squadAvg) <= 3.5 ? confidenceColor(3)
+                  : confidenceColor(5),
+              }}>{squadAvg}</strong>
+            </span>
+          )}
+          {weakest && weakest.avg !== null && (
+            <span>
+              Weakest:{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>{weakest.move.name}</strong>
+              {' '}
+              <span style={{
+                fontFamily: 'var(--font-display)', fontWeight: 700,
+                color: confidenceColor(Math.round(weakest.avg)),
+              }}>({weakest.avg.toFixed(1)})</span>
+            </span>
+          )}
+          {chainPositions.length > 0 && (
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
+            }}>
               {chainPositions.map(pos => {
                 const values = athletes
                   .map(a => positionComfort[a.id]?.[pos.id])
                   .filter(Boolean)
                 const avg = values.length > 0
-                  ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
+                  ? (values.reduce((a, b) => a + b, 0) / values.length)
                   : null
+                const color = avg
+                  ? (avg <= 2 ? confidenceColor(1) : avg <= 3.5 ? confidenceColor(3) : confidenceColor(5))
+                  : 'var(--text-muted)'
                 return (
-                  <div key={pos.id} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                      {pos.name}
-                    </span>
-                    <PositionComfortBadge value={avg ? parseFloat(avg) : null} />
-                  </div>
+                  <span key={pos.id} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                    {pos.name}{' '}
+                    <strong style={{
+                      fontFamily: 'var(--font-display)', color,
+                    }}>{avg ? avg.toFixed(1) : '—'}</strong>
+                  </span>
                 )
               })}
-            </div>
-          </div>
-        )}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
