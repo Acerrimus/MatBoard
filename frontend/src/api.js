@@ -111,6 +111,7 @@ export const createClub           = (name)                       => requestPost(
 export const joinClub             = (invite_code)                => requestPost('/clubs/join', { invite_code })
 export const getMyClub            = ()                           => request('/clubs/mine')
 export const getClubMembers       = (clubId)                     => request(`/clubs/${clubId}/members`)
+export const getClubRoster        = (clubId)                     => request(`/clubs/${clubId}/roster`)
 export const updateMemberRole     = (clubId, userId, role)       => requestPatch(`/clubs/${clubId}/members/${userId}/role`, { role })
 
 // ── Board ─────────────────────────────────────────────────────────────────────
@@ -127,3 +128,4 @@ export const deleteChain          = (chainId)                 => requestDelete(`
 
 // ── Graph ─────────────────────────────────────────────────────────────────────
 export const getGraph             = () => request('/graph/')
+
