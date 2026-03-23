@@ -50,6 +50,8 @@ def create_club(
     user=Depends(get_current_user),
     client=Depends(get_supabase_client)
 ):
+
+    print("AUTH HEADER:", client.postgrest.session.headers.get("Authorization", "MISSING"))
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="Club name cannot be empty")
 

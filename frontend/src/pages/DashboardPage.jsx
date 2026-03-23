@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext'
 import { getMyClub, getClubDashboard, getCurricula } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
 
-// ── Stat pill ─────────────────────────────────────────────────────────────────
 function StatPill({ label, value, accent }) {
   return (
     <div style={{
@@ -11,132 +10,130 @@ function StatPill({ label, value, accent }) {
       border: `0.5px solid ${accent ? 'var(--border-accent)' : 'var(--stat-border)'}`,
       borderRadius: 'var(--radius-lg)',
       padding: '14px 20px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 4,
-      flex: 1,
-      minWidth: 100,
+      display: 'flex', flexDirection: 'column', gap: 4,
+      flex: 1, minWidth: 100,
     }}>
       <div style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 26,
-        fontWeight: 700,
-        color: accent ? 'var(--accent)' : 'var(--text-primary)',
-        lineHeight: 1,
-      }}>
-        {value ?? '—'}
-      </div>
+        fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700,
+        color: accent ? 'var(--accent)' : 'var(--text-primary)', lineHeight: 1,
+      }}>{value ?? '—'}</div>
       <div style={{
-        fontSize: 10,
-        fontWeight: 600,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        color: 'var(--text-muted)',
-      }}>
-        {label}
-      </div>
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: 'var(--text-muted)',
+      }}>{label}</div>
     </div>
   )
 }
 
-// ── Section label ─────────────────────────────────────────────────────────────
 function SectionLabel({ children, count }) {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 12,
-    }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
       <div style={{
-        fontSize: 10,
-        fontWeight: 600,
-        letterSpacing: '0.14em',
-        textTransform: 'uppercase',
-        color: 'var(--text-muted)',
-      }}>
-        {children}
-      </div>
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+        textTransform: 'uppercase', color: 'var(--text-muted)',
+      }}>{children}</div>
       {count !== undefined && (
         <div style={{
-          fontSize: 10,
-          fontWeight: 600,
-          color: 'var(--text-muted)',
-          background: 'var(--bg-subtle)',
-          border: '0.5px solid var(--border)',
-          borderRadius: 20,
-          padding: '1px 7px',
-        }}>
-          {count}
-        </div>
+          fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
+          background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+          borderRadius: 20, padding: '1px 7px',
+        }}>{count}</div>
       )}
     </div>
   )
 }
 
-// ── Confidence badge (card style, not table cell) ─────────────────────────────
-function ConfidenceBadge({ data }) {
+function MiniBar({ value, max = 5 }) {
+  const pct = value ? (value / max) * 100 : 0
+  const color = value ? (value <= 2 ? confidenceColor(1) : value <= 3.5 ? confidenceColor(3) : confidenceColor(5)) : 'var(--border)'
+  return (
+    <div style={{
+      width: '100%', height: 3, borderRadius: 2,
+      background: 'var(--bg-subtle)', marginTop: 4,
+    }}>
+      <div style={{
+        width: `${pct}%`, height: '100%', borderRadius: 2,
+        background: color, transition: 'width 0.3s ease',
+      }} />
+    </div>
+  )
+}
+
+function ConfidenceCell({ data }) {
   if (!data) {
     return (
       <div style={{
-        width: 28,
-        height: 28,
-        borderRadius: 'var(--radius-sm)',
-        border: '0.5px solid var(--border)',
-        background: 'var(--bg-subtle)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 11,
-        color: 'var(--text-muted)',
-        fontFamily: 'var(--font-display)',
-        flexShrink: 0,
+        width: 48, padding: '6px 4px', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', flexShrink: 0,
       }}>
-        ·
+        <div style={{
+          width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+          border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-display)',
+        }}>·</div>
+        <MiniBar value={null} />
       </div>
     )
   }
   const conf = data.confidence
   return (
     <div style={{
-      width: 28,
-      height: 28,
-      borderRadius: 'var(--radius-sm)',
-      border: `1.5px solid ${confidenceColor(conf)}`,
-      background: confidenceBg(conf),
-      color: confidenceColor(conf),
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 11,
-      fontWeight: 700,
-      fontFamily: 'var(--font-display)',
-      flexShrink: 0,
+      width: 48, padding: '6px 4px', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', flexShrink: 0,
     }}>
-      {conf}
+      <div style={{ position: 'relative' }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+          border: `1.5px solid ${confidenceColor(conf)}`, background: confidenceBg(conf),
+          color: confidenceColor(conf), display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: 11, fontWeight: 700,
+          fontFamily: 'var(--font-display)',
+        }}>{conf}</div>
+        {data.is_favourite && (
+          <div style={{
+            position: 'absolute', top: -4, right: -4,
+            fontSize: 8, lineHeight: 1,
+          }}>★</div>
+        )}
+      </div>
+      <MiniBar value={conf} />
     </div>
   )
 }
 
-// ── Chain card for curriculum view ────────────────────────────────────────────
-function ChainDashboardCard({ chain, athletes, matrix, athleteAggregates }) {
-  const moves = chain.moves || []
+function PositionComfortBadge({ value }) {
+  if (value == null) return (
+    <div style={{
+      padding: '4px 10px', borderRadius: 'var(--radius-sm)',
+      border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+      fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-display)',
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+    }}>—</div>
+  )
+  const color = value <= 2 ? confidenceColor(1) : value <= 3.5 ? confidenceColor(3) : confidenceColor(5)
+  return (
+    <div style={{
+      padding: '4px 10px', borderRadius: 'var(--radius-sm)',
+      border: `1px solid ${color}20`, background: `${color}10`,
+      fontSize: 12, fontWeight: 700, color,
+      fontFamily: 'var(--font-display)',
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+    }}>
+      {value.toFixed(1)}
+    </div>
+  )
+}
 
+function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
+  const moves = chain.moves || []
   if (moves.length === 0) {
     return (
       <div style={{
-        background: 'var(--bg-surface)',
-        border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '16px 20px',
-        marginBottom: 12,
+        background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: 12,
       }}>
-        <div style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-          marginBottom: 4,
-        }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
           {chain.name}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
@@ -146,183 +143,208 @@ function ChainDashboardCard({ chain, athletes, matrix, athleteAggregates }) {
     )
   }
 
+  const chainPositionIds = new Set()
+  moves.forEach(m => {
+    if (m.from_position?.id) chainPositionIds.add(m.from_position.id)
+    if (m.to_position?.id) chainPositionIds.add(m.to_position.id)
+  })
+  const chainPositions = [...chainPositionIds].map(pid => {
+    const pos = moves.find(m => m.from_position?.id === pid)?.from_position
+      || moves.find(m => m.to_position?.id === pid)?.to_position
+    return pos
+  }).filter(Boolean)
+
+  const NAME_W = 130
+  const AVG_W = 44
+  const CELL_W = 48
+  const moveGridW = moves.length * CELL_W
+
   return (
     <div style={{
-      background: 'var(--bg-surface)',
-      border: '0.5px solid var(--border)',
+      background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
       borderLeft: '3px solid var(--move-color)',
-      borderRadius: 'var(--radius-lg)',
-      padding: '16px 20px',
-      marginBottom: 12,
+      borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: 12,
+      overflow: 'hidden',
     }}>
-      {/* Chain name */}
       <div style={{
-        fontSize: 14,
-        fontWeight: 600,
-        color: 'var(--text-primary)',
-        fontFamily: 'var(--font-display)',
-        marginBottom: 4,
-      }}>
-        {chain.name}
-      </div>
+        fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
+        fontFamily: 'var(--font-display)', marginBottom: 4,
+      }}>{chain.name}</div>
 
-      {/* Chain flow preview */}
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0,
-        flexWrap: 'wrap',
-        marginBottom: 16,
+        display: 'flex', alignItems: 'center', gap: 0,
+        flexWrap: 'wrap', marginBottom: 12,
       }}>
         {moves.map((move, i) => (
           <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
+            {i === 0 && move.from_position && (
+              <>
+                <div style={{
+                  fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
+                  padding: '2px 5px', background: 'var(--bg-subtle)',
+                  border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                  whiteSpace: 'nowrap',
+                }}>{move.from_position.name}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '0 3px' }}>→</div>
+              </>
+            )}
             <div style={{
-              padding: '3px 8px',
-              fontSize: 11,
-              fontWeight: 500,
-              color: 'var(--text-move)',
-              background: 'var(--move-soft)',
-              border: '0.5px solid var(--move-color)',
-              borderRadius: 'var(--radius-sm)',
+              padding: '3px 8px', fontSize: 11, fontWeight: 500,
+              color: 'var(--text-move)', background: 'var(--move-soft)',
+              border: '0.5px solid var(--move-color)', borderRadius: 'var(--radius-sm)',
               whiteSpace: 'nowrap',
-            }}>
-              {move.name}
-            </div>
-            {i < moves.length - 1 && (
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 4px' }}>→</div>
+            }}>{move.name}</div>
+            {move.to_position && (
+              <>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '0 3px' }}>→</div>
+                {i === moves.length - 1 && (
+                  <div style={{
+                    fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
+                    padding: '2px 5px', background: 'var(--bg-subtle)',
+                    border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                    whiteSpace: 'nowrap',
+                  }}>{move.to_position.name}</div>
+                )}
+              </>
             )}
           </div>
         ))}
       </div>
 
-      {/* Athlete rows */}
-      {athletes.map((athlete, ai) => {
-        const athleteProgress = matrix[athlete.id] || {}
-        const chainConfs = moves
-          .map(m => athleteProgress[m.id]?.confidence)
-          .filter(Boolean)
-        const chainAvg = chainConfs.length > 0
-          ? (chainConfs.reduce((a, b) => a + b, 0) / chainConfs.length).toFixed(1)
-          : null
+      <div style={{ overflowX: 'auto' }}>
+        {/* Header row */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-end',
+          paddingBottom: 6, borderBottom: '0.5px solid var(--border)',
+          minWidth: NAME_W + AVG_W + moveGridW,
+        }}>
+          <div style={{
+            width: NAME_W, flexShrink: 0, fontSize: 10, fontWeight: 600,
+            letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
+          }}>Athlete</div>
+          <div style={{
+            width: AVG_W, flexShrink: 0, fontSize: 10, fontWeight: 600,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--text-muted)', textAlign: 'center',
+          }}>Avg</div>
+          {moves.map((move, i) => (
+            <div key={`${move.id}-${i}`} style={{
+              width: CELL_W, flexShrink: 0, fontSize: 10, fontWeight: 500,
+              color: 'var(--text-secondary)', textAlign: 'center',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>{move.name}</div>
+          ))}
+        </div>
 
-        return (
-          <div key={athlete.id} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '8px 0',
-            borderTop: ai === 0 ? '0.5px solid var(--border)' : 'none',
-            borderBottom: '0.5px solid var(--border)',
-          }}>
-            {/* Name */}
-            <div style={{
-              width: 130,
-              flexShrink: 0,
-              fontSize: 13,
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+        {/* Athlete rows */}
+        {athletes.map((athlete, ai) => {
+          const ap = matrix[athlete.id] || {}
+          const confs = moves.map(m => ap[m.id]?.confidence).filter(Boolean)
+          const avg = confs.length > 0
+            ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1)
+            : null
+          const avgColor = avg
+            ? (parseFloat(avg) <= 2 ? confidenceColor(1) : parseFloat(avg) <= 3.5 ? confidenceColor(3) : confidenceColor(5))
+            : 'var(--text-muted)'
+          return (
+            <div key={athlete.id} style={{
+              display: 'flex', alignItems: 'center',
+              padding: '4px 0',
+              background: ai % 2 === 0 ? 'transparent' : 'var(--bg-subtle)',
+              borderBottom: '0.5px solid var(--border)',
+              minWidth: NAME_W + AVG_W + moveGridW,
             }}>
-              {athlete.display_name || 'Unnamed'}
-            </div>
-
-            {/* Chain avg */}
-            <div style={{
-              width: 40,
-              flexShrink: 0,
-              textAlign: 'center',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              fontSize: 12,
-              color: chainAvg
-                ? (parseFloat(chainAvg) <= 2 ? confidenceColor(1) : parseFloat(chainAvg) <= 3.5 ? confidenceColor(3) : confidenceColor(5))
-                : 'var(--text-muted)',
-            }}>
-              {chainAvg || '—'}
-            </div>
-
-            {/* Move badges */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{
+                width: NAME_W, flexShrink: 0, fontSize: 13, fontWeight: 500,
+                color: 'var(--text-primary)', overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8,
+              }}>{athlete.display_name || 'Unnamed'}</div>
+              <div style={{
+                width: AVG_W, flexShrink: 0, textAlign: 'center',
+                fontFamily: 'var(--font-display)', fontWeight: 700,
+                fontSize: 12, color: avgColor,
+              }}>{avg || '—'}</div>
               {moves.map((move, mi) => (
-                <ConfidenceBadge key={`${move.id}-${mi}`} data={athleteProgress[move.id]} />
+                <ConfidenceCell key={`${move.id}-${mi}`} data={ap[move.id]} />
               ))}
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
 
-      {/* Squad avg row */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '8px 0 0',
-      }}>
+        {/* Squad avg row */}
         <div style={{
-          width: 130,
-          flexShrink: 0,
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
+          display: 'flex', alignItems: 'center', padding: '8px 0 4px',
+          borderTop: '1.5px solid var(--border-strong)',
+          minWidth: NAME_W + AVG_W + moveGridW,
         }}>
-          Squad Avg
-        </div>
-        <div style={{ width: 40, flexShrink: 0 }} />
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{
+            width: NAME_W, flexShrink: 0, fontSize: 10, fontWeight: 600,
+            letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
+          }}>Squad Avg</div>
+          <div style={{ width: AVG_W, flexShrink: 0 }} />
           {moves.map((move, mi) => {
-            const confs = athletes
-              .map(a => matrix[a.id]?.[move.id]?.confidence)
-              .filter(Boolean)
-            const avg = confs.length > 0
-              ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1)
-              : null
+            const confs = athletes.map(a => matrix[a.id]?.[move.id]?.confidence).filter(Boolean)
+            const avg = confs.length > 0 ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1) : null
+            const color = avg
+              ? (parseFloat(avg) <= 2 ? confidenceColor(1) : parseFloat(avg) <= 3.5 ? confidenceColor(3) : confidenceColor(5))
+              : 'var(--text-muted)'
             return (
               <div key={`${move.id}-${mi}`} style={{
-                width: 28,
-                height: 28,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                fontWeight: 700,
-                fontFamily: 'var(--font-display)',
-                flexShrink: 0,
-                color: avg
-                  ? (parseFloat(avg) <= 2 ? confidenceColor(1) : parseFloat(avg) <= 3.5 ? confidenceColor(3) : confidenceColor(5))
-                  : 'var(--text-muted)',
-              }}>
-                {avg || '—'}
-              </div>
+                width: CELL_W, flexShrink: 0, textAlign: 'center',
+                fontFamily: 'var(--font-display)', fontWeight: 700,
+                fontSize: 11, color,
+              }}>{avg || '—'}</div>
             )
           })}
         </div>
       </div>
+
+      {/* Position comfort */}
+      {chainPositions.length > 0 && (
+        <div style={{
+          marginTop: 12, paddingTop: 10,
+          borderTop: '0.5px solid var(--border)',
+        }}>
+          <div style={{
+            fontSize: 9, fontWeight: 600, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8,
+          }}>Position Comfort</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {chainPositions.map(pos => {
+              const values = athletes
+                .map(a => positionComfort[a.id]?.[pos.id])
+                .filter(Boolean)
+              const avg = values.length > 0
+                ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
+                : null
+              return (
+                <div key={pos.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)',
+                  }}>{pos.name}</span>
+                  <PositionComfortBadge value={avg ? parseFloat(avg) : null} />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-// ── Flat matrix for "All moves" view ──────────────────────────────────────────
 function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates, squadAvg }) {
   return (
     <div style={{
-      background: 'var(--bg-surface)',
-      border: '0.5px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-      overflow: 'hidden',
+      background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+      borderRadius: 'var(--radius-lg)', overflow: 'hidden',
     }}>
-      <div style={{
-        overflow: 'auto',
-        maxHeight: 'calc(100vh - 360px)',
-      }}>
+      <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 360px)' }}>
         <table style={{
-          borderCollapse: 'collapse',
-          width: 'max-content',
-          minWidth: '100%',
-          fontFamily: 'var(--font-body)',
+          borderCollapse: 'collapse', width: 'max-content',
+          minWidth: '100%', fontFamily: 'var(--font-body)',
         }}>
           <thead>
             <tr>
@@ -443,7 +465,73 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
   )
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
+function PositionComfortSection({ athletes, positions, positionComfort, squadPositionComfort }) {
+  if (!positions || positions.length === 0) return null
+  return (
+    <div style={{ marginTop: 28 }}>
+      <SectionLabel count={positions.length}>Position Comfort</SectionLabel>
+      <div style={{
+        background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+      }}>
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{
+            display: 'flex', alignItems: 'flex-end', padding: '10px 16px 6px',
+            borderBottom: '0.5px solid var(--border)',
+            minWidth: 160 + positions.length * 90,
+          }}>
+            <div style={{
+              width: 160, flexShrink: 0, fontSize: 10, fontWeight: 600,
+              letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
+            }}>Athlete</div>
+            {positions.map(pos => (
+              <div key={pos.id} style={{
+                width: 90, flexShrink: 0, fontSize: 10, fontWeight: 500,
+                color: 'var(--text-secondary)', textAlign: 'center',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{pos.name}</div>
+            ))}
+          </div>
+          {athletes.map((athlete, ai) => (
+            <div key={athlete.id} style={{
+              display: 'flex', alignItems: 'center', padding: '8px 16px',
+              background: ai % 2 === 0 ? 'transparent' : 'var(--bg-subtle)',
+              borderBottom: '0.5px solid var(--border)',
+              minWidth: 160 + positions.length * 90,
+            }}>
+              <div style={{
+                width: 160, flexShrink: 0, fontSize: 13, fontWeight: 500,
+                color: 'var(--text-primary)', overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{athlete.display_name || 'Unnamed'}</div>
+              {positions.map(pos => (
+                <div key={pos.id} style={{ width: 90, flexShrink: 0, textAlign: 'center' }}>
+                  <PositionComfortBadge value={positionComfort[athlete.id]?.[pos.id] ?? null} />
+                </div>
+              ))}
+            </div>
+          ))}
+          <div style={{
+            display: 'flex', alignItems: 'center', padding: '10px 16px',
+            borderTop: '1.5px solid var(--border-strong)',
+            minWidth: 160 + positions.length * 90,
+          }}>
+            <div style={{
+              width: 160, flexShrink: 0, fontSize: 10, fontWeight: 600,
+              letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
+            }}>Squad Avg</div>
+            {positions.map(pos => (
+              <div key={pos.id} style={{ width: 90, flexShrink: 0, textAlign: 'center' }}>
+                <PositionComfortBadge value={squadPositionComfort[pos.id] ?? null} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EmptySquad({ clubName, inviteCode }) {
   return (
     <div style={{
@@ -468,7 +556,6 @@ function EmptySquad({ clubName, inviteCode }) {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { profile } = useAuth()
   const [club, setClub] = useState(null)
@@ -552,7 +639,11 @@ export default function DashboardPage() {
     )
   }
 
-  const { athletes, moves, chains, matrix, athlete_aggregates, move_aggregates } = dashboard
+  const {
+    athletes, moves, chains, matrix,
+    athlete_aggregates, move_aggregates,
+    positions, position_comfort, squad_position_comfort,
+  } = dashboard
 
   const athleteAggs = Object.values(athlete_aggregates)
   const ratedAthletes = athleteAggs.filter(a => a.avg_confidence != null)
@@ -560,17 +651,12 @@ export default function DashboardPage() {
   const squadAvg = ratedAthletes.length > 0
     ? (ratedAthletes.reduce((s, a) => s + a.avg_confidence, 0) / ratedAthletes.length).toFixed(1)
     : null
-
-  const moveAggs = Object.entries(move_aggregates)
-  const weakMoves = moveAggs.filter(([, v]) => v.avg_confidence != null && v.avg_confidence <= 2)
+  const weakMoves = Object.entries(move_aggregates).filter(([, v]) => v.avg_confidence != null && v.avg_confidence <= 2)
   const weakCount = weakMoves.length
-
   const isCurriculumView = selectedCurriculum && chains && chains.length > 0
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
-
-      {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{
           fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
@@ -586,7 +672,6 @@ export default function DashboardPage() {
         <EmptySquad clubName={club.name} inviteCode={club.invite_code} />
       ) : (
         <>
-          {/* Stats */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
             <StatPill label="Athletes" value={athletes.length} />
             <StatPill label="Ratings" value={totalRatings} />
@@ -595,7 +680,6 @@ export default function DashboardPage() {
             {weakCount > 0 && <StatPill label="Weak Moves" value={weakCount} accent />}
           </div>
 
-          {/* Curriculum filter */}
           {curricula.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
               <span style={{
@@ -612,11 +696,9 @@ export default function DashboardPage() {
                     background: !selectedCurriculum ? 'var(--accent-soft)' : 'var(--bg-subtle)',
                     color: !selectedCurriculum ? 'var(--accent)' : 'var(--text-muted)',
                     cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all var(--transition)',
-                  }}
-                >All moves</button>
+                  }}>All moves</button>
                 {curricula.map(c => (
-                  <button
-                    key={c.id}
+                  <button key={c.id}
                     onClick={() => handleCurriculumChange(c.id)}
                     style={{
                       padding: '4px 10px', fontSize: 11, fontWeight: 600,
@@ -625,14 +707,12 @@ export default function DashboardPage() {
                       background: selectedCurriculum === c.id ? 'var(--move-soft)' : 'var(--bg-subtle)',
                       color: selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--text-muted)',
                       cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all var(--transition)',
-                    }}
-                  >{c.name}</button>
+                    }}>{c.name}</button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Content */}
           {isCurriculumView ? (
             <>
               <SectionLabel count={chains.length}>Chains</SectionLabel>
@@ -642,7 +722,7 @@ export default function DashboardPage() {
                   chain={chain}
                   athletes={athletes}
                   matrix={matrix}
-                  athleteAggregates={athlete_aggregates}
+                  positionComfort={position_comfort}
                 />
               ))}
             </>
@@ -652,15 +732,19 @@ export default function DashboardPage() {
                 Progress Matrix
               </SectionLabel>
               <FlatMatrix
-                athletes={athletes}
-                moves={moves}
-                matrix={matrix}
+                athletes={athletes} moves={moves} matrix={matrix}
                 athleteAggregates={athlete_aggregates}
-                moveAggregates={move_aggregates}
-                squadAvg={squadAvg}
+                moveAggregates={move_aggregates} squadAvg={squadAvg}
               />
             </>
           )}
+
+          <PositionComfortSection
+            athletes={athletes}
+            positions={positions}
+            positionComfort={position_comfort}
+            squadPositionComfort={squad_position_comfort}
+          />
         </>
       )}
     </div>
