@@ -33,3 +33,9 @@ app.include_router(graph.router, prefix="/graph", tags=["graph"])
 @app.get("/")
 def health():
     return {"status": "ok"}
+
+@app.post("/debug/rls-test")
+def debug_rls(user=Depends(get_current_user), client=Depends(get_supabase_client)):
+    # What does the DB think auth.uid() is when called via your client?
+    result = client.rpc("debug_get_uid").execute()
+    return {"user_id_from_token": user.id, "uid_from_db": result.data}
