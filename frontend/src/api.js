@@ -129,3 +129,8 @@ export const deleteChain          = (chainId)                 => requestDelete(`
 // ── Graph ─────────────────────────────────────────────────────────────────────
 export const getGraph             = () => request('/graph/')
 
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+export const getClubDashboard = (clubId, curriculumId = null) => {
+  const params = curriculumId ? `?curriculum_id=${curriculumId}` : ''
+  return request(`/dashboard/${clubId}${params}`)
+}

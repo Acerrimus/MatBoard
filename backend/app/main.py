@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import positions, moves, progress, auth, profiles, clubs, board, chains, graph
+from app.routers import positions, moves, progress, auth, profiles, clubs, board, chains, graph, dashboard
 
 app = FastAPI(title="Matboard API")
 
@@ -26,7 +26,8 @@ app.include_router(profiles.router,  prefix="/profiles",  tags=["profiles"])
 app.include_router(clubs.router,     prefix="/clubs",     tags=["clubs"])
 app.include_router(board.router,     prefix="/board",     tags=["board"])
 app.include_router(chains.router,    prefix="/chains",    tags=["chains"])
-app.include_router(graph.router, prefix="/graph", tags=["graph"])
+app.include_router(graph.router,     prefix="/graph", tags=["graph"])
+app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
