@@ -133,7 +133,7 @@ function DesktopSidebar({ theme, onToggleTheme, user, profile, onSignOut }) {
 
         {isCoach && (
           <SidebarSection label="Coach">
-            <SidebarNavItem to="/athletes"  label="Athletes"  Icon={Users}     />
+            <SidebarNavItem to="/dashboard"  label="Athletes"  Icon={Users}     />
             <SidebarNavItem to="/curricula" label="Curricula" Icon={BookOpen}   />
           </SidebarSection>
         )}
