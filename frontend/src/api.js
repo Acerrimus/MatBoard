@@ -134,3 +134,12 @@ export const getClubDashboard = (clubId, curriculumId = null) => {
   const params = curriculumId ? `?curriculum_id=${curriculumId}` : ''
   return request(`/dashboard/${clubId}${params}`)
 }
+
+// ── Curricula ─────────────────────────────────────────────────────────────────
+export const getCurricula       = ()                           => request('/curricula/')
+export const getCurriculum      = (id)                         => request(`/curricula/${id}`)
+export const createCurriculum   = (name, description = '')     => requestPost('/curricula/', { name, description })
+export const deleteCurriculum   = (id)                         => requestDelete(`/curricula/${id}`)
+export const addCurriculumItem  = (id, moveId, position)       => requestPost(`/curricula/${id}/items`, { move_id: moveId, position })
+export const removeCurriculumItem = (id, moveId)               => requestDelete(`/curricula/${id}/items/${moveId}`)
+export const reorderCurriculumItems = (id, moveIds)            => requestPut(`/curricula/${id}/items`, { move_ids: moveIds })

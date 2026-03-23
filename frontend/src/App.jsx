@@ -12,6 +12,7 @@ import OnboardingPage from './pages/OnboardingPage'
 import ProgressPage from './pages/ProgressPage'
 import ClubPage from './pages/ClubPage'
 import DashboardPage from './pages/DashboardPage'
+import CurriculaPage from './pages/CurriculaPage'
 import './styles/globals.css'
 
 function getInitialTheme() {
@@ -101,8 +102,8 @@ function AppShell({ theme, onToggleTheme }) {
         <Route path="/home"      element={<Placeholder title="Home Feed" />} />
         <Route path="/club"      element={<ClubPage />} />
         <Route path="/athletes"  element={<Placeholder title="Athletes" />} />
-        <Route path="/curricula" element={<Placeholder title="Curricula" />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/curricula" element={<CurriculaPage />} />
       </Routes>
     </Navigation>
   )
