@@ -1,5 +1,3 @@
-// frontend/src/App.jsx
-
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -8,11 +6,11 @@ import GraphPage from './pages/GraphPage'
 import ExplorePage from './pages/ExplorePage'
 import LoginPage from './pages/LoginPage'
 import OnboardingPage from './pages/OnboardingPage'
-// import ClubSetupPage from './pages/ClubSetupPage'
 import ProgressPage from './pages/ProgressPage'
 import ClubPage from './pages/ClubPage'
 import DashboardPage from './pages/DashboardPage'
 import CurriculaPage from './pages/CurriculaPage'
+import AthleteOverviewPage from './pages/AthleteOverviewPage'
 import './styles/globals.css'
 
 function getInitialTheme() {
@@ -21,31 +19,16 @@ function getInitialTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-// ── Route guard ───────────────────────────────────────────────────────────────
 function Protected({ children }) {
   const { user, profile, loading } = useAuth()
-
   if (loading) return <LoadingScreen />
-
   if (!user) return <Navigate to="/login" replace />
-
-  // Still resolving profile
   if (profile === undefined) return <LoadingScreen />
-
-  // Explicitly no profile
-  if (profile === null) {
-    return <Navigate to="/onboarding" replace />
-  }
-
-  // Profile exists but role not set
-  if (!profile.role) {
-    return <Navigate to="/onboarding" replace />
-  }
-
+  if (profile === null) return <Navigate to="/onboarding" replace />
+  if (!profile.role) return <Navigate to="/onboarding" replace />
   return children
 }
 
-// ── Loading screen ────────────────────────────────────────────────────────────
 function LoadingScreen() {
   return (
     <div style={{
@@ -55,12 +38,7 @@ function LoadingScreen() {
       alignItems: 'center',
       justifyContent: 'center',
     }}>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 12,
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
         <div style={{
           fontFamily: 'var(--font-display)',
           fontSize: 20, fontWeight: 700,
@@ -82,10 +60,8 @@ function LoadingScreen() {
   )
 }
 
-// ── App shell ─────────────────────────────────────────────────────────────────
 function AppShell({ theme, onToggleTheme }) {
   const { signOut, user, profile } = useAuth()
-
   return (
     <Navigation
       theme={theme}
@@ -95,15 +71,15 @@ function AppShell({ theme, onToggleTheme }) {
       onSignOut={signOut}
     >
       <Routes>
-        <Route path="/"          element={<Navigate to="/explore" replace />} />
-        <Route path="/explore"   element={<ExplorePage />} />
-        <Route path="/graph"     element={<GraphPage />} />
-        <Route path="/progress"  element={<ProgressPage />} />
-        <Route path="/home"      element={<Placeholder title="Home Feed" />} />
-        <Route path="/club"      element={<ClubPage />} />
-        <Route path="/athletes"  element={<Placeholder title="Athletes" />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/curricula" element={<CurriculaPage />} />
+        <Route path="/"                     element={<Navigate to="/explore" replace />} />
+        <Route path="/explore"              element={<ExplorePage />} />
+        <Route path="/graph"                element={<GraphPage />} />
+        <Route path="/progress"             element={<ProgressPage />} />
+        <Route path="/home"                 element={<Placeholder title="Home Feed" />} />
+        <Route path="/club"                 element={<ClubPage />} />
+        <Route path="/dashboard"            element={<DashboardPage />} />
+        <Route path="/curricula"            element={<CurriculaPage />} />
+        <Route path="/athletes/:athleteId"  element={<AthleteOverviewPage />} />
       </Routes>
     </Navigation>
   )
@@ -138,21 +114,17 @@ export default function App() {
 
 function Placeholder({ title }) {
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 32px' }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.75rem 2rem' }}>
       <div style={{
         fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4,
-      }}>
-        Coming soon
-      </div>
+      }}>Coming soon</div>
       <h1 style={{
         fontFamily: 'var(--font-display)',
         fontSize: 28, fontWeight: 700,
         letterSpacing: '-0.5px',
         color: 'var(--text-primary)',
-      }}>
-        {title}
-      </h1>
+      }}>{title}</h1>
     </div>
   )
 }

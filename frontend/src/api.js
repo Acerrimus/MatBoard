@@ -145,3 +145,11 @@ export const deleteCurriculumChain      = (id, chainId)             => requestDe
 export const setCurriculumChainMoves    = (id, chainId, moveIds)    => requestPut(`/curricula/${id}/chains/${chainId}/moves`, { move_ids: moveIds })
 export const addMoveToChain             = (id, chainId, moveId)     => requestPost(`/curricula/${id}/chains/${chainId}/moves/${moveId}`, {})
 export const removeMoveFromChain        = (id, chainId, moveId)     => requestDelete(`/curricula/${id}/chains/${chainId}/moves/${moveId}`)
+
+// ── Athlete Overview ──────────────────────────────────────────────────────────
+export const getAthleteOverview   = (athleteId)           => request(`/athletes/${athleteId}`)
+
+// ── Comp Ready ────────────────────────────────────────────────────────────────
+export const getCompReady         = (athleteId)           => request(`/comp-ready/${athleteId}`)
+export const setCompReady         = (athleteId, moveId)   => requestPost(`/comp-ready/${athleteId}/${moveId}`, {})
+export const unsetCompReady       = (athleteId, moveId)   => requestDelete(`/comp-ready/${athleteId}/${moveId}`)

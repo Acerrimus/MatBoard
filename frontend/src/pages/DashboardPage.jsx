@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getMyClub, getClubDashboard, getCurricula } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
@@ -9,16 +10,16 @@ function StatPill({ label, value, accent }) {
       background: accent ? 'var(--accent-soft)' : 'var(--stat-bg)',
       border: `0.5px solid ${accent ? 'var(--border-accent)' : 'var(--stat-border)'}`,
       borderRadius: 'var(--radius-lg)',
-      padding: '14px 20px',
+      padding: '0.875rem 1.25rem',
       display: 'flex', flexDirection: 'column', gap: 4,
-      flex: 1, minWidth: 100,
+      flex: 1, minWidth: '6rem',
     }}>
       <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700,
+        fontFamily: 'var(--font-display)', fontSize: '1.625rem', fontWeight: 700,
         color: accent ? 'var(--accent)' : 'var(--text-primary)', lineHeight: 1,
       }}>{value ?? '—'}</div>
       <div style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+        fontSize: '0.625rem', fontWeight: 600, letterSpacing: '0.12em',
         textTransform: 'uppercase', color: 'var(--text-muted)',
       }}>{label}</div>
     </div>
@@ -29,12 +30,12 @@ function SectionLabel({ children, count }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
       <div style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+        fontSize: '0.625rem', fontWeight: 600, letterSpacing: '0.14em',
         textTransform: 'uppercase', color: 'var(--text-muted)',
       }}>{children}</div>
       {count !== undefined && (
         <div style={{
-          fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
+          fontSize: '0.625rem', fontWeight: 600, color: 'var(--text-muted)',
           background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
           borderRadius: 20, padding: '1px 7px',
         }}>{count}</div>
@@ -45,7 +46,9 @@ function SectionLabel({ children, count }) {
 
 function MiniBar({ value, max = 5 }) {
   const pct = value ? (value / max) * 100 : 0
-  const color = value ? (value <= 2 ? confidenceColor(1) : value <= 3.5 ? confidenceColor(3) : confidenceColor(5)) : 'var(--border)'
+  const color = value
+    ? (value <= 2 ? confidenceColor(1) : value <= 3.5 ? confidenceColor(3) : confidenceColor(5))
+    : 'var(--border)'
   return (
     <div style={{
       width: '100%', height: 3, borderRadius: 2,
@@ -59,18 +62,23 @@ function MiniBar({ value, max = 5 }) {
   )
 }
 
-function ConfidenceCell({ data }) {
+// ── Gold ring comp-ready treatment ────────────────────────────────────────────
+function ConfidenceCell({ data, isCompReady }) {
   if (!data) {
     return (
       <div style={{
-        width: 48, padding: '6px 4px', display: 'flex', flexDirection: 'column',
+        width: '3rem', padding: '0.375rem 0.25rem',
+        display: 'flex', flexDirection: 'column',
         alignItems: 'center', flexShrink: 0,
       }}>
         <div style={{
-          width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-          border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+          width: '1.75rem', height: '1.75rem',
+          borderRadius: 'var(--radius-sm)',
+          border: '0.5px solid var(--border)',
+          background: 'var(--bg-subtle)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-display)',
+          fontSize: '0.6875rem', color: 'var(--text-muted)',
+          fontFamily: 'var(--font-display)',
         }}>·</div>
         <MiniBar value={null} />
       </div>
@@ -79,21 +87,38 @@ function ConfidenceCell({ data }) {
   const conf = data.confidence
   return (
     <div style={{
-      width: 48, padding: '6px 4px', display: 'flex', flexDirection: 'column',
+      width: '3rem', padding: '0.375rem 0.25rem',
+      display: 'flex', flexDirection: 'column',
       alignItems: 'center', flexShrink: 0,
     }}>
       <div style={{ position: 'relative' }}>
+        {/* Gold outer ring when comp-ready */}
+        {isCompReady && (
+          <div style={{
+            position: 'absolute',
+            inset: -3,
+            borderRadius: 'calc(var(--radius-sm) + 2px)',
+            border: '1.5px solid #F59E0B',
+            boxShadow: '0 0 6px #F59E0B44',
+            pointerEvents: 'none',
+            zIndex: 1,
+          }} />
+        )}
         <div style={{
-          width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-          border: `1.5px solid ${confidenceColor(conf)}`, background: confidenceBg(conf),
-          color: confidenceColor(conf), display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: 11, fontWeight: 700,
+          width: '1.75rem', height: '1.75rem',
+          borderRadius: 'var(--radius-sm)',
+          border: `1.5px solid ${confidenceColor(conf)}`,
+          background: confidenceBg(conf),
+          color: confidenceColor(conf),
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '0.6875rem', fontWeight: 700,
           fontFamily: 'var(--font-display)',
+          position: 'relative', zIndex: 0,
         }}>{conf}</div>
         {data.is_favourite && (
           <div style={{
             position: 'absolute', top: -4, right: -4,
-            fontSize: 8, lineHeight: 1,
+            fontSize: '0.5rem', lineHeight: 1, zIndex: 2,
           }}>★</div>
         )}
       </div>
@@ -105,18 +130,19 @@ function ConfidenceCell({ data }) {
 function PositionComfortBadge({ value }) {
   if (value == null) return (
     <div style={{
-      padding: '4px 10px', borderRadius: 'var(--radius-sm)',
+      padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-sm)',
       border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
-      fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-display)',
+      fontSize: '0.6875rem', color: 'var(--text-muted)',
+      fontFamily: 'var(--font-display)',
       display: 'inline-flex', alignItems: 'center', gap: 4,
     }}>—</div>
   )
   const color = value <= 2 ? confidenceColor(1) : value <= 3.5 ? confidenceColor(3) : confidenceColor(5)
   return (
     <div style={{
-      padding: '4px 10px', borderRadius: 'var(--radius-sm)',
+      padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-sm)',
       border: `1px solid ${color}20`, background: `${color}10`,
-      fontSize: 12, fontWeight: 700, color,
+      fontSize: '0.75rem', fontWeight: 700, color,
       fontFamily: 'var(--font-display)',
       display: 'inline-flex', alignItems: 'center', gap: 4,
     }}>
@@ -125,7 +151,7 @@ function PositionComfortBadge({ value }) {
   )
 }
 
-function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
+function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compReady, onAthleteClick }) {
   const moves = chain.moves || []
   if (moves.length === 0) return null
 
@@ -135,12 +161,10 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
     if (m.to_position?.id) chainPositionIds.add(m.to_position.id)
   })
   const chainPositions = [...chainPositionIds].map(pid => {
-    const pos = moves.find(m => m.from_position?.id === pid)?.from_position
+    return moves.find(m => m.from_position?.id === pid)?.from_position
       || moves.find(m => m.to_position?.id === pid)?.to_position
-    return pos
   }).filter(Boolean)
 
-  // Squad-level stats for this chain
   const squadConfs = []
   const moveSquadAvgs = moves.map((move, mi) => {
     const confs = athletes.map(a => matrix[a.id]?.[move.id]?.confidence).filter(Boolean)
@@ -151,24 +175,21 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
   const squadAvg = squadConfs.length > 0
     ? (squadConfs.reduce((a, b) => a + b, 0) / squadConfs.length).toFixed(1)
     : null
-  const weakest = moveSquadAvgs
-    .filter(m => m.avg !== null)
-    .sort((a, b) => a.avg - b.avg)[0]
+  const weakest = moveSquadAvgs.filter(m => m.avg !== null).sort((a, b) => a.avg - b.avg)[0]
 
   return (
     <div style={{ marginBottom: '1.75rem' }}>
-      {/* Section header — outside card */}
       <div style={{
         display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
         marginBottom: '0.25rem',
       }}>
         <div style={{
-          fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)',
+          fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)',
           fontFamily: 'var(--font-display)',
         }}>{chain.name}</div>
-        <div style={{
-          fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 500,
-        }}>{moves.length} move{moves.length !== 1 ? 's' : ''} · {athletes.length} athlete{athletes.length !== 1 ? 's' : ''}</div>
+        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+          {moves.length} move{moves.length !== 1 ? 's' : ''} · {athletes.length} athlete{athletes.length !== 1 ? 's' : ''}
+        </div>
       </div>
 
       {/* Chain flow breadcrumb */}
@@ -184,9 +205,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
                 <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
               </>
             )}
-            <span style={{
-              fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-move)',
-            }}>{move.name}</span>
+            <span style={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-move)' }}>{move.name}</span>
             {i < moves.length - 1 && (
               <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
             )}
@@ -203,6 +222,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
       {/* Athlete cards */}
       {athletes.map(athlete => {
         const ap = matrix[athlete.id] || {}
+        const athleteCompReady = compReady[athlete.id] || []
         const confs = moves.map(m => ap[m.id]?.confidence).filter(Boolean)
         const avg = confs.length > 0
           ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1)
@@ -214,6 +234,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
         const ratedCount = confs.length
         const completionPct = (ratedCount / moves.length) * 100
         const hasFavourite = moves.some(m => ap[m.id]?.is_favourite)
+        const compReadyCount = moves.filter(m => athleteCompReady.includes(m.id)).length
 
         return (
           <div key={athlete.id} style={{
@@ -224,19 +245,34 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
             padding: '0.75rem 1rem',
             marginBottom: '0.375rem',
           }}>
-            {/* Name row */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               marginBottom: '0.5rem',
             }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '0.375rem',
-              }}>
-                <span style={{
-                  fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)',
-                }}>{athlete.display_name || 'Unnamed'}</span>
-                {hasFavourite && (
-                  <span style={{ fontSize: '0.85rem', color: '#FDE047' }}>★</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                {/* Clickable athlete name */}
+                <button
+                  onClick={() => onAthleteClick(athlete.id)}
+                  style={{
+                    fontSize: '0.875rem', fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    background: 'none', border: 'none', padding: 0,
+                    cursor: 'pointer', fontFamily: 'var(--font-body)',
+                    textDecoration: 'underline', textDecorationColor: 'var(--border)',
+                    textUnderlineOffset: 3,
+                    minHeight: '2.75rem', display: 'flex', alignItems: 'center',
+                  }}
+                >{athlete.display_name || 'Unnamed'}</button>
+                {hasFavourite && <span style={{ fontSize: '0.875rem', color: '#FDE047' }}>★</span>}
+                {compReadyCount > 0 && (
+                  <span style={{
+                    fontSize: '0.6rem', fontWeight: 600,
+                    color: '#F59E0B',
+                    background: '#F59E0B18',
+                    border: '0.5px solid #F59E0B44',
+                    borderRadius: 20, padding: '1px 6px',
+                    letterSpacing: '0.06em',
+                  }}>⬡ {compReadyCount} comp ready</span>
                 )}
               </div>
               {avg && (
@@ -252,25 +288,28 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
               )}
             </div>
 
-            {/* Move pills — same style as ChainCard in ProgressPage */}
+            {/* Move pills */}
             <div style={{
               display: 'flex', alignItems: 'center', flexWrap: 'wrap',
-              gap: '0', marginBottom: '0.5rem',
+              gap: 0, marginBottom: '0.5rem',
             }}>
               {moves.map((move, i) => {
                 const data = ap[move.id]
                 const conf = data?.confidence
                 const color = conf ? confidenceColor(conf) : 'var(--border)'
                 const bg = conf ? confidenceBg(conf) : 'var(--bg-subtle)'
+                const isCompReady = athleteCompReady.includes(move.id)
 
                 return (
                   <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
                     <div style={{
                       background: bg,
                       border: `1.5px solid ${color}`,
+                      // Gold outer ring on comp-ready moves
+                      boxShadow: isCompReady ? `0 0 0 1.5px #F59E0B` : 'none',
                       borderRadius: 'var(--radius-sm)',
                       padding: '0.25rem 0.5rem',
-                      fontSize: '0.7rem',
+                      fontSize: '0.6875rem',
                       fontWeight: 500,
                       color: conf ? color : 'var(--text-secondary)',
                       whiteSpace: 'nowrap',
@@ -279,19 +318,19 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
                       {move.name}
                       {conf ? (
                         <span style={{
-                          fontWeight: 700, fontSize: '0.65rem',
-                          fontFamily: 'var(--font-display)',
-                          opacity: 0.9,
+                          fontWeight: 700, fontSize: '0.625rem',
+                          fontFamily: 'var(--font-display)', opacity: 0.9,
                         }}>{conf}</span>
                       ) : (
-                        <span style={{
-                          fontSize: '0.6rem', color: 'var(--text-muted)',
-                        }}>—</span>
+                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>—</span>
+                      )}
+                      {isCompReady && (
+                        <span style={{ fontSize: '0.5rem', color: '#F59E0B' }}>⬡</span>
                       )}
                     </div>
                     {i < moves.length - 1 && (
                       <div style={{
-                        fontSize: '0.7rem', color: 'var(--text-muted)',
+                        fontSize: '0.6875rem', color: 'var(--text-muted)',
                         padding: '0 0.2rem', flexShrink: 0,
                       }}>→</div>
                     )}
@@ -301,16 +340,14 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
             </div>
 
             {/* Progress bar */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{
-                flex: 1, height: '0.2rem', borderRadius: '0.1rem',
+                flex: 1, height: '0.1875rem', borderRadius: '0.125rem',
                 background: 'var(--bg-subtle)',
               }}>
                 <div style={{
                   width: `${completionPct}%`, height: '100%',
-                  borderRadius: '0.1rem', background: borderColor,
+                  borderRadius: '0.125rem', background: borderColor,
                   transition: 'width 0.3s ease',
                 }} />
               </div>
@@ -323,7 +360,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
         )
       })}
 
-      {/* Squad summary card */}
+      {/* Squad summary */}
       <div style={{
         background: 'var(--bg-subtle)',
         border: '0.5px solid var(--border)',
@@ -333,7 +370,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', flexWrap: 'wrap',
-          gap: '0.75rem', fontSize: '0.7rem', color: 'var(--text-secondary)',
+          gap: '0.75rem', fontSize: '0.6875rem', color: 'var(--text-secondary)',
         }}>
           {squadAvg && (
             <span>
@@ -348,9 +385,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
           )}
           {weakest && weakest.avg !== null && (
             <span>
-              Weakest:{' '}
-              <strong style={{ color: 'var(--text-primary)' }}>{weakest.move.name}</strong>
-              {' '}
+              Weakest: <strong style={{ color: 'var(--text-primary)' }}>{weakest.move.name}</strong>{' '}
               <span style={{
                 fontFamily: 'var(--font-display)', fontWeight: 700,
                 color: confidenceColor(Math.round(weakest.avg)),
@@ -358,15 +393,13 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
             </span>
           )}
           {chainPositions.length > 0 && (
-            <span style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap',
-            }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               {chainPositions.map(pos => {
                 const values = athletes
                   .map(a => positionComfort[a.id]?.[pos.id])
                   .filter(Boolean)
                 const avg = values.length > 0
-                  ? (values.reduce((a, b) => a + b, 0) / values.length)
+                  ? values.reduce((a, b) => a + b, 0) / values.length
                   : null
                 const color = avg
                   ? (avg <= 2 ? confidenceColor(1) : avg <= 3.5 ? confidenceColor(3) : confidenceColor(5))
@@ -374,9 +407,9 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
                 return (
                   <span key={pos.id} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                     {pos.name}{' '}
-                    <strong style={{
-                      fontFamily: 'var(--font-display)', color,
-                    }}>{avg ? avg.toFixed(1) : '—'}</strong>
+                    <strong style={{ fontFamily: 'var(--font-display)', color }}>
+                      {avg ? avg.toFixed(1) : '—'}
+                    </strong>
                   </span>
                 )
               })}
@@ -388,7 +421,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort }) {
   )
 }
 
-function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates, squadAvg }) {
+function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates, squadAvg, compReady, onAthleteClick }) {
   return (
     <div style={{
       background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
@@ -403,27 +436,27 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
             <tr>
               <th style={{
                 position: 'sticky', top: 0, left: 0, zIndex: 3,
-                background: 'var(--bg-subtle)', padding: '10px 14px',
-                textAlign: 'left', fontSize: 10, fontWeight: 600,
+                background: 'var(--bg-subtle)', padding: '0.625rem 0.875rem',
+                textAlign: 'left', fontSize: '0.625rem', fontWeight: 600,
                 letterSpacing: '0.14em', textTransform: 'uppercase',
                 color: 'var(--text-muted)', borderBottom: '0.5px solid var(--border)',
-                minWidth: 160,
+                minWidth: '10rem',
               }}>Athlete</th>
               <th style={{
                 position: 'sticky', top: 0, zIndex: 2,
-                background: 'var(--bg-subtle)', padding: '10px 8px',
-                textAlign: 'center', fontSize: 10, fontWeight: 600,
+                background: 'var(--bg-subtle)', padding: '0.625rem 0.5rem',
+                textAlign: 'center', fontSize: '0.625rem', fontWeight: 600,
                 letterSpacing: '0.14em', textTransform: 'uppercase',
                 color: 'var(--text-muted)', borderBottom: '0.5px solid var(--border)',
-                minWidth: 50,
+                minWidth: '3.125rem',
               }}>Avg</th>
               {moves.map(move => (
                 <th key={move.id} style={{
                   position: 'sticky', top: 0, zIndex: 2,
-                  background: 'var(--bg-subtle)', padding: '10px 6px',
-                  textAlign: 'center', fontSize: 11, fontWeight: 500,
+                  background: 'var(--bg-subtle)', padding: '0.625rem 0.375rem',
+                  textAlign: 'center', fontSize: '0.6875rem', fontWeight: 500,
                   color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)',
-                  minWidth: 70, maxWidth: 90,
+                  minWidth: '4.375rem', maxWidth: '5.625rem',
                 }}>
                   <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {move.name}
@@ -435,78 +468,125 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
           <tbody>
             {athletes.map((athlete, i) => {
               const agg = athleteAggregates[athlete.id]
+              const athleteCompReady = compReady[athlete.id] || []
               const even = i % 2 === 0
               return (
                 <tr key={athlete.id} style={{ background: even ? 'transparent' : 'var(--bg-subtle)' }}>
                   <td style={{
                     position: 'sticky', left: 0, zIndex: 1,
                     background: even ? 'var(--bg-surface)' : 'var(--bg-subtle)',
-                    padding: '8px 14px', fontWeight: 500, fontSize: 13,
-                    color: 'var(--text-primary)', borderBottom: '0.5px solid var(--border)',
-                    whiteSpace: 'nowrap', minWidth: 160,
-                  }}>{athlete.display_name || 'Unnamed'}</td>
+                    padding: '0.5rem 0.875rem',
+                    borderBottom: '0.5px solid var(--border)',
+                    whiteSpace: 'nowrap', minWidth: '10rem',
+                  }}>
+                    <button
+                      onClick={() => onAthleteClick(athlete.id)}
+                      style={{
+                        fontSize: '0.8125rem', fontWeight: 500,
+                        color: 'var(--text-primary)',
+                        background: 'none', border: 'none', padding: 0,
+                        cursor: 'pointer', fontFamily: 'var(--font-body)',
+                        textDecoration: 'underline',
+                        textDecorationColor: 'var(--border)',
+                        textUnderlineOffset: 3,
+                        minHeight: '2.75rem', display: 'flex', alignItems: 'center',
+                      }}
+                    >{athlete.display_name || 'Unnamed'}</button>
+                  </td>
                   <td style={{
-                    padding: '8px 6px', textAlign: 'center',
+                    padding: '0.5rem 0.375rem', textAlign: 'center',
                     borderBottom: '0.5px solid var(--border)',
                   }}>
                     {agg?.avg_confidence != null ? (
                       <span style={{
-                        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13,
-                        color: agg.avg_confidence <= 2 ? confidenceColor(1) : agg.avg_confidence <= 3.5 ? confidenceColor(3) : confidenceColor(5),
+                        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.8125rem',
+                        color: agg.avg_confidence <= 2 ? confidenceColor(1)
+                          : agg.avg_confidence <= 3.5 ? confidenceColor(3)
+                          : confidenceColor(5),
                       }}>{agg.avg_confidence.toFixed(1)}</span>
-                    ) : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>}
+                    ) : <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>—</span>}
                   </td>
                   {moves.map(move => {
                     const data = matrix[athlete.id]?.[move.id]
+                    const isCompReady = athleteCompReady.includes(move.id)
                     if (!data) {
                       return (
-                        <td key={move.id} style={{ padding: '8px 6px', textAlign: 'center', borderBottom: '0.5px solid var(--border)' }}>
+                        <td key={move.id} style={{
+                          padding: '0.5rem 0.375rem', textAlign: 'center',
+                          borderBottom: '0.5px solid var(--border)',
+                        }}>
                           <div style={{
-                            width: 26, height: 26, borderRadius: 'var(--radius-sm)',
-                            border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+                            width: '1.625rem', height: '1.625rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '0.5px solid var(--border)',
+                            background: 'var(--bg-subtle)',
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-display)',
+                            fontSize: '0.6875rem', color: 'var(--text-muted)',
+                            fontFamily: 'var(--font-display)',
                           }}>·</div>
                         </td>
                       )
                     }
                     const conf = data.confidence
                     return (
-                      <td key={move.id} style={{ padding: '8px 6px', textAlign: 'center', borderBottom: '0.5px solid var(--border)' }}>
-                        <div style={{
-                          width: 26, height: 26, borderRadius: 'var(--radius-sm)',
-                          border: `1.5px solid ${confidenceColor(conf)}`, background: confidenceBg(conf),
-                          color: confidenceColor(conf), display: 'inline-flex', alignItems: 'center',
-                          justifyContent: 'center', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-display)',
-                        }}>{conf}</div>
+                      <td key={move.id} style={{
+                        padding: '0.5rem 0.375rem', textAlign: 'center',
+                        borderBottom: '0.5px solid var(--border)',
+                      }}>
+                        <div style={{ position: 'relative', display: 'inline-flex' }}>
+                          {isCompReady && (
+                            <div style={{
+                              position: 'absolute', inset: -3,
+                              borderRadius: 'calc(var(--radius-sm) + 2px)',
+                              border: '1.5px solid #F59E0B',
+                              boxShadow: '0 0 6px #F59E0B44',
+                              pointerEvents: 'none', zIndex: 1,
+                            }} />
+                          )}
+                          <div style={{
+                            width: '1.625rem', height: '1.625rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: `1.5px solid ${confidenceColor(conf)}`,
+                            background: confidenceBg(conf),
+                            color: confidenceColor(conf),
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.6875rem', fontWeight: 700,
+                            fontFamily: 'var(--font-display)',
+                          }}>{conf}</div>
+                        </div>
                       </td>
                     )
                   })}
                 </tr>
               )
             })}
+            {/* Squad avg row */}
             <tr style={{ background: 'var(--bg-subtle)' }}>
               <td style={{
                 position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-subtle)',
-                padding: '10px 14px', fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
-                textTransform: 'uppercase', color: 'var(--text-muted)',
+                padding: '0.625rem 0.875rem', fontSize: '0.625rem', fontWeight: 600,
+                letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)',
                 borderTop: '1.5px solid var(--border-strong)',
               }}>Squad Avg</td>
-              <td style={{ padding: '8px 6px', textAlign: 'center', borderTop: '1.5px solid var(--border-strong)' }}>
+              <td style={{ padding: '0.5rem 0.375rem', textAlign: 'center', borderTop: '1.5px solid var(--border-strong)' }}>
                 {squadAvg ? (
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{squadAvg}</span>
-                ) : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>}
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
+                    {squadAvg}
+                  </span>
+                ) : <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>—</span>}
               </td>
               {moves.map(move => {
                 const agg = moveAggregates[move.id]
                 return (
-                  <td key={move.id} style={{ padding: '8px 6px', textAlign: 'center', borderTop: '1.5px solid var(--border-strong)' }}>
+                  <td key={move.id} style={{ padding: '0.5rem 0.375rem', textAlign: 'center', borderTop: '1.5px solid var(--border-strong)' }}>
                     {agg?.avg_confidence != null ? (
                       <span style={{
-                        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12,
-                        color: agg.avg_confidence <= 2 ? confidenceColor(1) : agg.avg_confidence <= 3.5 ? confidenceColor(3) : confidenceColor(5),
+                        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.75rem',
+                        color: agg.avg_confidence <= 2 ? confidenceColor(1)
+                          : agg.avg_confidence <= 3.5 ? confidenceColor(3)
+                          : confidenceColor(5),
                       }}>{agg.avg_confidence.toFixed(1)}</span>
-                    ) : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>}
+                    ) : <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>—</span>}
                   </td>
                 )
               })}
@@ -521,7 +601,7 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
 function PositionComfortSection({ athletes, positions, positionComfort, squadPositionComfort }) {
   if (!positions || positions.length === 0) return null
   return (
-    <div style={{ marginTop: 28 }}>
+    <div style={{ marginTop: '1.75rem' }}>
       <SectionLabel count={positions.length}>Position Comfort</SectionLabel>
       <div style={{
         background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
@@ -529,17 +609,17 @@ function PositionComfortSection({ athletes, positions, positionComfort, squadPos
       }}>
         <div style={{ overflowX: 'auto' }}>
           <div style={{
-            display: 'flex', alignItems: 'flex-end', padding: '10px 16px 6px',
+            display: 'flex', alignItems: 'flex-end', padding: '0.625rem 1rem 0.375rem',
             borderBottom: '0.5px solid var(--border)',
-            minWidth: 160 + positions.length * 90,
+            minWidth: `calc(10rem + ${positions.length} * 5.625rem)`,
           }}>
             <div style={{
-              width: 160, flexShrink: 0, fontSize: 10, fontWeight: 600,
+              width: '10rem', flexShrink: 0, fontSize: '0.625rem', fontWeight: 600,
               letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
             }}>Athlete</div>
             {positions.map(pos => (
               <div key={pos.id} style={{
-                width: 90, flexShrink: 0, fontSize: 10, fontWeight: 500,
+                width: '5.625rem', flexShrink: 0, fontSize: '0.625rem', fontWeight: 500,
                 color: 'var(--text-secondary)', textAlign: 'center',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{pos.name}</div>
@@ -547,34 +627,34 @@ function PositionComfortSection({ athletes, positions, positionComfort, squadPos
           </div>
           {athletes.map((athlete, ai) => (
             <div key={athlete.id} style={{
-              display: 'flex', alignItems: 'center', padding: '8px 16px',
+              display: 'flex', alignItems: 'center', padding: '0.5rem 1rem',
               background: ai % 2 === 0 ? 'transparent' : 'var(--bg-subtle)',
               borderBottom: '0.5px solid var(--border)',
-              minWidth: 160 + positions.length * 90,
+              minWidth: `calc(10rem + ${positions.length} * 5.625rem)`,
             }}>
               <div style={{
-                width: 160, flexShrink: 0, fontSize: 13, fontWeight: 500,
+                width: '10rem', flexShrink: 0, fontSize: '0.8125rem', fontWeight: 500,
                 color: 'var(--text-primary)', overflow: 'hidden',
                 textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{athlete.display_name || 'Unnamed'}</div>
               {positions.map(pos => (
-                <div key={pos.id} style={{ width: 90, flexShrink: 0, textAlign: 'center' }}>
+                <div key={pos.id} style={{ width: '5.625rem', flexShrink: 0, textAlign: 'center' }}>
                   <PositionComfortBadge value={positionComfort[athlete.id]?.[pos.id] ?? null} />
                 </div>
               ))}
             </div>
           ))}
           <div style={{
-            display: 'flex', alignItems: 'center', padding: '10px 16px',
+            display: 'flex', alignItems: 'center', padding: '0.625rem 1rem',
             borderTop: '1.5px solid var(--border-strong)',
-            minWidth: 160 + positions.length * 90,
+            minWidth: `calc(10rem + ${positions.length} * 5.625rem)`,
           }}>
             <div style={{
-              width: 160, flexShrink: 0, fontSize: 10, fontWeight: 600,
+              width: '10rem', flexShrink: 0, fontSize: '0.625rem', fontWeight: 600,
               letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)',
             }}>Squad Avg</div>
             {positions.map(pos => (
-              <div key={pos.id} style={{ width: 90, flexShrink: 0, textAlign: 'center' }}>
+              <div key={pos.id} style={{ width: '5.625rem', flexShrink: 0, textAlign: 'center' }}>
                 <PositionComfortBadge value={squadPositionComfort[pos.id] ?? null} />
               </div>
             ))}
@@ -589,20 +669,21 @@ function EmptySquad({ clubName, inviteCode }) {
   return (
     <div style={{
       background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-      borderRadius: 'var(--radius-lg)', padding: '40px 24px', textAlign: 'center',
+      borderRadius: 'var(--radius-lg)', padding: '2.5rem 1.5rem', textAlign: 'center',
     }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>🤼</div>
+      <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🤼</div>
       <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600,
-        color: 'var(--text-primary)', marginBottom: 6,
+        fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600,
+        color: 'var(--text-primary)', marginBottom: '0.375rem',
       }}>No athletes yet</div>
-      <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 16 }}>
+      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '1rem' }}>
         Share your invite code so athletes can join {clubName}.
       </div>
       <code style={{
-        display: 'inline-block', padding: '8px 18px', background: 'var(--bg-subtle)',
-        border: '0.5px solid var(--border)', borderRadius: 'var(--radius-md)',
-        fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)',
+        display: 'inline-block', padding: '0.5rem 1.125rem',
+        background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        fontSize: '1.125rem', fontWeight: 700, fontFamily: 'var(--font-display)',
         letterSpacing: '0.15em', color: 'var(--accent)',
       }}>{inviteCode}</code>
     </div>
@@ -611,6 +692,7 @@ function EmptySquad({ clubName, inviteCode }) {
 
 export default function DashboardPage() {
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const [club, setClub] = useState(null)
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -654,14 +736,20 @@ export default function DashboardPage() {
     reloadDashboard(val)
   }
 
+  const handleAthleteClick = (athleteId) => {
+    navigate(`/athletes/${athleteId}`)
+  }
+
   if (loading) {
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
+      <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[1, 2, 3, 4].map(i => (
             <div key={i} style={{
-              height: 52, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)',
-              animation: 'pulse 1.4s ease infinite', animationDelay: `${i * 0.1}s`,
+              height: '3.25rem', background: 'var(--bg-subtle)',
+              borderRadius: 'var(--radius-md)',
+              animation: 'pulse 1.4s ease infinite',
+              animationDelay: `${i * 0.1}s`,
             }} />
           ))}
         </div>
@@ -672,10 +760,11 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
+      <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
         <div style={{
           background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
-          borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: 'var(--accent)',
+          borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem',
+          fontSize: '0.8125rem', color: 'var(--accent)',
         }}>{error}</div>
       </div>
     )
@@ -683,10 +772,11 @@ export default function DashboardPage() {
 
   if (!club) {
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
+      <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
         <div style={{
           background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
-          borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13, color: 'var(--accent)',
+          borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem',
+          fontSize: '0.8125rem', color: 'var(--accent)',
         }}>No club found. Create or join a club first.</div>
       </div>
     )
@@ -696,6 +786,7 @@ export default function DashboardPage() {
     athletes, moves, chains, matrix,
     athlete_aggregates, move_aggregates,
     positions, position_comfort, squad_position_comfort,
+    comp_ready = {},
   } = dashboard
 
   const athleteAggs = Object.values(athlete_aggregates)
@@ -709,14 +800,14 @@ export default function DashboardPage() {
   const isCurriculumView = selectedCurriculum && chains && chains.length > 0
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
-      <div style={{ marginBottom: 24 }}>
+    <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
         <div style={{
-          fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+          fontSize: '0.625rem', fontWeight: 600, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4,
         }}>Squad Dashboard</div>
         <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700,
+          fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 700,
           letterSpacing: '-0.5px', color: 'var(--text-primary)', margin: 0,
         }}>{club.name}</h1>
       </div>
@@ -725,7 +816,7 @@ export default function DashboardPage() {
         <EmptySquad clubName={club.name} inviteCode={club.invite_code} />
       ) : (
         <>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.625rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
             <StatPill label="Athletes" value={athletes.length} />
             <StatPill label="Ratings" value={totalRatings} />
             <StatPill label="Squad Avg" value={squadAvg} />
@@ -734,32 +825,36 @@ export default function DashboardPage() {
           </div>
 
           {curricula.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
               <span style={{
-                fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
+                fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-muted)',
                 textTransform: 'uppercase', letterSpacing: '0.08em',
               }}>Filter</span>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => handleCurriculumChange(null)}
                   style={{
-                    padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                    padding: '0.25rem 0.625rem', fontSize: '0.6875rem', fontWeight: 600,
                     borderRadius: 'var(--radius-sm)',
                     border: `0.5px solid ${!selectedCurriculum ? 'var(--accent)' : 'var(--border)'}`,
                     background: !selectedCurriculum ? 'var(--accent-soft)' : 'var(--bg-subtle)',
                     color: !selectedCurriculum ? 'var(--accent)' : 'var(--text-muted)',
-                    cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all var(--transition)',
+                    cursor: 'pointer', fontFamily: 'var(--font-body)',
+                    transition: 'all var(--transition)',
+                    minHeight: '2.75rem',
                   }}>All moves</button>
                 {curricula.map(c => (
                   <button key={c.id}
                     onClick={() => handleCurriculumChange(c.id)}
                     style={{
-                      padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                      padding: '0.25rem 0.625rem', fontSize: '0.6875rem', fontWeight: 600,
                       borderRadius: 'var(--radius-sm)',
                       border: `0.5px solid ${selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--border)'}`,
                       background: selectedCurriculum === c.id ? 'var(--move-soft)' : 'var(--bg-subtle)',
                       color: selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--text-muted)',
-                      cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all var(--transition)',
+                      cursor: 'pointer', fontFamily: 'var(--font-body)',
+                      transition: 'all var(--transition)',
+                      minHeight: '2.75rem',
                     }}>{c.name}</button>
                 ))}
               </div>
@@ -776,6 +871,8 @@ export default function DashboardPage() {
                   athletes={athletes}
                   matrix={matrix}
                   positionComfort={position_comfort}
+                  compReady={comp_ready}
+                  onAthleteClick={handleAthleteClick}
                 />
               ))}
             </>
@@ -785,9 +882,14 @@ export default function DashboardPage() {
                 Progress Matrix
               </SectionLabel>
               <FlatMatrix
-                athletes={athletes} moves={moves} matrix={matrix}
+                athletes={athletes}
+                moves={moves}
+                matrix={matrix}
                 athleteAggregates={athlete_aggregates}
-                moveAggregates={move_aggregates} squadAvg={squadAvg}
+                moveAggregates={move_aggregates}
+                squadAvg={squadAvg}
+                compReady={comp_ready}
+                onAthleteClick={handleAthleteClick}
               />
             </>
           )}
