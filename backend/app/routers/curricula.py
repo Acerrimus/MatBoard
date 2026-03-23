@@ -113,7 +113,7 @@ async def get_curriculum(
         if move_ids:
             moves_resp = (
                 supabase.table("moves")
-                .select("id, name, slug")
+                .select("id, name, slug, from_position:positions!from_position_id(id, name, slug), to_position:positions!to_position_id(id, name, slug)")
                 .in_("id", move_ids)
                 .execute()
             )

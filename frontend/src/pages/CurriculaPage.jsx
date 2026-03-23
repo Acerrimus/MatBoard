@@ -104,6 +104,10 @@ function ChainCard({ chain, curriculumId, onAddMove, onRemoveMove, onDeleteChain
 
   const existingIds = new Set(chain.moves.map(m => m.id))
 
+  // Determine the "next" position based on last move's to_position
+  const lastMove = chain.moves.length > 0 ? chain.moves[chain.moves.length - 1] : null
+  const nextPositionSlug = lastMove?.to_position?.slug || null
+
   return (
     <div style={{
       background: 'var(--bg-surface)',
@@ -156,7 +160,7 @@ function ChainCard({ chain, curriculumId, onAddMove, onRemoveMove, onDeleteChain
         </div>
       </div>
 
-      {/* Chain moves as flow */}
+      {/* Chain flow */}
       {chain.moves.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
           No moves yet — add some below
@@ -165,6 +169,25 @@ function ChainCard({ chain, curriculumId, onAddMove, onRemoveMove, onDeleteChain
         <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap', marginBottom: picking ? 12 : 0 }}>
           {chain.moves.map((move, i) => (
             <div key={move.id} style={{ display: 'flex', alignItems: 'center' }}>
+              {/* Position label before first move */}
+              {i === 0 && move.from_position && (
+                <div style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  padding: '3px 6px',
+                  background: 'var(--bg-subtle)',
+                  border: '0.5px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  marginRight: 6,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {move.from_position.name}
+                </div>
+              )}
+              {i === 0 && move.from_position && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px' }}>→</div>
+              )}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -194,38 +217,60 @@ function ChainCard({ chain, curriculumId, onAddMove, onRemoveMove, onDeleteChain
                   ✕
                 </button>
               </div>
-              {i < chain.moves.length - 1 && (
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px', flexShrink: 0 }}>
-                  →
-                </div>
+              {/* Arrow + next position */}
+              {move.to_position && (
+                <>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px' }}>→</div>
+                  {i === chain.moves.length - 1 && (
+                    <div style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      padding: '3px 6px',
+                      background: 'var(--bg-subtle)',
+                      border: '0.5px solid var(--border)',
+                      borderRadius: 'var(--radius-sm)',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {move.to_position.name}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Inline move picker */}
+      {/* Move picker */}
       {picking && (
         <MovePicker
           existingMoveIds={existingIds}
           onAdd={(moveId) => onAddMove(chain.id, moveId)}
+          autoPositionSlug={nextPositionSlug}
         />
       )}
     </div>
   )
 }
+// ── Move Picker ──────────────────────────────────────────────────────────────────────
 
-// ── Move picker ───────────────────────────────────────────────────────────────
-
-function MovePicker({ existingMoveIds, onAdd }) {
+function MovePicker({ existingMoveIds, onAdd, autoPositionSlug = null }) {
   const [positions, setPositions] = useState([])
-  const [selectedPos, setSelectedPos] = useState(null)
+  const [selectedPos, setSelectedPos] = useState(autoPositionSlug)
   const [moves, setMoves] = useState([])
   const [loadingMoves, setLoadingMoves] = useState(false)
 
   useEffect(() => {
     getPositions().then(setPositions).catch(console.error)
   }, [])
+
+  // Auto-select when autoPositionSlug changes (new move added to chain)
+  useEffect(() => {
+    if (autoPositionSlug) {
+      setSelectedPos(autoPositionSlug)
+    }
+  }, [autoPositionSlug])
 
   useEffect(() => {
     if (!selectedPos) { setMoves([]); return }
@@ -246,6 +291,18 @@ function MovePicker({ existingMoveIds, onAdd }) {
       padding: '10px 12px',
       marginTop: 8,
     }}>
+      {/* Hint */}
+      {autoPositionSlug && (
+        <div style={{
+          fontSize: 11,
+          color: 'var(--text-secondary)',
+          marginBottom: 8,
+          fontStyle: 'italic',
+        }}>
+          Showing moves from the last position. Pick a different position to override.
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
         {positions.map(pos => (
           <button
