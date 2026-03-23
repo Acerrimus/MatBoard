@@ -1,42 +1,42 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../context/AuthContext'
-import { getMyClub, getClubDashboard } from '../api'
+import { getMyBoard, upsertProgress, deleteProgress, getMyChains } from '../api'
+import { confidenceColor, confidenceBg } from '../components/MoveCard'
 
-const CONFIDENCE_COLORS = {
-  1: '#ef4444',
-  2: '#f97316',
-  3: '#eab308',
-  4: '#22c55e',
-  5: '#16a34a',
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function avg(nums) {
+  if (!nums.length) return null
+  return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1)
 }
 
-function StatCard({ value, label, color }) {
+// ── Stat pill ─────────────────────────────────────────────────────────────────
+function StatPill({ label, value, accent }) {
   return (
     <div style={{
-      background: 'var(--bg-surface)',
-      border: '1px solid var(--border)',
-      borderLeft: `3px solid ${color || 'var(--border-strong)'}`,
+      background: accent ? 'var(--accent-soft)' : 'var(--stat-bg)',
+      border: `0.5px solid ${accent ? 'var(--border-accent)' : 'var(--stat-border)'}`,
       borderRadius: 'var(--radius-lg)',
-      padding: '1rem 1.25rem',
-      minWidth: 120,
-      flex: '1 1 0',
+      padding: '14px 20px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 4,
+      flex: 1,
+      minWidth: 100,
     }}>
       <div style={{
         fontFamily: 'var(--font-display)',
-        fontSize: '1.5rem',
+        fontSize: 26,
         fontWeight: 700,
-        color: color || 'var(--text-primary)',
-        lineHeight: 1.2,
+        color: accent ? 'var(--accent)' : 'var(--text-primary)',
+        lineHeight: 1,
       }}>
-        {value}
+        {value ?? '—'}
       </div>
       <div style={{
-        fontSize: '0.7rem',
+        fontSize: 10,
         fontWeight: 600,
+        letterSpacing: '0.12em',
         textTransform: 'uppercase',
-        letterSpacing: '0.05em',
         color: 'var(--text-muted)',
-        marginTop: '0.25rem',
       }}>
         {label}
       </div>
@@ -44,430 +44,534 @@ function StatCard({ value, label, color }) {
   )
 }
 
-function ConfidenceCell({ data }) {
-  if (!data) {
-    return (
-      <td style={{
-        padding: '0.5rem',
-        textAlign: 'center',
-        color: 'var(--text-muted)',
-        fontSize: '0.75rem',
-        borderBottom: '1px solid var(--border)',
-      }}>
-        ·
-      </td>
-    )
-  }
-  const color = CONFIDENCE_COLORS[data.confidence]
+// ── Section heading ───────────────────────────────────────────────────────────
+function SectionLabel({ children, count }) {
   return (
-    <td style={{
-      padding: '0.5rem',
-      textAlign: 'center',
-      borderBottom: '1px solid var(--border)',
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 12,
     }}>
       <div style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 28,
-        height: 28,
-        borderRadius: 'var(--radius-sm)',
-        border: `1.5px solid ${color}`,
-        backgroundColor: color + '18',
-        color: color,
-        fontWeight: 700,
-        fontSize: '0.75rem',
-        fontFamily: 'var(--font-display)',
-      }}>
-        {data.confidence}
-      </div>
-    </td>
-  )
-}
-
-function AvgBadge({ value }) {
-  if (value == null) {
-    return (
-      <td style={{
-        padding: '0.5rem',
-        textAlign: 'center',
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: '0.14em',
+        textTransform: 'uppercase',
         color: 'var(--text-muted)',
-        fontSize: '0.75rem',
-        borderBottom: '1px solid var(--border)',
       }}>
-        —
-      </td>
-    )
-  }
-  const color = value <= 2 ? '#ef4444' : value <= 3.5 ? '#eab308' : '#22c55e'
-  return (
-    <td style={{
-      padding: '0.5rem',
-      textAlign: 'center',
-      borderBottom: '1px solid var(--border)',
-    }}>
-      <span style={{
-        fontFamily: 'var(--font-display)',
-        fontWeight: 700,
-        fontSize: '0.8rem',
-        color: color,
-      }}>
-        {value.toFixed(1)}
-      </span>
-    </td>
+        {children}
+      </div>
+      {count !== undefined && (
+        <div style={{
+          fontSize: 10,
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          background: 'var(--bg-subtle)',
+          border: '0.5px solid var(--border)',
+          borderRadius: 20,
+          padding: '1px 7px',
+        }}>
+          {count}
+        </div>
+      )}
+    </div>
   )
 }
 
-export default function DashboardPage() {
-  const { profile } = useAuth()
-  const [club, setClub] = useState(null)
-  const [dashboard, setDashboard] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+// ── Inline confidence selector ────────────────────────────────────────────────
+function InlineConfidence({ value, onChange, disabled }) {
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <button
+          key={i}
+          onClick={() => !disabled && onChange(i)}
+          title={['', 'Beginner', 'Developing', 'Competent', 'Proficient', 'Expert'][i]}
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: 'var(--radius-sm)',
+            border: `1.5px solid ${i === value ? confidenceColor(i) : 'var(--border)'}`,
+            background: i === value ? confidenceBg(i) : 'var(--bg-subtle)',
+            color: i === value ? confidenceColor(i) : 'var(--text-muted)',
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'all var(--transition)',
+            fontFamily: 'var(--font-display)',
+            flexShrink: 0,
+          }}
+        >
+          {i}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ── Progress move row ─────────────────────────────────────────────────────────
+function MoveRow({ item, onProgressChange }) {
+  const [saving, setSaving] = useState(false)
+
+  const move       = item.move
+  const confidence = item.progress?.confidence   ?? null
+  const isFav      = item.progress?.is_favourite ?? false
+
+  const handleConfidence = async (val) => {
+    setSaving(true)
+    try {
+      if (val === confidence) {
+        // clear confidence
+        if (isFav) {
+          const updated = await upsertProgress(move.id, null, true)
+          onProgressChange(move.id, updated)
+        } else {
+          await deleteProgress(move.id)
+          onProgressChange(move.id, null)
+        }
+      } else {
+        const updated = await upsertProgress(move.id, val, isFav)
+        onProgressChange(move.id, updated)
+      }
+    } catch (e) { console.error(e) }
+    finally { setSaving(false) }
+  }
+
+  const handleFav = async () => {
+    setSaving(true)
+    try {
+      const newFav = !isFav
+      if (!newFav && confidence === null) {
+        await deleteProgress(move.id)
+        onProgressChange(move.id, null)
+      } else {
+        const updated = await upsertProgress(move.id, confidence, newFav)
+        onProgressChange(move.id, updated)
+      }
+    } catch (e) { console.error(e) }
+    finally { setSaving(false) }
+  }
+
+  const borderLeft = `3px solid ${confidence ? confidenceColor(confidence) : 'var(--border)'}`
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '0.5px solid var(--border)',
+      borderLeft,
+      borderRadius: 'var(--radius-md)',
+      padding: '10px 14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 6,
+      transition: 'border-color var(--transition)',
+      opacity: saving ? 0.6 : 1,
+    }}>
+      {/* Move name + position */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 13,
+          fontWeight: 500,
+          color: 'var(--text-primary)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}>
+          {move.name}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+          {move.from_position?.name ?? '—'} → {move.to_position?.name ?? '—'}
+        </div>
+      </div>
+
+      {/* Confidence */}
+      <InlineConfidence value={confidence} onChange={handleConfidence} disabled={saving} />
+
+      {/* Favourite */}
+      <button
+        onClick={handleFav}
+        disabled={saving}
+        style={{
+          background: isFav ? '#FEF9C3' : 'var(--bg-subtle)',
+          border: `0.5px solid ${isFav ? '#FDE047' : 'var(--border)'}`,
+          borderRadius: 'var(--radius-sm)',
+          width: 28,
+          height: 28,
+          fontSize: 13,
+          cursor: saving ? 'not-allowed' : 'pointer',
+          transition: 'all var(--transition)',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {isFav ? '★' : '☆'}
+      </button>
+    </div>
+  )
+}
+
+// ── Chain card ────────────────────────────────────────────────────────────────
+function ChainCard({ chain }) {
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '0.5px solid var(--border)',
+      borderRadius: 'var(--radius-lg)',
+      padding: '14px 16px',
+      marginBottom: 10,
+    }}>
+      <div style={{
+        fontSize: 13,
+        fontWeight: 600,
+        color: 'var(--text-primary)',
+        marginBottom: 10,
+      }}>
+        {chain.name}
+      </div>
+
+      {chain.moves.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          No moves added yet
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
+          {chain.moves.map((item, i) => {
+            const confidence = item.progress?.confidence ?? null
+            const color = confidenceColor(confidence)
+            const bg    = confidence ? confidenceBg(confidence) : 'var(--bg-subtle)'
+            return (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{
+                  background: bg,
+                  border: `1.5px solid ${color}`,
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '5px 10px',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: confidence ? color : 'var(--text-secondary)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {item.move.name}
+                  {confidence && (
+                    <span style={{
+                      marginLeft: 5,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      opacity: 0.8,
+                    }}>
+                      {confidence}
+                    </span>
+                  )}
+                </div>
+                {i < chain.moves.length - 1 && (
+                  <div style={{
+                    fontSize: 12,
+                    color: 'var(--text-muted)',
+                    padding: '0 4px',
+                    flexShrink: 0,
+                  }}>
+                    →
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Chain weakness indicator */}
+      {chain.moves.length > 0 && (() => {
+        const confidences = chain.moves
+          .map(m => m.progress?.confidence)
+          .filter(Boolean)
+        const weakLink = chain.moves.find(m => {
+          const c = m.progress?.confidence
+          return c && c <= 2
+        })
+        const unrated = chain.moves.filter(m => !m.progress?.confidence).length
+
+        if (!weakLink && !unrated) return null
+
+        return (
+          <div style={{
+            marginTop: 10,
+            fontSize: 11,
+            color: weakLink ? '#EF4444' : 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+          }}>
+            {weakLink
+              ? `⚠ Weak link: ${weakLink.move.name} (${weakLink.progress.confidence}/5)`
+              : `${unrated} move${unrated > 1 ? 's' : ''} unrated`}
+          </div>
+        )
+      })()}
+    </div>
+  )
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+function EmptyBoard() {
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '0.5px solid var(--border)',
+      borderRadius: 'var(--radius-lg)',
+      padding: '40px 24px',
+      textAlign: 'center',
+    }}>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>🗺️</div>
+      <div style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: 16,
+        fontWeight: 600,
+        color: 'var(--text-primary)',
+        marginBottom: 6,
+      }}>
+        Your board is empty
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        Head to the Graph and add moves to your board to start tracking your progress.
+      </div>
+    </div>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+export default function ProgressPage() {
+  const [boardItems, setBoardItems] = useState([])
+  const [chains, setChains]         = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
+  const [filter, setFilter]         = useState('all') // 'all' | 'rated' | 'unrated' | 'weak'
 
   useEffect(() => {
-    async function load() {
-      try {
-        const clubData = await getMyClub()
-        setClub(clubData)
-        const dash = await getClubDashboard(clubData.id)
-        setDashboard(dash)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
+    Promise.all([getMyBoard(), getMyChains()])
+      .then(([board, chains]) => {
+        setBoardItems(board)
+        setChains(chains)
+      })
+      .catch(() => setError('Could not load progress data.'))
+      .finally(() => setLoading(false))
   }, [])
 
-  if (loading) {
-    return (
-      <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
-        Loading dashboard…
-      </div>
-    )
+  // ── Progress change ─────────────────────────────────────────────────────────
+  const handleProgressChange = (moveId, progressData) => {
+    setBoardItems(prev => prev.map(item => {
+      if (item.move.id !== moveId) return item
+      return { ...item, progress: progressData }
+    }))
+    // Also update chains
+    setChains(prev => prev.map(chain => ({
+      ...chain,
+      moves: chain.moves.map(m =>
+        m.move.id === moveId ? { ...m, progress: progressData } : m
+      ),
+    })))
   }
 
-  if (error) {
-    return (
-      <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-body)', color: 'var(--text-accent)' }}>
-        {error}
+  // ── Derived stats ───────────────────────────────────────────────────────────
+  const rated      = boardItems.filter(i => i.progress?.confidence)
+  const unrated    = boardItems.filter(i => !i.progress?.confidence)
+  const weak       = boardItems.filter(i => i.progress?.confidence <= 2)
+  const favourites = boardItems.filter(i => i.progress?.is_favourite)
+  const avgConf    = avg(rated.map(i => i.progress.confidence))
+
+  // ── Filtered board ──────────────────────────────────────────────────────────
+  const filteredItems = (() => {
+    if (filter === 'rated')   return rated
+    if (filter === 'unrated') return unrated
+    if (filter === 'weak')    return weak
+    return boardItems
+  })()
+
+  // ── Group board by from_position ────────────────────────────────────────────
+  const grouped = filteredItems.reduce((acc, item) => {
+    const key = item.move.from_position?.name ?? 'Unknown'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(item)
+    return acc
+  }, {})
+
+  if (loading) return (
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 32px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} style={{
+            height: 52,
+            background: 'var(--bg-subtle)',
+            borderRadius: 'var(--radius-md)',
+            animation: 'pulse 1.4s ease infinite',
+            animationDelay: `${i * 0.1}s`,
+          }} />
+        ))}
       </div>
-    )
-  }
+    </div>
+  )
 
-  if (!club) {
-    return (
-      <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
-        No club found
-      </div>
-    )
-  }
+  return (
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 32px' }}>
 
-  const { athletes, moves, matrix, athlete_aggregates, move_aggregates } = dashboard
-
-  // Compute squad-level stats
-  const athleteAggs = Object.values(athlete_aggregates)
-  const ratedAthletes = athleteAggs.filter(a => a.avg_confidence != null)
-  const squadAvg = ratedAthletes.length > 0
-    ? (ratedAthletes.reduce((s, a) => s + a.avg_confidence, 0) / ratedAthletes.length).toFixed(1)
-    : '—'
-  const totalRatings = athleteAggs.reduce((s, a) => s + a.rated_count, 0)
-
-  const moveAggs = Object.entries(move_aggregates)
-  const weakestMove = moveAggs
-    .filter(([, v]) => v.avg_confidence != null)
-    .sort((a, b) => a[1].avg_confidence - b[1].avg_confidence)[0]
-  const weakestMoveName = weakestMove
-    ? moves.find(m => m.id === weakestMove[0])?.name || '—'
-    : '—'
-
-  if (athletes.length === 0) {
-    return (
-      <div style={{ padding: '2rem 2.5rem', maxWidth: 900 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
         <div style={{
-          fontSize: '0.7rem',
+          fontSize: 10,
           fontWeight: 600,
+          letterSpacing: '0.14em',
           textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'var(--text-secondary)',
-          marginBottom: '0.25rem',
+          color: 'var(--text-muted)',
+          marginBottom: 4,
         }}>
-          SQUAD DASHBOARD
+          My Progress
         </div>
         <h1 style={{
           fontFamily: 'var(--font-display)',
-          fontSize: '1.75rem',
+          fontSize: 28,
           fontWeight: 700,
+          letterSpacing: '-0.5px',
           color: 'var(--text-primary)',
-          margin: '0 0 1.5rem',
         }}>
-          {club.name}
+          Technique Tracker
         </h1>
+      </div>
+
+      {error && (
         <div style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '2rem',
-          textAlign: 'center',
+          background: 'var(--accent-soft)',
+          border: '0.5px solid var(--border-accent)',
+          borderRadius: 'var(--radius-md)',
+          padding: '12px 16px',
+          fontSize: 13,
+          color: 'var(--accent)',
+          marginBottom: 20,
         }}>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontFamily: 'var(--font-body)' }}>
-            No athletes have joined yet. Share your invite code:
-          </p>
-          <code style={{
-            display: 'inline-block',
-            padding: '0.6rem 1.25rem',
-            background: 'var(--bg-subtle)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            fontSize: '1.4rem',
-            fontWeight: 700,
-            fontFamily: 'var(--font-display)',
-            letterSpacing: '0.15em',
-            color: 'var(--text-accent)',
-          }}>
-            {club.invite_code}
-          </code>
+          {error}
         </div>
-      </div>
-    )
-  }
+      )}
 
-  return (
-    <div style={{ padding: '2rem 2.5rem' }}>
-      {/* Header */}
-      <div style={{
-        fontSize: '0.7rem',
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        color: 'var(--text-secondary)',
-        marginBottom: '0.25rem',
-      }}>
-        SQUAD DASHBOARD
-      </div>
-      <h1 style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '1.75rem',
-        fontWeight: 700,
-        color: 'var(--text-primary)',
-        margin: '0 0 1.25rem',
-      }}>
-        {club.name}
-      </h1>
+      {boardItems.length === 0 && !loading ? (
+        <EmptyBoard />
+      ) : (
+        <>
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
+            <StatPill label="On board"       value={boardItems.length} />
+            <StatPill label="Rated"          value={rated.length} />
+            <StatPill label="Avg confidence" value={avgConf} />
+            <StatPill label="Favourites"     value={favourites.length} />
+            {weak.length > 0 && (
+              <StatPill label="Needs work" value={weak.length} accent />
+            )}
+          </div>
 
-      {/* Stat cards */}
-      <div style={{
-        display: 'flex',
-        gap: '0.75rem',
-        marginBottom: '2rem',
-        flexWrap: 'wrap',
-      }}>
-        <StatCard value={athletes.length} label="Athletes" />
-        <StatCard value={totalRatings} label="Ratings" />
-        <StatCard value={squadAvg} label="Squad Avg" color={squadAvg !== '—' && parseFloat(squadAvg) <= 2 ? '#ef4444' : undefined} />
-        <StatCard value={moves.length} label="Moves Tracked" />
-        <StatCard value={weakestMoveName} label="Weakest Move" color="var(--accent)" />
-      </div>
+          {/* Chains */}
+          {chains.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <SectionLabel count={chains.length}>My Chains</SectionLabel>
+              {chains.map(chain => (
+                <ChainCard key={chain.id} chain={chain} />
+              ))}
+            </div>
+          )}
 
-      {/* Matrix section label */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '0.75rem',
-      }}>
-        <span style={{
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: 'var(--text-secondary)',
-        }}>
-          PROGRESS MATRIX
-        </span>
-        <span style={{
-          fontSize: '0.7rem',
-          color: 'var(--text-muted)',
-          background: 'var(--bg-subtle)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '0.1rem 0.5rem',
-          fontWeight: 500,
-        }}>
-          {athletes.length} × {moves.length}
-        </span>
-      </div>
+          {/* Favourites */}
+          {favourites.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <SectionLabel count={favourites.length}>Favourites</SectionLabel>
+              {favourites.map(item => (
+                <MoveRow
+                  key={item.move.id}
+                  item={item}
+                  onProgressChange={handleProgressChange}
+                />
+              ))}
+            </div>
+          )}
 
-      {/* Matrix card */}
-      <div style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          overflow: 'auto',
-          maxHeight: 'calc(100vh - 340px)',
-        }}>
-          <table style={{
-            borderCollapse: 'collapse',
-            width: 'max-content',
-            minWidth: '100%',
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.8rem',
-          }}>
-            <thead>
-              <tr>
-                <th style={{
-                  position: 'sticky',
-                  top: 0,
-                  left: 0,
-                  zIndex: 3,
-                  background: 'var(--bg-subtle)',
-                  padding: '0.6rem 1rem',
-                  textAlign: 'left',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: 'var(--text-muted)',
-                  borderBottom: '1px solid var(--border)',
-                  minWidth: 160,
-                }}>
-                  Athlete
-                </th>
-                <th style={{
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 2,
-                  background: 'var(--bg-subtle)',
-                  padding: '0.6rem 0.75rem',
-                  textAlign: 'center',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: 'var(--text-muted)',
-                  borderBottom: '1px solid var(--border)',
-                  minWidth: 50,
-                }}>
-                  Avg
-                </th>
-                {moves.map((move) => (
-                  <th key={move.id} style={{
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 2,
-                    background: 'var(--bg-subtle)',
-                    padding: '0.6rem 0.5rem',
-                    textAlign: 'center',
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 500,
-                    fontSize: '0.65rem',
-                    color: 'var(--text-secondary)',
-                    borderBottom: '1px solid var(--border)',
-                    minWidth: 80,
-                    maxWidth: 90,
-                  }}>
-                    <div style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {move.name}
-                    </div>
-                  </th>
+          {/* Board — with filter tabs */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <SectionLabel count={filteredItems.length}>All Board Moves</SectionLabel>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { key: 'all',     label: 'All'        },
+                  { key: 'unrated', label: 'Unrated'    },
+                  { key: 'weak',    label: 'Needs work' },
+                  { key: 'rated',   label: 'Rated'      },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setFilter(tab.key)}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      borderRadius: 'var(--radius-sm)',
+                      border: `0.5px solid ${filter === tab.key ? 'var(--accent)' : 'var(--border)'}`,
+                      background: filter === tab.key ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+                      color: filter === tab.key ? 'var(--accent)' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-body)',
+                      transition: 'all var(--transition)',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {athletes.map((athlete, i) => {
-                const agg = athlete_aggregates[athlete.id]
-                return (
-                  <tr key={athlete.id} style={{
-                    background: i % 2 === 0 ? 'transparent' : 'var(--bg-subtle)',
+              </div>
+            </div>
+
+            {filteredItems.length === 0 ? (
+              <div style={{
+                padding: '20px',
+                textAlign: 'center',
+                fontSize: 13,
+                color: 'var(--text-muted)',
+                background: 'var(--bg-surface)',
+                border: '0.5px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+              }}>
+                No moves in this category
+              </div>
+            ) : (
+              Object.entries(grouped).map(([positionName, items]) => (
+                <div key={positionName} style={{ marginBottom: 20 }}>
+                  <div style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginBottom: 8,
+                    paddingLeft: 4,
                   }}>
-                    <td style={{
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 1,
-                      background: i % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-subtle)',
-                      padding: '0.6rem 1rem',
-                      fontWeight: 500,
-                      color: 'var(--text-primary)',
-                      borderBottom: '1px solid var(--border)',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {athlete.display_name || 'Unnamed'}
-                    </td>
-                    <AvgBadge value={agg?.avg_confidence} />
-                    {moves.map((move) => (
-                      <ConfidenceCell key={move.id} data={matrix[athlete.id]?.[move.id]} />
-                    ))}
-                  </tr>
-                )
-              })}
-              {/* Aggregate row */}
-              <tr style={{ background: 'var(--bg-subtle)' }}>
-                <td style={{
-                  position: 'sticky',
-                  left: 0,
-                  zIndex: 1,
-                  background: 'var(--bg-subtle)',
-                  padding: '0.6rem 1rem',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '0.7rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: 'var(--text-muted)',
-                  borderTop: '2px solid var(--border-strong)',
-                }}>
-                  Squad Avg
-                </td>
-                <td style={{
-                  padding: '0.5rem',
-                  textAlign: 'center',
-                  borderTop: '2px solid var(--border-strong)',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  color: 'var(--text-secondary)',
-                }}>
-                  {squadAvg}
-                </td>
-                {moves.map((move) => {
-                  const agg = move_aggregates[move.id]
-                  return (
-                    <td key={move.id} style={{
-                      padding: '0.5rem',
-                      textAlign: 'center',
-                      borderTop: '2px solid var(--border-strong)',
-                    }}>
-                      {agg?.avg_confidence != null ? (
-                        <span style={{
-                          fontFamily: 'var(--font-display)',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          color: agg.avg_confidence <= 2 ? '#ef4444' : agg.avg_confidence <= 3.5 ? '#eab308' : '#22c55e',
-                        }}>
-                          {agg.avg_confidence.toFixed(1)}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                      )}
-                    </td>
-                  )
-                })}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    From {positionName}
+                  </div>
+                  {items.map(item => (
+                    <MoveRow
+                      key={item.move.id}
+                      item={item}
+                      onProgressChange={handleProgressChange}
+                    />
+                  ))}
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   )
 }
