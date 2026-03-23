@@ -54,7 +54,7 @@ async def get_club_dashboard(
         key=lambda p: (p["display_name"] or "").lower(),
     )
 
-    # 4 — Get moves (all, or filtered by curriculum)
+    # 4 — Get moves (all, or filtered by curriculum chains)
     if curriculum_id:
         curr_resp = (
             supabase.table("curricula")
@@ -68,14 +68,29 @@ async def get_club_dashboard(
                 status_code=404, detail="Curriculum not found in this club"
             )
 
-        items_resp = (
-            supabase.table("curriculum_items")
-            .select("move_id")
+        chains_resp = (
+            supabase.table("curriculum_chains")
+            .select("id")
             .eq("curriculum_id", curriculum_id)
-            .order("position")
             .execute()
         )
-        move_ids = [item["move_id"] for item in items_resp.data]
+        chain_ids = [c["id"] for c in chains_resp.data]
+
+        move_ids = []
+        if chain_ids:
+            chain_moves_resp = (
+                supabase.table("curriculum_chain_moves")
+                .select("move_id")
+                .in_("chain_id", chain_ids)
+                .order("position")
+                .execute()
+            )
+            # Deduplicate while preserving order
+            seen = set()
+            for cm in chain_moves_resp.data:
+                if cm["move_id"] not in seen:
+                    move_ids.append(cm["move_id"])
+                    seen.add(cm["move_id"])
 
         if move_ids:
             moves_resp = (

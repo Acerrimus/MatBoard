@@ -136,10 +136,12 @@ export const getClubDashboard = (clubId, curriculumId = null) => {
 }
 
 // ── Curricula ─────────────────────────────────────────────────────────────────
-export const getCurricula       = ()                           => request('/curricula/')
-export const getCurriculum      = (id)                         => request(`/curricula/${id}`)
-export const createCurriculum   = (name, description = '')     => requestPost('/curricula/', { name, description })
-export const deleteCurriculum   = (id)                         => requestDelete(`/curricula/${id}`)
-export const addCurriculumItem  = (id, moveId, position)       => requestPost(`/curricula/${id}/items`, { move_id: moveId, position })
-export const removeCurriculumItem = (id, moveId)               => requestDelete(`/curricula/${id}/items/${moveId}`)
-export const reorderCurriculumItems = (id, moveIds)            => requestPut(`/curricula/${id}/items`, { move_ids: moveIds })
+export const getCurricula             = ()                        => request('/curricula/')
+export const getCurriculum            = (id)                      => request(`/curricula/${id}`)
+export const createCurriculum         = (name, description = '')  => requestPost('/curricula/', { name, description })
+export const deleteCurriculum         = (id)                      => requestDelete(`/curricula/${id}`)
+export const addCurriculumChain       = (id, name)                => requestPost(`/curricula/${id}/chains`, { name })
+export const deleteCurriculumChain    = (id, chainId)             => requestDelete(`/curricula/${id}/chains/${chainId}`)
+export const setChainMoves            = (id, chainId, moveIds)    => requestPut(`/curricula/${id}/chains/${chainId}/moves`, { move_ids: moveIds })
+export const addMoveToChain           = (id, chainId, moveId)     => requestPost(`/curricula/${id}/chains/${chainId}/moves/${moveId}`, {})
+export const removeMoveFromChain      = (id, chainId, moveId)     => requestDelete(`/curricula/${id}/chains/${chainId}/moves/${moveId}`)

@@ -11,20 +11,17 @@ class CreateCurriculumBody(BaseModel):
     description: Optional[str] = None
 
 
-class AddItemBody(BaseModel):
-    move_id: str
-    position: int
-    notes: Optional[str] = None
+class CreateChainBody(BaseModel):
+    name: str
 
 
-class ReorderBody(BaseModel):
+class SetChainMovesBody(BaseModel):
     move_ids: list[str]
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 async def _require_coach(supabase, user):
-    """Return the club the user coaches, or 403."""
     resp = (
         supabase.table("club_memberships")
         .select("club_id")
@@ -38,7 +35,6 @@ async def _require_coach(supabase, user):
 
 
 async def _require_curriculum_owner(supabase, curriculum_id, club_id):
-    """Return the curriculum row or 404."""
     resp = (
         supabase.table("curricula")
         .select("*")
@@ -51,7 +47,21 @@ async def _require_curriculum_owner(supabase, curriculum_id, club_id):
     return resp.data[0]
 
 
-# ── List curricula for my club ─────────────────────────────────────────────────
+async def _require_chain_owner(supabase, chain_id, club_id):
+    resp = (
+        supabase.table("curriculum_chains")
+        .select("*, curricula!inner(club_id)")
+        .eq("id", chain_id)
+        .execute()
+    )
+    if not resp.data:
+        raise HTTPException(status_code=404, detail="Chain not found")
+    if resp.data[0]["curricula"]["club_id"] != club_id:
+        raise HTTPException(status_code=403, detail="Not your club's chain")
+    return resp.data[0]
+
+
+# ── List curricula ─────────────────────────────────────────────────────────────
 
 @router.get("/")
 async def list_curricula(
@@ -59,7 +69,6 @@ async def list_curricula(
     supabase=Depends(get_supabase_client),
 ):
     club_id = await _require_coach(supabase, user)
-
     resp = (
         supabase.table("curricula")
         .select("*")
@@ -70,7 +79,7 @@ async def list_curricula(
     return resp.data
 
 
-# ── Get single curriculum with items + move names ──────────────────────────────
+# ── Get curriculum with chains and moves ───────────────────────────────────────
 
 @router.get("/{curriculum_id}")
 async def get_curriculum(
@@ -81,36 +90,51 @@ async def get_curriculum(
     club_id = await _require_coach(supabase, user)
     curriculum = await _require_curriculum_owner(supabase, curriculum_id, club_id)
 
-    items_resp = (
-        supabase.table("curriculum_items")
-        .select("id, move_id, position, notes")
+    chains_resp = (
+        supabase.table("curriculum_chains")
+        .select("id, name, position")
         .eq("curriculum_id", curriculum_id)
         .order("position")
         .execute()
     )
 
-    move_ids = [item["move_id"] for item in items_resp.data]
-    moves_map = {}
-    if move_ids:
-        moves_resp = (
-            supabase.table("moves")
-            .select("id, name, slug")
-            .in_("id", move_ids)
+    chains = []
+    for chain in chains_resp.data:
+        chain_moves_resp = (
+            supabase.table("curriculum_chain_moves")
+            .select("move_id, position")
+            .eq("chain_id", chain["id"])
+            .order("position")
             .execute()
         )
-        moves_map = {m["id"]: m for m in moves_resp.data}
 
-    items = []
-    for item in items_resp.data:
-        move = moves_map.get(item["move_id"])
-        items.append({
-            **item,
-            "move": move,
+        move_ids = [cm["move_id"] for cm in chain_moves_resp.data]
+        moves_map = {}
+        if move_ids:
+            moves_resp = (
+                supabase.table("moves")
+                .select("id, name, slug")
+                .in_("id", move_ids)
+                .execute()
+            )
+            moves_map = {m["id"]: m for m in moves_resp.data}
+
+        moves = []
+        for cm in chain_moves_resp.data:
+            move = moves_map.get(cm["move_id"])
+            if move:
+                moves.append({**move, "position": cm["position"]})
+
+        chains.append({
+            "id": chain["id"],
+            "name": chain["name"],
+            "position": chain["position"],
+            "moves": moves,
         })
 
     return {
         **curriculum,
-        "items": items,
+        "chains": chains,
     }
 
 
@@ -123,7 +147,6 @@ async def create_curriculum(
     supabase=Depends(get_supabase_client),
 ):
     club_id = await _require_coach(supabase, user)
-
     resp = (
         supabase.table("curricula")
         .insert({
@@ -149,76 +172,133 @@ async def delete_curriculum(
 ):
     club_id = await _require_coach(supabase, user)
     await _require_curriculum_owner(supabase, curriculum_id, club_id)
-
-    supabase.table("curriculum_items").delete().eq("curriculum_id", curriculum_id).execute()
     supabase.table("curricula").delete().eq("id", curriculum_id).execute()
-
     return {"deleted": True}
 
 
-# ── Add move to curriculum ────────────────────────────────────────────────────
+# ── Add chain to curriculum ───────────────────────────────────────────────────
 
-@router.post("/{curriculum_id}/items")
-async def add_item(
+@router.post("/{curriculum_id}/chains")
+async def add_chain(
     curriculum_id: str,
-    body: AddItemBody,
+    body: CreateChainBody,
     user=Depends(get_current_user),
     supabase=Depends(get_supabase_client),
 ):
     club_id = await _require_coach(supabase, user)
     await _require_curriculum_owner(supabase, curriculum_id, club_id)
 
+    # Get next position
+    existing = (
+        supabase.table("curriculum_chains")
+        .select("position")
+        .eq("curriculum_id", curriculum_id)
+        .order("position", desc=True)
+        .limit(1)
+        .execute()
+    )
+    next_pos = (existing.data[0]["position"] + 1) if existing.data else 0
+
     resp = (
-        supabase.table("curriculum_items")
+        supabase.table("curriculum_chains")
         .insert({
             "curriculum_id": curriculum_id,
-            "move_id": body.move_id,
-            "position": body.position,
-            "notes": body.notes,
+            "name": body.name,
+            "position": next_pos,
         })
         .execute()
     )
     if not resp.data:
-        raise HTTPException(status_code=500, detail="Failed to add item")
+        raise HTTPException(status_code=500, detail="Failed to create chain")
     return resp.data[0]
 
 
-# ── Remove move from curriculum ───────────────────────────────────────────────
+# ── Delete chain ──────────────────────────────────────────────────────────────
 
-@router.delete("/{curriculum_id}/items/{move_id}")
-async def remove_item(
+@router.delete("/{curriculum_id}/chains/{chain_id}")
+async def delete_chain(
     curriculum_id: str,
+    chain_id: str,
+    user=Depends(get_current_user),
+    supabase=Depends(get_supabase_client),
+):
+    club_id = await _require_coach(supabase, user)
+    await _require_chain_owner(supabase, chain_id, club_id)
+    supabase.table("curriculum_chains").delete().eq("id", chain_id).execute()
+    return {"deleted": True}
+
+
+# ── Set moves in a chain (replace all) ────────────────────────────────────────
+
+@router.put("/{curriculum_id}/chains/{chain_id}/moves")
+async def set_chain_moves(
+    curriculum_id: str,
+    chain_id: str,
+    body: SetChainMovesBody,
+    user=Depends(get_current_user),
+    supabase=Depends(get_supabase_client),
+):
+    club_id = await _require_coach(supabase, user)
+    await _require_chain_owner(supabase, chain_id, club_id)
+
+    # Clear existing
+    supabase.table("curriculum_chain_moves").delete().eq("chain_id", chain_id).execute()
+
+    # Insert new
+    if body.move_ids:
+        rows = [
+            {"chain_id": chain_id, "move_id": mid, "position": i}
+            for i, mid in enumerate(body.move_ids)
+        ]
+        supabase.table("curriculum_chain_moves").insert(rows).execute()
+
+    return {"updated": True}
+
+
+# ── Add single move to chain ─────────────────────────────────────────────────
+
+@router.post("/{curriculum_id}/chains/{chain_id}/moves/{move_id}")
+async def add_move_to_chain(
+    curriculum_id: str,
+    chain_id: str,
     move_id: str,
     user=Depends(get_current_user),
     supabase=Depends(get_supabase_client),
 ):
     club_id = await _require_coach(supabase, user)
-    await _require_curriculum_owner(supabase, curriculum_id, club_id)
+    await _require_chain_owner(supabase, chain_id, club_id)
 
-    supabase.table("curriculum_items").delete().eq("curriculum_id", curriculum_id).eq("move_id", move_id).execute()
-    return {"deleted": True}
+    existing = (
+        supabase.table("curriculum_chain_moves")
+        .select("position")
+        .eq("chain_id", chain_id)
+        .order("position", desc=True)
+        .limit(1)
+        .execute()
+    )
+    next_pos = (existing.data[0]["position"] + 1) if existing.data else 0
+
+    resp = (
+        supabase.table("curriculum_chain_moves")
+        .insert({"chain_id": chain_id, "move_id": move_id, "position": next_pos})
+        .execute()
+    )
+    if not resp.data:
+        raise HTTPException(status_code=500, detail="Failed to add move")
+    return resp.data[0]
 
 
-# ── Reorder items ─────────────────────────────────────────────────────────────
+# ── Remove move from chain ────────────────────────────────────────────────────
 
-@router.put("/{curriculum_id}/items")
-async def reorder_items(
+@router.delete("/{curriculum_id}/chains/{chain_id}/moves/{move_id}")
+async def remove_move_from_chain(
     curriculum_id: str,
-    body: ReorderBody,
+    chain_id: str,
+    move_id: str,
     user=Depends(get_current_user),
     supabase=Depends(get_supabase_client),
 ):
     club_id = await _require_coach(supabase, user)
-    await _require_curriculum_owner(supabase, curriculum_id, club_id)
-
-    # Delete all existing items and re-insert in order
-    supabase.table("curriculum_items").delete().eq("curriculum_id", curriculum_id).execute()
-
-    if body.move_ids:
-        rows = [
-            {"curriculum_id": curriculum_id, "move_id": mid, "position": i}
-            for i, mid in enumerate(body.move_ids)
-        ]
-        supabase.table("curriculum_items").insert(rows).execute()
-
-    return {"reordered": True}
+    await _require_chain_owner(supabase, chain_id, club_id)
+    supabase.table("curriculum_chain_moves").delete().eq("chain_id", chain_id).eq("move_id", move_id).execute()
+    return {"deleted": True}

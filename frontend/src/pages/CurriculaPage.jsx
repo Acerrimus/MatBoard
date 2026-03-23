@@ -4,8 +4,10 @@ import {
   getCurriculum,
   createCurriculum,
   deleteCurriculum,
-  addCurriculumItem,
-  removeCurriculumItem,
+  addCurriculumChain,
+  deleteCurriculumChain,
+  addMoveToChain,
+  removeMoveFromChain,
   getPositions,
   getMovesFromPosition,
 } from '../api'
@@ -67,11 +69,7 @@ function CurriculumCard({ curriculum, onSelect, onDelete }) {
       onClick={() => onSelect(curriculum.id)}
     >
       <div>
-        <div style={{
-          fontSize: 14,
-          fontWeight: 600,
-          color: 'var(--text-primary)',
-        }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
           {curriculum.name}
         </div>
         {curriculum.description && (
@@ -91,7 +89,6 @@ function CurriculumCard({ curriculum, onSelect, onDelete }) {
           color: 'var(--text-muted)',
           cursor: 'pointer',
           fontFamily: 'var(--font-body)',
-          transition: 'all var(--transition)',
         }}
       >
         Delete
@@ -100,64 +97,120 @@ function CurriculumCard({ curriculum, onSelect, onDelete }) {
   )
 }
 
-// ── Move item in curriculum ───────────────────────────────────────────────────
+// ── Chain card within curriculum detail ────────────────────────────────────────
 
-function CurriculumMoveRow({ item, onRemove }) {
+function ChainCard({ chain, curriculumId, onAddMove, onRemoveMove, onDeleteChain }) {
+  const [picking, setPicking] = useState(false)
+
+  const existingIds = new Set(chain.moves.map(m => m.id))
+
   return (
     <div style={{
       background: 'var(--bg-surface)',
       border: '0.5px solid var(--border)',
-      borderRadius: 'var(--radius-md)',
-      padding: '10px 14px',
-      marginBottom: 6,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      borderRadius: 'var(--radius-lg)',
+      padding: '14px 16px',
+      marginBottom: 10,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 24,
-          height: 24,
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--move-soft)',
-          border: '0.5px solid var(--move-color)',
-          color: 'var(--move-color)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 11,
-          fontWeight: 700,
-          fontFamily: 'var(--font-display)',
-          flexShrink: 0,
-        }}>
-          {item.position + 1}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+          {chain.name}
         </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
-            {item.move?.name || 'Unknown move'}
-          </div>
-          {item.notes && (
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
-              {item.notes}
-            </div>
-          )}
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button
+            onClick={() => setPicking(!picking)}
+            style={{
+              padding: '3px 8px',
+              fontSize: 11,
+              fontWeight: 600,
+              borderRadius: 'var(--radius-sm)',
+              border: `0.5px solid ${picking ? 'var(--move-color)' : 'var(--border)'}`,
+              background: picking ? 'var(--move-soft)' : 'var(--bg-subtle)',
+              color: picking ? 'var(--move-color)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            {picking ? 'Done' : '+ Move'}
+          </button>
+          <button
+            onClick={() => onDeleteChain(chain.id)}
+            style={{
+              padding: '3px 8px',
+              fontSize: 11,
+              borderRadius: 'var(--radius-sm)',
+              border: '0.5px solid var(--border)',
+              background: 'var(--bg-subtle)',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            Delete
+          </button>
         </div>
       </div>
-      <button
-        onClick={() => onRemove(item.move_id)}
-        style={{
-          background: 'var(--bg-subtle)',
-          border: '0.5px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '4px 8px',
-          fontSize: 11,
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-          fontFamily: 'var(--font-body)',
-        }}
-      >
-        ✕
-      </button>
+
+      {/* Chain moves as flow */}
+      {chain.moves.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+          No moves yet — add some below
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap', marginBottom: picking ? 12 : 0 }}>
+          {chain.moves.map((move, i) => (
+            <div key={move.id} style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'var(--move-soft)',
+                border: '1.5px solid var(--move-color)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '5px 10px',
+                fontSize: 12,
+                fontWeight: 500,
+                color: 'var(--text-move)',
+                whiteSpace: 'nowrap',
+              }}>
+                {move.name}
+                <button
+                  onClick={() => onRemoveMove(chain.id, move.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: 10,
+                    cursor: 'pointer',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              {i < chain.moves.length - 1 && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px', flexShrink: 0 }}>
+                  →
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Inline move picker */}
+      {picking && (
+        <MovePicker
+          existingMoveIds={existingIds}
+          onAdd={(moveId) => onAddMove(chain.id, moveId)}
+        />
+      )}
     </div>
   )
 }
@@ -187,37 +240,27 @@ function MovePicker({ existingMoveIds, onAdd }) {
 
   return (
     <div style={{
-      background: 'var(--bg-surface)',
+      background: 'var(--bg-subtle)',
       border: '0.5px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-      padding: '14px 16px',
+      borderRadius: 'var(--radius-md)',
+      padding: '10px 12px',
+      marginTop: 8,
     }}>
-      <div style={{
-        fontSize: 12,
-        fontWeight: 600,
-        color: 'var(--text-secondary)',
-        marginBottom: 10,
-      }}>
-        Add moves
-      </div>
-
-      {/* Position selector */}
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
         {positions.map(pos => (
           <button
             key={pos.slug}
             onClick={() => setSelectedPos(pos.slug === selectedPos ? null : pos.slug)}
             style={{
-              padding: '4px 10px',
-              fontSize: 11,
+              padding: '3px 8px',
+              fontSize: 10,
               fontWeight: 500,
               borderRadius: 'var(--radius-sm)',
               border: `0.5px solid ${selectedPos === pos.slug ? 'var(--move-color)' : 'var(--border)'}`,
-              background: selectedPos === pos.slug ? 'var(--move-soft)' : 'var(--bg-subtle)',
+              background: selectedPos === pos.slug ? 'var(--move-soft)' : 'var(--bg-surface)',
               color: selectedPos === pos.slug ? 'var(--move-color)' : 'var(--text-muted)',
               cursor: 'pointer',
               fontFamily: 'var(--font-body)',
-              transition: 'all var(--transition)',
             }}
           >
             {pos.name}
@@ -225,16 +268,15 @@ function MovePicker({ existingMoveIds, onAdd }) {
         ))}
       </div>
 
-      {/* Move list */}
       {selectedPos && (
         loadingMoves ? (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>Loading…</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>Loading…</div>
         ) : available.length === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '8px 0' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>
             {moves.length === 0 ? 'No moves from this position' : 'All moves already added'}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {available.map(move => (
               <button
                 key={move.id}
@@ -243,21 +285,20 @@ function MovePicker({ existingMoveIds, onAdd }) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  background: 'var(--bg-subtle)',
+                  padding: '6px 10px',
+                  background: 'var(--bg-surface)',
                   border: '0.5px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
+                  borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
                   fontFamily: 'var(--font-body)',
-                  transition: 'all var(--transition)',
                   textAlign: 'left',
                   width: '100%',
                 }}
               >
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
                   {move.name}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--move-color)', fontWeight: 600 }}>
+                <span style={{ fontSize: 10, color: 'var(--move-color)', fontWeight: 600 }}>
                   + Add
                 </span>
               </button>
@@ -273,13 +314,14 @@ function MovePicker({ existingMoveIds, onAdd }) {
 
 export default function CurriculaPage() {
   const [curricula, setCurricula] = useState([])
-  const [selected, setSelected] = useState(null) // full curriculum with items
+  const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const [addingChain, setAddingChain] = useState(false)
+  const [newChainName, setNewChainName] = useState('')
 
-  // Load list
   useEffect(() => {
     getCurricula()
       .then(setCurricula)
@@ -287,7 +329,6 @@ export default function CurriculaPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Select a curriculum
   const handleSelect = async (id) => {
     try {
       const data = await getCurriculum(id)
@@ -297,7 +338,13 @@ export default function CurriculaPage() {
     }
   }
 
-  // Create
+  const reload = async () => {
+    if (selected) {
+      const data = await getCurriculum(selected.id)
+      setSelected(data)
+    }
+  }
+
   const handleCreate = async () => {
     if (!newName.trim()) return
     try {
@@ -311,7 +358,6 @@ export default function CurriculaPage() {
     }
   }
 
-  // Delete
   const handleDelete = async (id) => {
     try {
       await deleteCurriculum(id)
@@ -322,32 +368,47 @@ export default function CurriculaPage() {
     }
   }
 
-  // Add move
-  const handleAddMove = async (moveId) => {
-    if (!selected) return
-    const position = selected.items?.length || 0
+  const handleAddChain = async () => {
+    if (!newChainName.trim() || !selected) return
     try {
-      await addCurriculumItem(selected.id, moveId, position)
-      const updated = await getCurriculum(selected.id)
-      setSelected(updated)
+      await addCurriculumChain(selected.id, newChainName.trim())
+      setNewChainName('')
+      setAddingChain(false)
+      await reload()
     } catch (err) {
       setError(err.message)
     }
   }
 
-  // Remove move
-  const handleRemoveMove = async (moveId) => {
+  const handleDeleteChain = async (chainId) => {
     if (!selected) return
     try {
-      await removeCurriculumItem(selected.id, moveId)
-      const updated = await getCurriculum(selected.id)
-      setSelected(updated)
+      await deleteCurriculumChain(selected.id, chainId)
+      await reload()
     } catch (err) {
       setError(err.message)
     }
   }
 
-  const existingMoveIds = new Set((selected?.items || []).map(i => i.move_id))
+  const handleAddMove = async (chainId, moveId) => {
+    if (!selected) return
+    try {
+      await addMoveToChain(selected.id, chainId, moveId)
+      await reload()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleRemoveMove = async (chainId, moveId) => {
+    if (!selected) return
+    try {
+      await removeMoveFromChain(selected.id, chainId, moveId)
+      await reload()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
 
   if (loading) {
     return (
@@ -363,12 +424,7 @@ export default function CurriculaPage() {
             }} />
           ))}
         </div>
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.4; }
-          }
-        `}</style>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
       </div>
     )
   }
@@ -379,22 +435,14 @@ export default function CurriculaPage() {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-          marginBottom: 4,
+          fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+          textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4,
         }}>
           Coach Tools
         </div>
         <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 28,
-          fontWeight: 700,
-          letterSpacing: '-0.5px',
-          color: 'var(--text-primary)',
-          margin: 0,
+          fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700,
+          letterSpacing: '-0.5px', color: 'var(--text-primary)', margin: 0,
         }}>
           Curricula
         </h1>
@@ -402,34 +450,21 @@ export default function CurriculaPage() {
 
       {error && (
         <div style={{
-          background: 'var(--accent-soft)',
-          border: '0.5px solid var(--border-accent)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 16px',
-          fontSize: 13,
-          color: 'var(--accent)',
-          marginBottom: 20,
+          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+          borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 13,
+          color: 'var(--accent)', marginBottom: 20,
         }}>
           {error}
         </div>
       )}
 
-      {/* Back button when viewing a curriculum */}
       {selected && (
         <button
           onClick={() => setSelected(null)}
           style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: 12,
-            fontWeight: 500,
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            padding: '0 0 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
+            background: 'none', border: 'none', color: 'var(--text-secondary)',
+            fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-body)',
+            padding: '0 0 12px', display: 'flex', alignItems: 'center', gap: 4,
           }}
         >
           ← All curricula
@@ -438,176 +473,139 @@ export default function CurriculaPage() {
 
       {!selected ? (
         <>
-          {/* Create button / form */}
+          {/* Create form */}
           {creating ? (
             <div style={{
-              background: 'var(--bg-surface)',
-              border: '0.5px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '14px 16px',
-              marginBottom: 16,
-              display: 'flex',
-              gap: 8,
+              background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+              borderRadius: 'var(--radius-lg)', padding: '14px 16px',
+              marginBottom: 16, display: 'flex', gap: 8,
             }}>
               <input
-                autoFocus
-                value={newName}
+                autoFocus value={newName}
                 onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleCreate()}
                 placeholder="Curriculum name…"
                 style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  fontSize: 13,
-                  fontFamily: 'var(--font-body)',
-                  background: 'var(--bg-subtle)',
-                  border: '0.5px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--text-primary)',
-                  outline: 'none',
+                  flex: 1, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-body)',
+                  background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+                  borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', outline: 'none',
                 }}
               />
-              <button
-                onClick={handleCreate}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  background: 'var(--accent)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                Create
-              </button>
-              <button
-                onClick={() => { setCreating(false); setNewName('') }}
-                style={{
-                  padding: '8px 12px',
-                  fontSize: 12,
-                  borderRadius: 'var(--radius-md)',
-                  border: '0.5px solid var(--border)',
-                  background: 'var(--bg-subtle)',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                Cancel
-              </button>
+              <button onClick={handleCreate} style={{
+                padding: '8px 16px', fontSize: 12, fontWeight: 600,
+                borderRadius: 'var(--radius-md)', border: 'none',
+                background: 'var(--accent)', color: 'white', cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+              }}>Create</button>
+              <button onClick={() => { setCreating(false); setNewName('') }} style={{
+                padding: '8px 12px', fontSize: 12, borderRadius: 'var(--radius-md)',
+                border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+                color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+              }}>Cancel</button>
             </div>
           ) : (
-            <button
-              onClick={() => setCreating(true)}
-              style={{
-                padding: '10px 18px',
-                fontSize: 12,
-                fontWeight: 600,
-                borderRadius: 'var(--radius-md)',
-                border: 'none',
-                background: 'var(--accent)',
-                color: 'white',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-                marginBottom: 20,
-              }}
-            >
-              + New Curriculum
-            </button>
+            <button onClick={() => setCreating(true)} style={{
+              padding: '10px 18px', fontSize: 12, fontWeight: 600,
+              borderRadius: 'var(--radius-md)', border: 'none',
+              background: 'var(--accent)', color: 'white', cursor: 'pointer',
+              fontFamily: 'var(--font-body)', marginBottom: 20,
+            }}>+ New Curriculum</button>
           )}
 
-          {/* List */}
           <SectionLabel count={curricula.length}>Your Curricula</SectionLabel>
 
           {curricula.length === 0 ? (
             <div style={{
-              background: 'var(--bg-surface)',
-              border: '0.5px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '40px 24px',
-              textAlign: 'center',
+              background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+              borderRadius: 'var(--radius-lg)', padding: '40px 24px', textAlign: 'center',
             }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
               <div style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 16,
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                marginBottom: 6,
-              }}>
-                No curricula yet
-              </div>
+                fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600,
+                color: 'var(--text-primary)', marginBottom: 6,
+              }}>No curricula yet</div>
               <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                Create a curriculum to group moves and track your squad's progress against it.
+                Create a curriculum to build chains and track squad progress.
               </div>
             </div>
           ) : (
             curricula.map(c => (
-              <CurriculumCard
-                key={c.id}
-                curriculum={c}
-                onSelect={handleSelect}
-                onDelete={handleDelete}
-              />
+              <CurriculumCard key={c.id} curriculum={c} onSelect={handleSelect} onDelete={handleDelete} />
             ))
           )}
         </>
       ) : (
         <>
-          {/* Curriculum detail */}
+          {/* Detail view */}
           <div style={{ marginBottom: 20 }}>
             <h2 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 22,
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              margin: '0 0 4px',
-            }}>
-              {selected.name}
-            </h2>
+              fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700,
+              color: 'var(--text-primary)', margin: '0 0 4px',
+            }}>{selected.name}</h2>
             {selected.description && (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                {selected.description}
-              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{selected.description}</div>
             )}
           </div>
 
-          {/* Items */}
-          <SectionLabel count={selected.items?.length || 0}>Moves in Curriculum</SectionLabel>
+          {/* Add chain */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {addingChain ? (
+              <>
+                <input
+                  autoFocus value={newChainName}
+                  onChange={e => setNewChainName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddChain()}
+                  placeholder="Chain name…"
+                  style={{
+                    flex: 1, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-body)',
+                    background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+                    borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', outline: 'none',
+                  }}
+                />
+                <button onClick={handleAddChain} style={{
+                  padding: '8px 14px', fontSize: 12, fontWeight: 600,
+                  borderRadius: 'var(--radius-md)', border: 'none',
+                  background: 'var(--move-color)', color: 'white', cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                }}>Add</button>
+                <button onClick={() => { setAddingChain(false); setNewChainName('') }} style={{
+                  padding: '8px 12px', fontSize: 12, borderRadius: 'var(--radius-md)',
+                  border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+                  color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                }}>Cancel</button>
+              </>
+            ) : (
+              <button onClick={() => setAddingChain(true)} style={{
+                padding: '8px 14px', fontSize: 12, fontWeight: 600,
+                borderRadius: 'var(--radius-md)', border: 'none',
+                background: 'var(--move-color)', color: 'white', cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+              }}>+ Add Chain</button>
+            )}
+          </div>
 
-          {(selected.items?.length || 0) === 0 ? (
+          <SectionLabel count={selected.chains?.length || 0}>Chains</SectionLabel>
+
+          {(selected.chains?.length || 0) === 0 ? (
             <div style={{
-              padding: '20px',
-              textAlign: 'center',
-              fontSize: 13,
-              color: 'var(--text-muted)',
-              background: 'var(--bg-surface)',
-              border: '0.5px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: 20,
+              padding: '20px', textAlign: 'center', fontSize: 13,
+              color: 'var(--text-muted)', background: 'var(--bg-surface)',
+              border: '0.5px solid var(--border)', borderRadius: 'var(--radius-md)',
             }}>
-              No moves added yet. Use the picker below.
+              No chains yet. Add one above.
             </div>
           ) : (
-            <div style={{ marginBottom: 20 }}>
-              {selected.items.map(item => (
-                <CurriculumMoveRow
-                  key={item.move_id}
-                  item={item}
-                  onRemove={handleRemoveMove}
-                />
-              ))}
-            </div>
+            selected.chains.map(chain => (
+              <ChainCard
+                key={chain.id}
+                chain={chain}
+                curriculumId={selected.id}
+                onAddMove={handleAddMove}
+                onRemoveMove={handleRemoveMove}
+                onDeleteChain={handleDeleteChain}
+              />
+            ))
           )}
-
-          {/* Move picker */}
-          <MovePicker
-            existingMoveIds={existingMoveIds}
-            onAdd={handleAddMove}
-          />
         </>
       )}
     </div>
