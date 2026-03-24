@@ -4,13 +4,19 @@ import { useAuth } from '../context/AuthContext'
 import { getMyClub, getClubDashboard, getCurricula } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function truncateName(name, max = 22) {
+  if (!name || name.length <= max) return name
+  const half = Math.floor((max - 3) / 2)
+  return `${name.slice(0, half + 2)}…${name.slice(-half)}`
+}
+
 function StatPill({ label, value, accent }) {
   return (
     <div style={{
       background: accent ? 'var(--accent-soft)' : 'var(--stat-bg)',
       border: `0.5px solid ${accent ? 'var(--border-accent)' : 'var(--stat-border)'}`,
-      borderRadius: 'var(--radius-lg)',
-      padding: '0.875rem 1.25rem',
+      borderRadius: 'var(--radius-lg)', padding: '0.875rem 1.25rem',
       display: 'flex', flexDirection: 'column', gap: 4,
       flex: 1, minWidth: '6rem',
     }}>
@@ -45,84 +51,13 @@ function SectionLabel({ children, count }) {
 }
 
 function MiniBar({ value, max = 5 }) {
-  const pct = value ? (value / max) * 100 : 0
+  const pct   = value ? (value / max) * 100 : 0
   const color = value
     ? (value <= 2 ? confidenceColor(1) : value <= 3.5 ? confidenceColor(3) : confidenceColor(5))
     : 'var(--border)'
   return (
-    <div style={{
-      width: '100%', height: 3, borderRadius: 2,
-      background: 'var(--bg-subtle)', marginTop: 4,
-    }}>
-      <div style={{
-        width: `${pct}%`, height: '100%', borderRadius: 2,
-        background: color, transition: 'width 0.3s ease',
-      }} />
-    </div>
-  )
-}
-
-// ── Gold ring comp-ready treatment ────────────────────────────────────────────
-function ConfidenceCell({ data, isCompReady }) {
-  if (!data) {
-    return (
-      <div style={{
-        width: '3rem', padding: '0.375rem 0.25rem',
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', flexShrink: 0,
-      }}>
-        <div style={{
-          width: '1.75rem', height: '1.75rem',
-          borderRadius: 'var(--radius-sm)',
-          border: '0.5px solid var(--border)',
-          background: 'var(--bg-subtle)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '0.6875rem', color: 'var(--text-muted)',
-          fontFamily: 'var(--font-display)',
-        }}>·</div>
-        <MiniBar value={null} />
-      </div>
-    )
-  }
-  const conf = data.confidence
-  return (
-    <div style={{
-      width: '3rem', padding: '0.375rem 0.25rem',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', flexShrink: 0,
-    }}>
-      <div style={{ position: 'relative' }}>
-        {/* Gold outer ring when comp-ready */}
-        {isCompReady && (
-          <div style={{
-            position: 'absolute',
-            inset: -3,
-            borderRadius: 'calc(var(--radius-sm) + 2px)',
-            border: '1.5px solid #F59E0B',
-            boxShadow: '0 0 6px #F59E0B44',
-            pointerEvents: 'none',
-            zIndex: 1,
-          }} />
-        )}
-        <div style={{
-          width: '1.75rem', height: '1.75rem',
-          borderRadius: 'var(--radius-sm)',
-          border: `1.5px solid ${confidenceColor(conf)}`,
-          background: confidenceBg(conf),
-          color: confidenceColor(conf),
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '0.6875rem', fontWeight: 700,
-          fontFamily: 'var(--font-display)',
-          position: 'relative', zIndex: 0,
-        }}>{conf}</div>
-        {data.is_favourite && (
-          <div style={{
-            position: 'absolute', top: -4, right: -4,
-            fontSize: '0.5rem', lineHeight: 1, zIndex: 2,
-          }}>★</div>
-        )}
-      </div>
-      <MiniBar value={conf} />
+    <div style={{ width: '100%', height: 3, borderRadius: 2, background: 'var(--bg-subtle)', marginTop: 4 }}>
+      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: color, transition: 'width 0.3s ease' }} />
     </div>
   )
 }
@@ -133,8 +68,7 @@ function PositionComfortBadge({ value }) {
       padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-sm)',
       border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
       fontSize: '0.6875rem', color: 'var(--text-muted)',
-      fontFamily: 'var(--font-display)',
-      display: 'inline-flex', alignItems: 'center', gap: 4,
+      fontFamily: 'var(--font-display)', display: 'inline-flex', alignItems: 'center',
     }}>—</div>
   )
   const color = value <= 2 ? confidenceColor(1) : value <= 3.5 ? confidenceColor(3) : confidenceColor(5)
@@ -143,11 +77,8 @@ function PositionComfortBadge({ value }) {
       padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-sm)',
       border: `1px solid ${color}20`, background: `${color}10`,
       fontSize: '0.75rem', fontWeight: 700, color,
-      fontFamily: 'var(--font-display)',
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-    }}>
-      {value.toFixed(1)}
-    </div>
+      fontFamily: 'var(--font-display)', display: 'inline-flex', alignItems: 'center',
+    }}>{value.toFixed(1)}</div>
   )
 }
 
@@ -158,19 +89,19 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
   const chainPositionIds = new Set()
   moves.forEach(m => {
     if (m.from_position?.id) chainPositionIds.add(m.from_position.id)
-    if (m.to_position?.id) chainPositionIds.add(m.to_position.id)
+    if (m.to_position?.id)   chainPositionIds.add(m.to_position.id)
   })
-  const chainPositions = [...chainPositionIds].map(pid => {
-    return moves.find(m => m.from_position?.id === pid)?.from_position
-      || moves.find(m => m.to_position?.id === pid)?.to_position
-  }).filter(Boolean)
+  const chainPositions = [...chainPositionIds].map(pid =>
+    moves.find(m => m.from_position?.id === pid)?.from_position ||
+    moves.find(m => m.to_position?.id   === pid)?.to_position
+  ).filter(Boolean)
 
   const squadConfs = []
-  const moveSquadAvgs = moves.map((move, mi) => {
+  const moveSquadAvgs = moves.map((move) => {
     const confs = athletes.map(a => matrix[a.id]?.[move.id]?.confidence).filter(Boolean)
-    const avg = confs.length > 0 ? confs.reduce((a, b) => a + b, 0) / confs.length : null
+    const avg   = confs.length > 0 ? confs.reduce((a, b) => a + b, 0) / confs.length : null
     confs.forEach(c => squadConfs.push(c))
-    return { move, avg, index: mi }
+    return { move, avg }
   })
   const squadAvg = squadConfs.length > 0
     ? (squadConfs.reduce((a, b) => a + b, 0) / squadConfs.length).toFixed(1)
@@ -179,6 +110,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
 
   return (
     <div style={{ marginBottom: '1.75rem' }}>
+      {/* Chain header */}
       <div style={{
         display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
         marginBottom: '0.25rem',
@@ -192,7 +124,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
         </div>
       </div>
 
-      {/* Chain flow breadcrumb */}
+      {/* Flow breadcrumb */}
       <div style={{
         display: 'flex', alignItems: 'center', flexWrap: 'wrap',
         gap: '0.1rem', marginBottom: '0.75rem',
@@ -205,7 +137,10 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
                 <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
               </>
             )}
-            <span style={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-move)' }}>{move.name}</span>
+            <span
+              title={move.name}
+              style={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-move)' }}
+            >{truncateName(move.name, 18)}</span>
             {i < moves.length - 1 && (
               <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
             )}
@@ -219,120 +154,97 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
         ))}
       </div>
 
-      {/* Athlete cards */}
+      {/* Athlete rows */}
       {athletes.map(athlete => {
-        const ap = matrix[athlete.id] || {}
+        const ap               = matrix[athlete.id] || {}
         const athleteCompReady = compReady[athlete.id] || []
-        const confs = moves.map(m => ap[m.id]?.confidence).filter(Boolean)
-        const avg = confs.length > 0
+        const confs            = moves.map(m => ap[m.id]?.confidence).filter(Boolean)
+        const avg              = confs.length > 0
           ? (confs.reduce((a, b) => a + b, 0) / confs.length).toFixed(1)
           : null
-        const avgNum = avg ? parseFloat(avg) : 0
-        const borderColor = avg
+        const avgNum        = avg ? parseFloat(avg) : 0
+        const borderColor   = avg
           ? (avgNum <= 2 ? confidenceColor(1) : avgNum <= 3.5 ? confidenceColor(3) : confidenceColor(5))
           : 'var(--border)'
-        const ratedCount = confs.length
+        const ratedCount    = confs.length
         const completionPct = (ratedCount / moves.length) * 100
-        const hasFavourite = moves.some(m => ap[m.id]?.is_favourite)
+        const hasFavourite  = moves.some(m => ap[m.id]?.is_favourite)
         const compReadyCount = moves.filter(m => athleteCompReady.includes(m.id)).length
 
         return (
           <div key={athlete.id} style={{
-            background: 'var(--bg-surface)',
-            border: '0.5px solid var(--border)',
-            borderLeft: `3px solid ${borderColor}`,
-            borderRadius: 'var(--radius-md)',
-            padding: '0.75rem 1rem',
-            marginBottom: '0.375rem',
+            background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+            borderLeft: `3px solid ${borderColor}`, borderRadius: 'var(--radius-md)',
+            padding: '0.75rem 1rem', marginBottom: '0.375rem',
           }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               marginBottom: '0.5rem',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                {/* Clickable athlete name */}
                 <button
                   onClick={() => onAthleteClick(athlete.id)}
                   style={{
-                    fontSize: '0.875rem', fontWeight: 500,
-                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)',
                     background: 'none', border: 'none', padding: 0,
                     cursor: 'pointer', fontFamily: 'var(--font-body)',
                     textDecoration: 'underline', textDecorationColor: 'var(--border)',
                     textUnderlineOffset: 3,
-                    minHeight: '2.75rem', display: 'flex', alignItems: 'center',
                   }}
                 >{athlete.display_name || 'Unnamed'}</button>
                 {hasFavourite && <span style={{ fontSize: '0.875rem', color: '#FDE047' }}>★</span>}
                 {compReadyCount > 0 && (
                   <span style={{
-                    fontSize: '0.6rem', fontWeight: 600,
-                    color: '#F59E0B',
-                    background: '#F59E0B18',
-                    border: '0.5px solid #F59E0B44',
-                    borderRadius: 20, padding: '1px 6px',
-                    letterSpacing: '0.06em',
+                    fontSize: '0.6rem', fontWeight: 600, color: '#F59E0B',
+                    background: '#F59E0B18', border: '0.5px solid #F59E0B44',
+                    borderRadius: 20, padding: '1px 6px', letterSpacing: '0.06em',
                   }}>⬡ {compReadyCount} comp ready</span>
                 )}
               </div>
               {avg && (
                 <div style={{
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: `1px solid ${borderColor}`,
-                  background: `${borderColor}12`,
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 700, fontSize: '0.75rem',
-                  color: borderColor,
+                  padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-sm)',
+                  border: `1px solid ${borderColor}`, background: `${borderColor}12`,
+                  fontFamily: 'var(--font-display)', fontWeight: 700,
+                  fontSize: '0.75rem', color: borderColor,
                 }}>avg {avg}</div>
               )}
             </div>
 
             {/* Move pills */}
-            <div style={{
-              display: 'flex', alignItems: 'center', flexWrap: 'wrap',
-              gap: 0, marginBottom: '0.5rem',
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0, marginBottom: '0.5rem' }}>
               {moves.map((move, i) => {
-                const data = ap[move.id]
-                const conf = data?.confidence
-                const color = conf ? confidenceColor(conf) : 'var(--border)'
-                const bg = conf ? confidenceBg(conf) : 'var(--bg-subtle)'
+                const data        = ap[move.id]
+                const conf        = data?.confidence
+                const color       = conf ? confidenceColor(conf) : 'var(--border)'
+                const bg          = conf ? confidenceBg(conf)    : 'var(--bg-subtle)'
                 const isCompReady = athleteCompReady.includes(move.id)
 
                 return (
                   <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
-                    <div style={{
-                      background: bg,
-                      border: `1.5px solid ${color}`,
-                      // Gold outer ring on comp-ready moves
-                      boxShadow: isCompReady ? `0 0 0 1.5px #F59E0B` : 'none',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '0.25rem 0.5rem',
-                      fontSize: '0.6875rem',
-                      fontWeight: 500,
-                      color: conf ? color : 'var(--text-secondary)',
-                      whiteSpace: 'nowrap',
-                      display: 'flex', alignItems: 'center', gap: '0.3rem',
-                    }}>
-                      {move.name}
+                    <div
+                      title={move.name}
+                      style={{
+                        background: bg, border: `1.5px solid ${color}`,
+                        boxShadow: isCompReady ? `0 0 0 1.5px #F59E0B` : 'none',
+                        borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.5rem',
+                        fontSize: '0.6875rem', fontWeight: 500,
+                        color: conf ? color : 'var(--text-secondary)',
+                        whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.3rem',
+                      }}
+                    >
+                      {truncateName(move.name)}
                       {conf ? (
-                        <span style={{
-                          fontWeight: 700, fontSize: '0.625rem',
-                          fontFamily: 'var(--font-display)', opacity: 0.9,
-                        }}>{conf}</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.625rem', fontFamily: 'var(--font-display)', opacity: 0.9 }}>
+                          {conf}
+                        </span>
                       ) : (
                         <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>—</span>
                       )}
-                      {isCompReady && (
-                        <span style={{ fontSize: '0.5rem', color: '#F59E0B' }}>⬡</span>
-                      )}
+                      {isCompReady && <span style={{ fontSize: '0.5rem', color: '#F59E0B' }}>⬡</span>}
                     </div>
                     {i < moves.length - 1 && (
-                      <div style={{
-                        fontSize: '0.6875rem', color: 'var(--text-muted)',
-                        padding: '0 0.2rem', flexShrink: 0,
-                      }}>→</div>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', padding: '0 0.2rem', flexShrink: 0 }}>→</div>
                     )}
                   </div>
                 )
@@ -341,20 +253,15 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
 
             {/* Progress bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{
-                flex: 1, height: '0.1875rem', borderRadius: '0.125rem',
-                background: 'var(--bg-subtle)',
-              }}>
+              <div style={{ flex: 1, height: '0.1875rem', borderRadius: '0.125rem', background: 'var(--bg-subtle)' }}>
                 <div style={{
-                  width: `${completionPct}%`, height: '100%',
-                  borderRadius: '0.125rem', background: borderColor,
-                  transition: 'width 0.3s ease',
+                  width: `${completionPct}%`, height: '100%', borderRadius: '0.125rem',
+                  background: borderColor, transition: 'width 0.3s ease',
                 }} />
               </div>
-              <span style={{
-                fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 500,
-                whiteSpace: 'nowrap',
-              }}>{ratedCount} of {moves.length} rated</span>
+              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                {ratedCount} of {moves.length} rated
+              </span>
             </div>
           </div>
         )
@@ -362,30 +269,24 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
 
       {/* Squad summary */}
       <div style={{
-        background: 'var(--bg-subtle)',
-        border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-md)',
-        padding: '0.625rem 1rem',
-        marginTop: '0.25rem',
+        background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-md)', padding: '0.625rem 1rem', marginTop: '0.25rem',
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', flexWrap: 'wrap',
           gap: '0.75rem', fontSize: '0.6875rem', color: 'var(--text-secondary)',
         }}>
           {squadAvg && (
-            <span>
-              Squad avg{' '}
+            <span>Squad avg{' '}
               <strong style={{
                 fontFamily: 'var(--font-display)',
                 color: parseFloat(squadAvg) <= 2 ? confidenceColor(1)
-                  : parseFloat(squadAvg) <= 3.5 ? confidenceColor(3)
-                  : confidenceColor(5),
+                  : parseFloat(squadAvg) <= 3.5 ? confidenceColor(3) : confidenceColor(5),
               }}>{squadAvg}</strong>
             </span>
           )}
-          {weakest && weakest.avg !== null && (
-            <span>
-              Weakest: <strong style={{ color: 'var(--text-primary)' }}>{weakest.move.name}</strong>{' '}
+          {weakest?.avg != null && (
+            <span>Weakest: <strong style={{ color: 'var(--text-primary)' }}>{weakest.move.name}</strong>{' '}
               <span style={{
                 fontFamily: 'var(--font-display)', fontWeight: 700,
                 color: confidenceColor(Math.round(weakest.avg)),
@@ -395,13 +296,9 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
           {chainPositions.length > 0 && (
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               {chainPositions.map(pos => {
-                const values = athletes
-                  .map(a => positionComfort[a.id]?.[pos.id])
-                  .filter(Boolean)
-                const avg = values.length > 0
-                  ? values.reduce((a, b) => a + b, 0) / values.length
-                  : null
-                const color = avg
+                const values = athletes.map(a => positionComfort[a.id]?.[pos.id]).filter(Boolean)
+                const avg    = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null
+                const color  = avg
                   ? (avg <= 2 ? confidenceColor(1) : avg <= 3.5 ? confidenceColor(3) : confidenceColor(5))
                   : 'var(--text-muted)'
                 return (
@@ -428,10 +325,7 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
       borderRadius: 'var(--radius-lg)', overflow: 'hidden',
     }}>
       <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 360px)' }}>
-        <table style={{
-          borderCollapse: 'collapse', width: 'max-content',
-          minWidth: '100%', fontFamily: 'var(--font-body)',
-        }}>
+        <table style={{ borderCollapse: 'collapse', width: 'max-content', minWidth: '100%', fontFamily: 'var(--font-body)' }}>
           <thead>
             <tr>
               <th style={{
@@ -443,23 +337,22 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
                 minWidth: '10rem',
               }}>Athlete</th>
               <th style={{
-                position: 'sticky', top: 0, zIndex: 2,
-                background: 'var(--bg-subtle)', padding: '0.625rem 0.5rem',
-                textAlign: 'center', fontSize: '0.625rem', fontWeight: 600,
-                letterSpacing: '0.14em', textTransform: 'uppercase',
+                position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-subtle)',
+                padding: '0.625rem 0.5rem', textAlign: 'center', fontSize: '0.625rem',
+                fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase',
                 color: 'var(--text-muted)', borderBottom: '0.5px solid var(--border)',
                 minWidth: '3.125rem',
               }}>Avg</th>
               {moves.map(move => (
-                <th key={move.id} style={{
-                  position: 'sticky', top: 0, zIndex: 2,
-                  background: 'var(--bg-subtle)', padding: '0.625rem 0.375rem',
-                  textAlign: 'center', fontSize: '0.6875rem', fontWeight: 500,
-                  color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)',
+                <th key={move.id} title={move.name} style={{
+                  position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-subtle)',
+                  padding: '0.625rem 0.375rem', textAlign: 'center',
+                  fontSize: '0.6875rem', fontWeight: 500, color: 'var(--text-secondary)',
+                  borderBottom: '0.5px solid var(--border)',
                   minWidth: '4.375rem', maxWidth: '5.625rem',
                 }}>
                   <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {move.name}
+                    {truncateName(move.name, 14)}
                   </div>
                 </th>
               ))}
@@ -467,91 +360,68 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
           </thead>
           <tbody>
             {athletes.map((athlete, i) => {
-              const agg = athleteAggregates[athlete.id]
+              const agg              = athleteAggregates[athlete.id]
               const athleteCompReady = compReady[athlete.id] || []
-              const even = i % 2 === 0
+              const even             = i % 2 === 0
               return (
                 <tr key={athlete.id} style={{ background: even ? 'transparent' : 'var(--bg-subtle)' }}>
                   <td style={{
                     position: 'sticky', left: 0, zIndex: 1,
                     background: even ? 'var(--bg-surface)' : 'var(--bg-subtle)',
-                    padding: '0.5rem 0.875rem',
-                    borderBottom: '0.5px solid var(--border)',
+                    padding: '0.5rem 0.875rem', borderBottom: '0.5px solid var(--border)',
                     whiteSpace: 'nowrap', minWidth: '10rem',
                   }}>
                     <button
                       onClick={() => onAthleteClick(athlete.id)}
                       style={{
-                        fontSize: '0.8125rem', fontWeight: 500,
-                        color: 'var(--text-primary)',
+                        fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-primary)',
                         background: 'none', border: 'none', padding: 0,
                         cursor: 'pointer', fontFamily: 'var(--font-body)',
-                        textDecoration: 'underline',
-                        textDecorationColor: 'var(--border)',
+                        textDecoration: 'underline', textDecorationColor: 'var(--border)',
                         textUnderlineOffset: 3,
-                        minHeight: '2.75rem', display: 'flex', alignItems: 'center',
                       }}
                     >{athlete.display_name || 'Unnamed'}</button>
                   </td>
-                  <td style={{
-                    padding: '0.5rem 0.375rem', textAlign: 'center',
-                    borderBottom: '0.5px solid var(--border)',
-                  }}>
+                  <td style={{ padding: '0.5rem 0.375rem', textAlign: 'center', borderBottom: '0.5px solid var(--border)' }}>
                     {agg?.avg_confidence != null ? (
                       <span style={{
                         fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.8125rem',
                         color: agg.avg_confidence <= 2 ? confidenceColor(1)
-                          : agg.avg_confidence <= 3.5 ? confidenceColor(3)
-                          : confidenceColor(5),
+                          : agg.avg_confidence <= 3.5 ? confidenceColor(3) : confidenceColor(5),
                       }}>{agg.avg_confidence.toFixed(1)}</span>
                     ) : <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>—</span>}
                   </td>
                   {moves.map(move => {
-                    const data = matrix[athlete.id]?.[move.id]
+                    const data        = matrix[athlete.id]?.[move.id]
                     const isCompReady = athleteCompReady.includes(move.id)
-                    if (!data) {
-                      return (
-                        <td key={move.id} style={{
-                          padding: '0.5rem 0.375rem', textAlign: 'center',
-                          borderBottom: '0.5px solid var(--border)',
-                        }}>
-                          <div style={{
-                            width: '1.625rem', height: '1.625rem',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '0.5px solid var(--border)',
-                            background: 'var(--bg-subtle)',
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.6875rem', color: 'var(--text-muted)',
-                            fontFamily: 'var(--font-display)',
-                          }}>·</div>
-                        </td>
-                      )
-                    }
+                    if (!data) return (
+                      <td key={move.id} style={{ padding: '0.5rem 0.375rem', textAlign: 'center', borderBottom: '0.5px solid var(--border)' }}>
+                        <div style={{
+                          width: '1.625rem', height: '1.625rem', borderRadius: 'var(--radius-sm)',
+                          border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.6875rem', color: 'var(--text-muted)',
+                        }}>·</div>
+                      </td>
+                    )
                     const conf = data.confidence
                     return (
-                      <td key={move.id} style={{
-                        padding: '0.5rem 0.375rem', textAlign: 'center',
-                        borderBottom: '0.5px solid var(--border)',
-                      }}>
+                      <td key={move.id} style={{ padding: '0.5rem 0.375rem', textAlign: 'center', borderBottom: '0.5px solid var(--border)' }}>
                         <div style={{ position: 'relative', display: 'inline-flex' }}>
                           {isCompReady && (
                             <div style={{
                               position: 'absolute', inset: -3,
                               borderRadius: 'calc(var(--radius-sm) + 2px)',
-                              border: '1.5px solid #F59E0B',
-                              boxShadow: '0 0 6px #F59E0B44',
+                              border: '1.5px solid #F59E0B', boxShadow: '0 0 6px #F59E0B44',
                               pointerEvents: 'none', zIndex: 1,
                             }} />
                           )}
                           <div style={{
-                            width: '1.625rem', height: '1.625rem',
-                            borderRadius: 'var(--radius-sm)',
+                            width: '1.625rem', height: '1.625rem', borderRadius: 'var(--radius-sm)',
                             border: `1.5px solid ${confidenceColor(conf)}`,
-                            background: confidenceBg(conf),
-                            color: confidenceColor(conf),
+                            background: confidenceBg(conf), color: confidenceColor(conf),
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.6875rem', fontWeight: 700,
-                            fontFamily: 'var(--font-display)',
+                            fontSize: '0.6875rem', fontWeight: 700, fontFamily: 'var(--font-display)',
                           }}>{conf}</div>
                         </div>
                       </td>
@@ -560,7 +430,6 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
                 </tr>
               )
             })}
-            {/* Squad avg row */}
             <tr style={{ background: 'var(--bg-subtle)' }}>
               <td style={{
                 position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-subtle)',
@@ -569,24 +438,21 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
                 borderTop: '1.5px solid var(--border-strong)',
               }}>Squad Avg</td>
               <td style={{ padding: '0.5rem 0.375rem', textAlign: 'center', borderTop: '1.5px solid var(--border-strong)' }}>
-                {squadAvg ? (
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
-                    {squadAvg}
-                  </span>
-                ) : <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>—</span>}
+                {squadAvg
+                  ? <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{squadAvg}</span>
+                  : <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>—</span>}
               </td>
               {moves.map(move => {
                 const agg = moveAggregates[move.id]
                 return (
                   <td key={move.id} style={{ padding: '0.5rem 0.375rem', textAlign: 'center', borderTop: '1.5px solid var(--border-strong)' }}>
-                    {agg?.avg_confidence != null ? (
-                      <span style={{
-                        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.75rem',
-                        color: agg.avg_confidence <= 2 ? confidenceColor(1)
-                          : agg.avg_confidence <= 3.5 ? confidenceColor(3)
-                          : confidenceColor(5),
-                      }}>{agg.avg_confidence.toFixed(1)}</span>
-                    ) : <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>—</span>}
+                    {agg?.avg_confidence != null
+                      ? <span style={{
+                          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.75rem',
+                          color: agg.avg_confidence <= 2 ? confidenceColor(1)
+                            : agg.avg_confidence <= 3.5 ? confidenceColor(3) : confidenceColor(5),
+                        }}>{agg.avg_confidence.toFixed(1)}</span>
+                      : <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>—</span>}
                   </td>
                 )
               })}
@@ -682,9 +548,8 @@ function EmptySquad({ clubName, inviteCode }) {
       <code style={{
         display: 'inline-block', padding: '0.5rem 1.125rem',
         background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-md)',
-        fontSize: '1.125rem', fontWeight: 700, fontFamily: 'var(--font-display)',
-        letterSpacing: '0.15em', color: 'var(--accent)',
+        borderRadius: 'var(--radius-md)', fontSize: '1.125rem', fontWeight: 700,
+        fontFamily: 'var(--font-display)', letterSpacing: '0.15em', color: 'var(--accent)',
       }}>{inviteCode}</code>
     </div>
   )
@@ -692,13 +557,13 @@ function EmptySquad({ clubName, inviteCode }) {
 
 export default function DashboardPage() {
   const { profile } = useAuth()
-  const navigate = useNavigate()
-  const [club, setClub] = useState(null)
-  const [dashboard, setDashboard] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [curricula, setCurricula] = useState([])
-  const [selectedCurriculum, setSelectedCurriculum] = useState(null)
+  const navigate    = useNavigate()
+  const [club, setClub]                     = useState(null)
+  const [dashboard, setDashboard]           = useState(null)
+  const [loading, setLoading]               = useState(true)
+  const [error, setError]                   = useState(null)
+  const [curricula, setCurricula]           = useState([])
+  const [selectedCurriculum, setSelected]   = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -725,62 +590,50 @@ export default function DashboardPage() {
     try {
       const dash = await getClubDashboard(club.id, curriculumId)
       setDashboard(dash)
-    } catch (err) {
-      setError(err.message)
-    }
+    } catch (err) { setError(err.message) }
   }
 
   const handleCurriculumChange = (currId) => {
     const val = currId || null
-    setSelectedCurriculum(val)
+    setSelected(val)
     reloadDashboard(val)
   }
 
-  const handleAthleteClick = (athleteId) => {
-    navigate(`/athletes/${athleteId}`)
-  }
+  const handleAthleteClick = (athleteId) => navigate(`/athletes/${athleteId}`)
 
-  if (loading) {
-    return (
-      <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} style={{
-              height: '3.25rem', background: 'var(--bg-subtle)',
-              borderRadius: 'var(--radius-md)',
-              animation: 'pulse 1.4s ease infinite',
-              animationDelay: `${i * 0.1}s`,
-            }} />
-          ))}
-        </div>
-        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+  if (loading) return (
+    <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} style={{
+            height: '3.25rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)',
+            animation: 'pulse 1.4s ease infinite', animationDelay: `${i * 0.1}s`,
+          }} />
+        ))}
       </div>
-    )
-  }
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+    </div>
+  )
 
-  if (error) {
-    return (
-      <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
-        <div style={{
-          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
-          borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem',
-          fontSize: '0.8125rem', color: 'var(--accent)',
-        }}>{error}</div>
-      </div>
-    )
-  }
+  if (error) return (
+    <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
+      <div style={{
+        background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+        borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem',
+        fontSize: '0.8125rem', color: 'var(--accent)',
+      }}>{error}</div>
+    </div>
+  )
 
-  if (!club) {
-    return (
-      <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
-        <div style={{
-          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
-          borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem',
-          fontSize: '0.8125rem', color: 'var(--accent)',
-        }}>No club found. Create or join a club first.</div>
-      </div>
-    )
-  }
+  if (!club) return (
+    <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '1.75rem 2rem' }}>
+      <div style={{
+        background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+        borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem',
+        fontSize: '0.8125rem', color: 'var(--accent)',
+      }}>No club found. Create or join a club first.</div>
+    </div>
+  )
 
   const {
     athletes, moves, chains, matrix,
@@ -789,14 +642,13 @@ export default function DashboardPage() {
     comp_ready = {},
   } = dashboard
 
-  const athleteAggs = Object.values(athlete_aggregates)
-  const ratedAthletes = athleteAggs.filter(a => a.avg_confidence != null)
-  const totalRatings = athleteAggs.reduce((s, a) => s + a.rated_count, 0)
-  const squadAvg = ratedAthletes.length > 0
+  const athleteAggs    = Object.values(athlete_aggregates)
+  const ratedAthletes  = athleteAggs.filter(a => a.avg_confidence != null)
+  const totalRatings   = athleteAggs.reduce((s, a) => s + a.rated_count, 0)
+  const squadAvg       = ratedAthletes.length > 0
     ? (ratedAthletes.reduce((s, a) => s + a.avg_confidence, 0) / ratedAthletes.length).toFixed(1)
     : null
-  const weakMoves = Object.entries(move_aggregates).filter(([, v]) => v.avg_confidence != null && v.avg_confidence <= 2)
-  const weakCount = weakMoves.length
+  const weakCount      = Object.values(move_aggregates).filter(v => v.avg_confidence != null && v.avg_confidence <= 2).length
   const isCurriculumView = selectedCurriculum && chains && chains.length > 0
 
   return (
@@ -812,15 +664,13 @@ export default function DashboardPage() {
         }}>{club.name}</h1>
       </div>
 
-      {athletes.length === 0 ? (
-        <EmptySquad clubName={club.name} inviteCode={club.invite_code} />
-      ) : (
+      {athletes.length === 0 ? <EmptySquad clubName={club.name} inviteCode={club.invite_code} /> : (
         <>
           <div style={{ display: 'flex', gap: '0.625rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
-            <StatPill label="Athletes" value={athletes.length} />
-            <StatPill label="Ratings" value={totalRatings} />
-            <StatPill label="Squad Avg" value={squadAvg} />
-            <StatPill label="Moves" value={moves.length} />
+            <StatPill label="Athletes"   value={athletes.length} />
+            <StatPill label="Ratings"    value={totalRatings} />
+            <StatPill label="Squad Avg"  value={squadAvg} />
+            <StatPill label="Moves"      value={moves.length} />
             {weakCount > 0 && <StatPill label="Weak Moves" value={weakCount} accent />}
           </div>
 
@@ -841,7 +691,6 @@ export default function DashboardPage() {
                     color: !selectedCurriculum ? 'var(--accent)' : 'var(--text-muted)',
                     cursor: 'pointer', fontFamily: 'var(--font-body)',
                     transition: 'all var(--transition)',
-                    minHeight: '2.75rem',
                   }}>All moves</button>
                 {curricula.map(c => (
                   <button key={c.id}
@@ -854,7 +703,6 @@ export default function DashboardPage() {
                       color: selectedCurriculum === c.id ? 'var(--move-color)' : 'var(--text-muted)',
                       cursor: 'pointer', fontFamily: 'var(--font-body)',
                       transition: 'all var(--transition)',
-                      minHeight: '2.75rem',
                     }}>{c.name}</button>
                 ))}
               </div>
@@ -902,6 +750,8 @@ export default function DashboardPage() {
           />
         </>
       )}
+
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
     </div>
   )
 }
