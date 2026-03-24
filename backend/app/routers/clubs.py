@@ -292,3 +292,114 @@ def update_member_role(
         raise HTTPException(status_code=404, detail="Member not found")
 
     return {"user_id": member_id, "role": body.role}
+
+
+def slugify(name: str) -> str:
+    import re
+    s = name.lower().strip()
+    s = re.sub(r'[^\w\s-]', '', s)
+    s = re.sub(r'[\s_-]+', '-', s)
+    return s
+
+
+class ClubMoveCreate(BaseModel):
+    name: str
+    from_position_id: str
+    to_position_id: str
+    description: Optional[str] = ""
+
+
+class ClubPositionCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+
+
+@router.post("/{club_id}/moves")
+def create_club_move(
+    club_id: str,
+    body: ClubMoveCreate,
+    user=Depends(get_current_user),
+    client=Depends(get_supabase_client)
+):
+
+    # Verify coach role in this club
+    membership = client.table("club_memberships") \
+        .select("role") \
+        .eq("club_id", club_id) \
+        .eq("user_id", user.id) \
+        .execute()
+
+    if not membership.data or membership.data[0]["role"] != "coach":
+        raise HTTPException(status_code=403, detail="Must be a coach in this club")
+
+    if not body.name.strip():
+        raise HTTPException(status_code=400, detail="Move name cannot be empty")
+
+    slug = slugify(body.name)
+
+    existing = client.table("moves") \
+        .select("id") \
+        .eq("slug", slug) \
+        .execute()
+
+    if existing.data:
+        slug = f"{slug}-{club_id[:8]}"
+
+    res = client.table("moves").insert({
+        "name":             body.name.strip(),
+        "slug":             slug,
+        "description":      body.description or "",
+        "from_position_id": body.from_position_id,
+        "to_position_id":   body.to_position_id,
+        "club_id":          club_id,
+        "created_by":       user.id,
+    }).execute()
+
+    if not res.data:
+        raise HTTPException(status_code=500, detail="Failed to create move")
+
+    return res.data[0]
+
+
+@router.post("/{club_id}/positions")
+def create_club_position(
+    club_id: str,
+    body: ClubPositionCreate,
+    user=Depends(get_current_user),
+    client=Depends(get_supabase_client)
+):
+    # Verify coach role
+    membership = client.table("club_memberships") \
+        .select("role") \
+        .eq("club_id", club_id) \
+        .eq("user_id", user.id) \
+        .execute()
+
+    if not membership.data or membership.data[0]["role"] != "coach":
+        raise HTTPException(status_code=403, detail="Must be a coach in this club")
+
+    if not body.name.strip():
+        raise HTTPException(status_code=400, detail="Position name cannot be empty")
+
+    slug = slugify(body.name)
+
+    existing = client.table("positions") \
+        .select("id") \
+        .eq("slug", slug) \
+        .execute()
+
+    if existing.data:
+        slug = f"{slug}-{club_id[:8]}"
+
+    res = client.table("positions").insert({
+        "name":        body.name.strip(),
+        "slug":        slug,
+        "description": body.description or "",
+        "club_id":     club_id,
+        "created_by":  user.id,
+    }).execute()
+
+    if not res.data:
+        raise HTTPException(status_code=500, detail="Failed to create position")
+
+    return res.data[0]
