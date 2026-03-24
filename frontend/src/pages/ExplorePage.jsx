@@ -377,10 +377,13 @@ function SaveChainModal({ moves, onSave, onClose }) {
     }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{
-        background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-xl)', padding: 28, width: 380,
-      }}>
+    <div style={{
+      background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+      borderRadius: 'var(--radius-xl)', padding: '1.75rem',
+      width: 'min(380px, calc(100vw - 2rem))',
+      margin: '0 1rem',
+      boxSizing: 'border-box',
+    }}>
         <div style={{
           fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700,
           color: 'var(--text-primary)', marginBottom: 6,
@@ -652,33 +655,76 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
 
       {/* Save chain button */}
       {chainMoves.length >= 1 && (
-        <div style={{
-          position: 'absolute', top: 16, right: panelMove ? 432 : 16,
-          zIndex: 10, pointerEvents: 'all',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          {savedChain && (
+        <>
+          {/* Desktop — top right */}
+          {window.innerWidth >= 768 && (
             <div style={{
-              fontSize: 11, color: 'var(--success)', fontWeight: 600,
-              background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
-              borderRadius: 'var(--radius-sm)', padding: '5px 10px',
+              position: 'absolute', top: 16, right: panelMove ? 432 : 16,
+              zIndex: 10, pointerEvents: 'all',
+              display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              ✓ Saved as "{savedChain.name}"
+              {savedChain && (
+                <div style={{
+                  fontSize: 11, color: 'var(--success)', fontWeight: 600,
+                  background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
+                  borderRadius: 'var(--radius-sm)', padding: '5px 10px',
+                }}>
+                  ✓ Saved as "{savedChain.name}"
+                </div>
+              )}
+              <button
+                onClick={() => { setSavedChain(null); setShowSaveModal(true) }}
+                style={{
+                  background: 'var(--accent)', border: 'none',
+                  borderRadius: 'var(--radius-md)', padding: '7px 16px',
+                  fontSize: 12, fontWeight: 600, color: '#fff',
+                  cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                Save chain ({chainMoves.length} move{chainMoves.length !== 1 ? 's' : ''})
+              </button>
             </div>
           )}
-          <button
-            onClick={() => { setSavedChain(null); setShowSaveModal(true) }}
-            style={{
-              background: 'var(--accent)', border: 'none',
-              borderRadius: 'var(--radius-md)', padding: '7px 16px',
-              fontSize: 12, fontWeight: 600, color: '#fff',
-              cursor: 'pointer', fontFamily: 'var(--font-body)',
-              boxShadow: 'var(--shadow-sm)',
-            }}
-          >
-            Save chain ({chainMoves.length} move{chainMoves.length !== 1 ? 's' : ''})
-          </button>
-        </div>
+
+          {/* Mobile — bottom center */}
+          {window.innerWidth < 768 && (
+            <div style={{
+              position: 'absolute', bottom: 24,
+              left: '50%', transform: 'translateX(-50%)',
+              zIndex: 10, pointerEvents: 'all',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 8,
+            }}>
+              {savedChain && (
+                <div style={{
+                  fontSize: '0.6875rem', fontWeight: 600,
+                  color: 'var(--success)',
+                  background: 'var(--success-soft)',
+                  border: '0.5px solid var(--success-border)',
+                  borderRadius: 'var(--radius-sm)', padding: '5px 10px',
+                  whiteSpace: 'nowrap',
+                }}>
+                  ✓ Saved as "{savedChain.name}"
+                </div>
+              )}
+              <button
+                onClick={() => { setSavedChain(null); setShowSaveModal(true) }}
+                style={{
+                  background: 'var(--accent)', border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '0.875rem', fontWeight: 600, color: '#fff',
+                  cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  boxShadow: '0 4px 12px rgba(220,38,38,0.35)',
+                  minHeight: '2.75rem', whiteSpace: 'nowrap',
+                }}
+              >
+                Save chain ({chainMoves.length} move{chainMoves.length !== 1 ? 's' : ''})
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Hint */}
@@ -747,6 +793,7 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
 
       {/* Save chain modal */}
       {showSaveModal && (
+        
         <SaveChainModal
           moves={chainMoves}
           onSave={chain => { setSavedChain(chain); setShowSaveModal(false) }}
