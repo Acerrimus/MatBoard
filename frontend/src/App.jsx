@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage'
 import CurriculaPage from './pages/CurriculaPage'
 import AthleteOverviewPage from './pages/AthleteOverviewPage'
 import './styles/globals.css'
+import HomePage from './pages/HomePage'
 
 function getInitialTheme() {
   const stored = localStorage.getItem('mb-theme')
@@ -75,7 +76,7 @@ function AppShell({ theme, onToggleTheme }) {
         <Route path="/explore"              element={<ExplorePage />} />
         <Route path="/graph"                element={<GraphPage />} />
         <Route path="/progress"             element={<ProgressPage />} />
-        <Route path="/home"                 element={<Placeholder title="Home Feed" />} />
+        <Route path="/home"                 element={<HomePage />} />
         <Route path="/club"                 element={<ClubPage />} />
         <Route path="/dashboard"            element={<DashboardPage />} />
         <Route path="/curricula"            element={<CurriculaPage />} />
