@@ -20,12 +20,12 @@ function getInitialTheme() {
 }
 
 function Protected({ children }) {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, profileError } = useAuth()
   if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   if (profile === undefined) return <LoadingScreen />
-  if (profile === null) return <Navigate to="/onboarding" replace />
-  if (!profile.role) return <Navigate to="/onboarding" replace />
+  if (profileError) return children
+  if (profile === null || !profile.role) return <Navigate to="/onboarding" replace />
   return children
 }
 
