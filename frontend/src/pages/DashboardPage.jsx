@@ -640,7 +640,13 @@ export default function DashboardPage() {
     athlete_aggregates, move_aggregates,
     positions, position_comfort, squad_position_comfort,
     comp_ready = {},
+    insights,
   } = dashboard
+
+  const moveNameById = {}
+  moves.forEach(m => {
+  moveNameById[m.id] = m.name
+})
 
   const athleteAggs    = Object.values(athlete_aggregates)
   const ratedAthletes  = athleteAggs.filter(a => a.avg_confidence != null)
@@ -663,6 +669,73 @@ export default function DashboardPage() {
           letterSpacing: '-0.5px', color: 'var(--text-primary)', margin: 0,
         }}>{club.name}</h1>
       </div>
+
+      {/* ───────── Squad Insights ───────── */}
+      {insights && (insights.weakest || insights.strongest || insights.most_inconsistent) && (
+        <div style={{
+          background: 'var(--bg-surface)',
+          border: '0.5px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1rem 1.25rem',
+          marginBottom: '1.5rem',
+        }}>
+          <div style={{
+            fontSize: '0.625rem',
+            fontWeight: 600,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+            marginBottom: '0.75rem',
+          }}>
+            Squad Insights
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+
+            {insights.weakest && (
+              <div style={{ fontSize: '0.875rem' }}>
+                ⚠ Weakest move:{' '}
+                <strong>{moveNameById[insights.weakest.move_id]}</strong>{' '}
+                <span style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  color: 'var(--accent)',
+                }}>
+                  ({insights.weakest.avg_confidence})
+                </span>
+              </div>
+            )}
+
+            {insights.strongest && (
+              <div style={{ fontSize: '0.875rem' }}>
+                🏆 Strongest move:{' '}
+                <strong>{moveNameById[insights.strongest.move_id]}</strong>{' '}
+                <span style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  color: 'var(--success)',
+                }}>
+                  ({insights.strongest.avg_confidence})
+                </span>
+              </div>
+            )}
+
+            {insights.most_inconsistent && (
+              <div style={{ fontSize: '0.875rem' }}>
+                📊 Most inconsistent:{' '}
+                <strong>{moveNameById[insights.most_inconsistent.move_id]}</strong>{' '}
+                <span style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                }}>
+                  ({insights.most_inconsistent.spread} spread)
+                </span>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {athletes.length === 0 ? <EmptySquad clubName={club.name} inviteCode={club.invite_code} /> : (
         <>
