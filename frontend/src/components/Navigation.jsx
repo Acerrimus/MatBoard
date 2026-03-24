@@ -11,7 +11,10 @@ import {
   LogOut,
   Sun,
   Moon,
+  Settings,
 } from 'lucide-react'
+
+
 import { useState, useEffect } from 'react'
 
 // ── Nav config ────────────────────────────────────────────────────────────────
@@ -147,54 +150,103 @@ function DesktopSidebar({ theme, onToggleTheme, user, profile, onSignOut }) {
       <div style={{
         borderTop: '0.5px solid var(--border)',
         padding: '14px 18px',
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0, gap: 8,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: 'var(--accent-soft)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 600, color: 'var(--accent)', flexShrink: 0,
-          }}>
-            {user?.email?.[0]?.toUpperCase() ?? '?'}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{
-              fontSize: 12, fontWeight: 500, color: 'var(--text-primary)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email ?? 'User'}
-            </div>
-            <button
-              onClick={onSignOut}
-              style={{
-                background: 'none', border: 'none', padding: 0,
-                fontSize: 10, color: 'var(--text-muted)',
-                cursor: 'pointer', fontFamily: 'var(--font-body)',
-              }}
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
 
-        <button
-          onClick={onToggleTheme}
-          title="Toggle dark mode"
-          style={{
-            background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-            borderRadius: 'var(--radius-sm)', width: 28, height: 28,
-            cursor: 'pointer', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: 'var(--text-secondary)', flexShrink: 0,
-          }}
-        >
-          {theme === 'dark'
-            ? <Sun size={13} strokeWidth={1.8} />
-            : <Moon size={13} strokeWidth={1.8} />
-          }
-        </button>
+        {/* Coach-only Club Settings */}
+        {isCoach && (
+          <NavLink
+            to="/club"
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              fontWeight: 500,
+              textDecoration: 'none',
+              color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+              padding: '6px 8px',
+              borderRadius: 'var(--radius-sm)',
+              background: isActive ? 'var(--accent-soft)' : 'transparent',
+              transition: 'all var(--transition)',
+            })}
+          >
+            {({ isActive }) => (
+              <>
+                <Settings size={14} strokeWidth={isActive ? 2.4 : 1.8} />
+                Club Settings
+              </>
+            )}
+          </NavLink>
+        )}
+
+        {/* User Row */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'var(--accent-soft)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 600, color: 'var(--accent)',
+              flexShrink: 0,
+            }}>
+              {user?.email?.[0]?.toUpperCase() ?? '?'}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: 12, fontWeight: 500,
+                color: 'var(--text-primary)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email ?? 'User'}
+              </div>
+              <button
+                onClick={onSignOut}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  fontSize: 10,
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={onToggleTheme}
+            title="Toggle dark mode"
+            style={{
+              background: 'var(--bg-subtle)',
+              border: '0.5px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              width: 28, height: 28,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-secondary)',
+              flexShrink: 0,
+            }}
+          >
+            {theme === 'dark'
+              ? <Sun size={13} strokeWidth={1.8} />
+              : <Moon size={13} strokeWidth={1.8} />
+            }
+          </button>
+        </div>
       </div>
     </aside>
   )
@@ -339,6 +391,32 @@ function MobileHeader({ theme, onToggleTheme, onSignOut, profile, user }) {
             </div>
 
             <div style={{ flex: 1 }} />
+
+            {/* Club Settings (coach only) */}
+            {(profile?.role === 'coach' || profile?.role === 'admin') && (
+              <NavLink
+                to="/club"
+                onClick={() => setMenuOpen(false)}
+                style={({ isActive }) => ({
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  margin: '0 12px 10px',
+                  padding: '10px 12px',
+                  background: isActive ? 'var(--accent-soft)' : 'none',
+                  border: '0.5px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                  fontFamily: 'var(--font-body)',
+                })}
+              >
+                <ChevronRight size={15} strokeWidth={1.8} />
+                Club Settings
+              </NavLink>
+            )}
 
             {/* Sign out */}
             <button
