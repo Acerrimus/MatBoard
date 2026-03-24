@@ -256,6 +256,69 @@ async def get_club_dashboard(
             comp_ready[aid] = []
         comp_ready[aid].append(row["move_id"])
 
+
+    # ─────────────────────────────────────────────
+    # Squad Insights
+    # ─────────────────────────────────────────────
+
+    insights = {
+        "weakest": None,
+        "strongest": None,
+        "most_inconsistent": None,
+    }
+
+    # Filter moves that have ratings
+    rated_moves = [
+        (mid, stats)
+        for mid, stats in move_aggregates.items()
+        if stats["rated_count"] > 0 and stats["avg_confidence"] is not None
+    ]
+
+    if rated_moves:
+        # Weakest & Strongest by average confidence
+        weakest_mid, weakest_stats = min(
+            rated_moves,
+            key=lambda x: x[1]["avg_confidence"]
+        )
+
+        strongest_mid, strongest_stats = max(
+            rated_moves,
+            key=lambda x: x[1]["avg_confidence"]
+        )
+
+        insights["weakest"] = {
+            "move_id": weakest_mid,
+            "avg_confidence": weakest_stats["avg_confidence"],
+        }
+
+        insights["strongest"] = {
+            "move_id": strongest_mid,
+            "avg_confidence": strongest_stats["avg_confidence"],
+        }
+
+        # Most inconsistent (max spread across athletes)
+        max_spread = 0
+        inconsistent_mid = None
+
+        for mid in move_ids:
+            values = [
+                matrix[aid][mid]["confidence"]
+                for aid in matrix
+                if mid in matrix.get(aid, {})
+            ]
+
+            if len(values) > 1:
+                spread = max(values) - min(values)
+                if spread > max_spread:
+                    max_spread = spread
+                    inconsistent_mid = mid
+
+        if inconsistent_mid:
+            insights["most_inconsistent"] = {
+                "move_id": inconsistent_mid,
+                "spread": max_spread,
+            }
+
     return {
         "athletes": athletes,
         "moves": moves,
@@ -266,5 +329,6 @@ async def get_club_dashboard(
         "positions": positions_list,
         "position_comfort": position_comfort,
         "squad_position_comfort": squad_position_comfort,
-        "comp_ready": comp_ready,   
+        "comp_ready": comp_ready,
+        "insights": insights,
     }
