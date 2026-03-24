@@ -10,8 +10,11 @@ import {
   removeMoveFromChain,
   getPositions,
   getMovesFromPosition,
+  createClubMove,
+  createClubPosition,
+  getMyClub,
 } from '../api'
-import { confidenceColor, confidenceBg } from '../components/MoveCard'
+import { moveType, moveTypeColor } from '../components/MoveCard'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function truncateName(name, max = 22) {
@@ -92,12 +95,152 @@ function CurriculumCard({ curriculum, onSelect, onDelete }) {
   )
 }
 
+// ── Create move form (inline inside picker) ───────────────────────────────────
+function CreateMoveForm({ clubId, positions, selectedPos, onCreated, onCancel }) {
+  const [name, setName]         = useState('')
+  const [fromPos, setFromPos]   = useState(selectedPos || '')
+  const [toPos, setToPos]       = useState('')
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState(null)
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !fromPos || !toPos) {
+      setError('Name, from position and to position are all required.')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      const fromPosition = positions.find(p => p.slug === fromPos)
+      const toPosition   = positions.find(p => p.slug === toPos)
+      if (!fromPosition || !toPosition) {
+        setError('Invalid positions selected.')
+        setSaving(false)
+        return
+      }
+      const created = await createClubMove(
+        clubId,
+        name.trim(),
+        fromPosition.id,
+        toPosition.id,
+      )
+      onCreated(created)
+    } catch (e) {
+      setError('Failed to create move.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)', border: '0.5px solid var(--move-color)',
+      borderRadius: 'var(--radius-md)', padding: '10px 12px', marginTop: 8,
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: 'var(--move-color)', marginBottom: 8,
+      }}>New Club Move</div>
+
+      {error && (
+        <div style={{
+          fontSize: 11, color: 'var(--accent)', marginBottom: 8,
+          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+          borderRadius: 'var(--radius-sm)', padding: '4px 8px',
+        }}>{error}</div>
+      )}
+
+      <input
+        autoFocus
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Move name…"
+        style={{
+          width: '100%', padding: '7px 10px', fontSize: 12,
+          fontFamily: 'var(--font-body)', background: 'var(--bg-subtle)',
+          border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
+          color: 'var(--text-primary)', outline: 'none', marginBottom: 6,
+        }}
+      />
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontSize: 10, color: 'var(--text-muted)', marginBottom: 3,
+            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>From</div>
+          <select
+            value={fromPos}
+            onChange={e => setFromPos(e.target.value)}
+            style={{
+              width: '100%', padding: '6px 8px', fontSize: 12,
+              fontFamily: 'var(--font-body)', background: 'var(--bg-subtle)',
+              border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
+              color: 'var(--text-primary)', outline: 'none',
+            }}
+          >
+            <option value="">Select…</option>
+            {positions.map(p => (
+              <option key={p.id} value={p.slug}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontSize: 10, color: 'var(--text-muted)', marginBottom: 3,
+            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>To</div>
+          <select
+            value={toPos}
+            onChange={e => setToPos(e.target.value)}
+            style={{
+              width: '100%', padding: '6px 8px', fontSize: 12,
+              fontFamily: 'var(--font-body)', background: 'var(--bg-subtle)',
+              border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
+              color: 'var(--text-primary)', outline: 'none',
+            }}
+          >
+            <option value="">Select…</option>
+            {positions.map(p => (
+              <option key={p.id} value={p.slug}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button
+          onClick={handleSubmit}
+          disabled={saving}
+          style={{
+            padding: '6px 14px', fontSize: 11, fontWeight: 600,
+            borderRadius: 'var(--radius-sm)', border: 'none',
+            background: 'var(--move-color)', color: 'white',
+            cursor: saving ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-body)', opacity: saving ? 0.6 : 1,
+          }}
+        >{saving ? 'Creating…' : 'Create move'}</button>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '6px 10px', fontSize: 11,
+            borderRadius: 'var(--radius-sm)',
+            border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+            color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+          }}
+        >Cancel</button>
+      </div>
+    </div>
+  )
+}
+
 // ── Move Picker ───────────────────────────────────────────────────────────────
-function MovePicker({ existingMoveIds, onAdd, autoPositionSlug = null }) {
-  const [positions, setPositions]     = useState([])
-  const [selectedPos, setSelectedPos] = useState(autoPositionSlug)
-  const [moves, setMoves]             = useState([])
+function MovePicker({ existingMoveIds, onAdd, autoPositionSlug = null, clubId }) {
+  const [positions, setPositions]       = useState([])
+  const [selectedPos, setSelectedPos]   = useState(autoPositionSlug)
+  const [moves, setMoves]               = useState([])
   const [loadingMoves, setLoadingMoves] = useState(false)
+  const [creatingMove, setCreatingMove] = useState(false)
 
   useEffect(() => {
     getPositions().then(setPositions).catch(console.error)
@@ -118,12 +261,23 @@ function MovePicker({ existingMoveIds, onAdd, autoPositionSlug = null }) {
 
   const available = moves.filter(m => !existingMoveIds.has(m.id))
 
+  const handleMoveCreated = async (newMove) => {
+    setCreatingMove(false)
+    // Refresh moves for current position
+    if (selectedPos) {
+      const data = await getMovesFromPosition(selectedPos)
+      setMoves(data.moves || [])
+    }
+    // Auto-add the new move to the chain
+    onAdd(newMove.id)
+  }
+
   return (
     <div style={{
       background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
       borderRadius: 'var(--radius-md)', padding: '10px 12px', marginTop: 8,
     }}>
-      {autoPositionSlug && (
+      {autoPositionSlug && !creatingMove && (
         <div style={{
           fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, fontStyle: 'italic',
         }}>
@@ -131,64 +285,107 @@ function MovePicker({ existingMoveIds, onAdd, autoPositionSlug = null }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
-        {positions.map(pos => (
-          <button
-            key={pos.slug}
-            onClick={() => setSelectedPos(pos.slug === selectedPos ? null : pos.slug)}
-            style={{
-              padding: '3px 8px', fontSize: 10, fontWeight: 500,
-              borderRadius: 'var(--radius-sm)',
-              border: `0.5px solid ${selectedPos === pos.slug ? 'var(--move-color)' : 'var(--border)'}`,
-              background: selectedPos === pos.slug ? 'var(--move-soft)' : 'var(--bg-surface)',
-              color: selectedPos === pos.slug ? 'var(--move-color)' : 'var(--text-muted)',
-              cursor: 'pointer', fontFamily: 'var(--font-body)',
-            }}
-          >{pos.name}</button>
-        ))}
-      </div>
-
-      {selectedPos && (
-        loadingMoves ? (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>Loading…</div>
-        ) : available.length === 0 ? (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>
-            {moves.length === 0 ? 'No moves from this position' : 'All moves already added'}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {available.map(move => (
+      {!creatingMove && (
+        <>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+            {positions.map(pos => (
               <button
-                key={move.id}
-                onClick={() => onAdd(move.id)}
+                key={pos.slug}
+                onClick={() => setSelectedPos(pos.slug === selectedPos ? null : pos.slug)}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '6px 10px', background: 'var(--bg-surface)',
-                  border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                  padding: '3px 8px', fontSize: 10, fontWeight: 500,
+                  borderRadius: 'var(--radius-sm)',
+                  border: `0.5px solid ${selectedPos === pos.slug ? 'var(--move-color)' : 'var(--border)'}`,
+                  background: selectedPos === pos.slug ? 'var(--move-soft)' : 'var(--bg-surface)',
+                  color: selectedPos === pos.slug ? 'var(--move-color)' : 'var(--text-muted)',
                   cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  textAlign: 'left', width: '100%',
-                  transition: 'border-color var(--transition)',
                 }}
-              >
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
-                  {move.name}
-                </span>
-                <span style={{ fontSize: 10, color: 'var(--move-color)', fontWeight: 600, flexShrink: 0 }}>
-                  + Add
-                </span>
-              </button>
+              >{pos.name}</button>
             ))}
           </div>
-        )
+
+          {selectedPos && (
+            loadingMoves ? (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>Loading…</div>
+            ) : available.length === 0 ? (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 0' }}>
+                {moves.length === 0 ? 'No moves from this position' : 'All moves already added'}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
+                {available.map(move => {
+                  const tc = moveTypeColor(move)
+                  const tt = moveType(move)
+                  return (
+                    <button
+                      key={move.id}
+                      onClick={() => onAdd(move.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '6px 10px', background: 'var(--bg-surface)',
+                        border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer', fontFamily: 'var(--font-body)',
+                        textAlign: 'left', width: '100%',
+                        transition: 'border-color var(--transition)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                          {move.name}
+                        </span>
+                        {tt !== 'global' && (
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, color: tc,
+                            background: `${tc}18`, border: `0.5px solid ${tc}44`,
+                            borderRadius: 3, padding: '1px 4px',
+                            letterSpacing: '0.06em', textTransform: 'uppercase',
+                          }}>{tt === 'club' ? 'Club' : 'Mine'}</span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 10, color: 'var(--move-color)', fontWeight: 600, flexShrink: 0 }}>
+                        + Add
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          )}
+
+          {/* Create club move button */}
+          {clubId && (
+            <button
+              onClick={() => setCreatingMove(true)}
+              style={{
+                padding: '5px 10px', fontSize: 11, fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: '0.5px solid var(--move-color)',
+                background: 'var(--move-soft)', color: 'var(--move-color)',
+                cursor: 'pointer', fontFamily: 'var(--font-body)',
+                transition: 'all var(--transition)',
+              }}
+            >+ Create club move</button>
+          )}
+        </>
+      )}
+
+      {creatingMove && (
+        <CreateMoveForm
+          clubId={clubId}
+          positions={positions}
+          selectedPos={selectedPos}
+          onCreated={handleMoveCreated}
+          onCancel={() => setCreatingMove(false)}
+        />
       )}
     </div>
   )
 }
 
 // ── Chain card within curriculum detail ───────────────────────────────────────
-function ChainCard({ chain, onAddMove, onRemoveMove, onDeleteChain }) {
-  const [picking, setPicking]         = useState(false)
-  const [confirming, setConfirming]   = useState(false)
+function ChainCard({ chain, onAddMove, onRemoveMove, onDeleteChain, clubId }) {
+  const [picking, setPicking]       = useState(false)
+  const [confirming, setConfirming] = useState(false)
 
   const existingIds      = new Set()
   const lastMove         = chain.moves.length > 0 ? chain.moves[chain.moves.length - 1] : null
@@ -205,7 +402,6 @@ function ChainCard({ chain, onAddMove, onRemoveMove, onDeleteChain }) {
 
   const handleAddMove = async (moveId) => {
     await onAddMove(chain.id, moveId)
-    // picker stays open — auto position will update via reload
   }
 
   return (
@@ -260,75 +456,85 @@ function ChainCard({ chain, onAddMove, onRemoveMove, onDeleteChain }) {
           gap: 0, flexWrap: 'wrap',
           marginBottom: picking ? 12 : 0,
         }}>
-          {chain.moves.map((move, i) => (
-            <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
-              {/* Starting position label */}
-              {i === 0 && move.from_position && (
-                <>
-                  <div style={{
-                    fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
-                    padding: '3px 6px', background: 'var(--bg-subtle)',
-                    border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                    marginRight: 4, whiteSpace: 'nowrap',
-                  }}>{move.from_position.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px' }}>→</div>
-                </>
-              )}
-
-              {/* Move pill */}
-              <div
-                title={move.name}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  background: 'var(--move-soft)', border: '1.5px solid var(--move-color)',
-                  borderRadius: 'var(--radius-sm)', padding: '5px 10px',
-                  fontSize: 12, fontWeight: 500, color: 'var(--text-move)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {truncateName(move.name)}
-                <button
-                  onClick={() => onRemoveMove(chain.id, move.id)}
-                  style={{
-                    background: 'none', border: 'none', color: 'var(--text-muted)',
-                    fontSize: 10, cursor: 'pointer', padding: 0, lineHeight: 1,
-                    flexShrink: 0,
-                  }}
-                >✕</button>
-              </div>
-
-              {/* Arrow + ending position label */}
-              {move.to_position && (
-                <>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px' }}>→</div>
-                  {i === chain.moves.length - 1 && (
+          {chain.moves.map((move, i) => {
+            const tc = moveTypeColor(move)
+            const tt = moveType(move)
+            return (
+              <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
+                {i === 0 && move.from_position && (
+                  <>
                     <div style={{
                       fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
                       padding: '3px 6px', background: 'var(--bg-subtle)',
                       border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                      whiteSpace: 'nowrap',
-                    }}>{move.to_position.name}</div>
+                      marginRight: 4, whiteSpace: 'nowrap',
+                    }}>{move.from_position.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px' }}>→</div>
+                  </>
+                )}
+
+                <div
+                  title={move.name}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: `${tc}12`,
+                    border: `1.5px solid ${tc}`,
+                    borderRadius: 'var(--radius-sm)', padding: '5px 10px',
+                    fontSize: 12, fontWeight: 500, color: tc,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {truncateName(move.name)}
+                  {tt !== 'global' && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, color: tc,
+                      background: `${tc}20`, border: `0.5px solid ${tc}44`,
+                      borderRadius: 3, padding: '1px 4px',
+                      letterSpacing: '0.06em', textTransform: 'uppercase',
+                    }}>{tt === 'club' ? 'C' : 'P'}</span>
                   )}
-                </>
-              )}
-            </div>
-          ))}
+                  <button
+                    onClick={() => onRemoveMove(chain.id, move.id)}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--text-muted)',
+                      fontSize: 10, cursor: 'pointer', padding: 0, lineHeight: 1,
+                      flexShrink: 0,
+                    }}
+                  >✕</button>
+                </div>
+
+                {move.to_position && (
+                  <>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px' }}>→</div>
+                    {i === chain.moves.length - 1 && (
+                      <div style={{
+                        fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
+                        padding: '3px 6px', background: 'var(--bg-subtle)',
+                        border: '0.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                        whiteSpace: 'nowrap',
+                      }}>{move.to_position.name}</div>
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {/* Move picker */}
       {picking && (
         <MovePicker
           existingMoveIds={existingIds}
           onAdd={handleAddMove}
           autoPositionSlug={nextPositionSlug}
+          clubId={clubId}
         />
       )}
     </div>
   )
 }
 
-// ── Empty states ──────────────────────────────────────────────────────────────
+// ── Empty state ───────────────────────────────────────────────────────────────
 function EmptyCurricula() {
   return (
     <div style={{
@@ -351,6 +557,7 @@ function EmptyCurricula() {
 export default function CurriculaPage() {
   const [curricula, setCurricula]       = useState([])
   const [selected, setSelected]         = useState(null)
+  const [club, setClub]                 = useState(null)
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
   const [creating, setCreating]         = useState(false)
@@ -359,8 +566,11 @@ export default function CurriculaPage() {
   const [newChainName, setNewChainName] = useState('')
 
   useEffect(() => {
-    getCurricula()
-      .then(setCurricula)
+    Promise.all([getCurricula(), getMyClub()])
+      .then(([currList, clubData]) => {
+        setCurricula(currList)
+        setClub(clubData)
+      })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
@@ -448,7 +658,6 @@ export default function CurriculaPage() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 32px' }}>
 
-      {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{
           fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
@@ -468,7 +677,6 @@ export default function CurriculaPage() {
         }}>{error}</div>
       )}
 
-      {/* Back button */}
       {selected && (
         <button
           onClick={() => setSelected(null)}
@@ -483,7 +691,6 @@ export default function CurriculaPage() {
 
       {!selected ? (
         <>
-          {/* Create form */}
           {creating ? (
             <div style={{
               background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
@@ -524,34 +731,24 @@ export default function CurriculaPage() {
           )}
 
           <SectionLabel count={curricula.length}>Your Curricula</SectionLabel>
-
           {curricula.length === 0 ? <EmptyCurricula /> : (
             curricula.map(c => (
-              <CurriculumCard
-                key={c.id}
-                curriculum={c}
-                onSelect={handleSelect}
-                onDelete={handleDelete}
-              />
+              <CurriculumCard key={c.id} curriculum={c} onSelect={handleSelect} onDelete={handleDelete} />
             ))
           )}
         </>
       ) : (
         <>
-          {/* Detail view header */}
           <div style={{ marginBottom: 20 }}>
             <h2 style={{
               fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700,
               color: 'var(--text-primary)', margin: '0 0 4px',
             }}>{selected.name}</h2>
             {selected.description && (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                {selected.description}
-              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{selected.description}</div>
             )}
           </div>
 
-          {/* Add chain */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {addingChain ? (
               <>
@@ -605,6 +802,7 @@ export default function CurriculaPage() {
                 onAddMove={handleAddMove}
                 onRemoveMove={handleRemoveMove}
                 onDeleteChain={handleDeleteChain}
+                clubId={club?.id}
               />
             ))
           )}

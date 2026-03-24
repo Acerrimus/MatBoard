@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { getMyBoard, upsertProgress, deleteProgress, getMyChains, deleteChain } from '../api'
-import { confidenceColor, confidenceBg } from '../components/MoveCard'
+import { getMyBoard, upsertProgress, deleteProgress, getMyChains, deleteChain, createPersonalMove, addToBoard, getPositions } from '../api'
+import { confidenceColor, confidenceBg, moveType, moveTypeColor } from '../components/MoveCard'
 
 function avg(nums) {
   if (!nums.length) return null
@@ -83,6 +83,8 @@ function MoveRow({ item, onProgressChange }) {
   const move       = item.move
   const confidence = item.progress?.confidence   ?? null
   const isFav      = item.progress?.is_favourite ?? false
+  const tc         = moveTypeColor(move)
+  const tt         = moveType(move)
 
   const handleConfidence = async (val) => {
     setSaving(true)
@@ -129,10 +131,20 @@ function MoveRow({ item, onProgressChange }) {
       opacity: saving ? 0.6 : 1,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{move.name}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{move.name}</div>
+          {tt !== 'global' && (
+            <span style={{
+              fontSize: 9, fontWeight: 700, color: tc,
+              background: `${tc}18`, border: `0.5px solid ${tc}44`,
+              borderRadius: 3, padding: '1px 4px',
+              letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0,
+            }}>{tt === 'personal' ? 'Mine' : 'Club'}</span>
+          )}
+        </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
           {move.from_position?.name ?? '—'} → {move.to_position?.name ?? '—'}
         </div>
@@ -210,8 +222,10 @@ function ChainCard({ chain, onDelete }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
           {chain.moves.map((item, i) => {
             const confidence = item.progress?.confidence ?? null
-            const color = confidenceColor(confidence)
-            const bg    = confidence ? confidenceBg(confidence) : 'var(--bg-subtle)'
+            const color      = confidenceColor(confidence)
+            const bg         = confidence ? confidenceBg(confidence) : 'var(--bg-subtle)'
+            const tc         = moveTypeColor(item.move)
+            const tt         = moveType(item.move)
             return (
               <div key={item.id} style={{ display: 'flex', alignItems: 'center' }}>
                 <div
@@ -221,12 +235,20 @@ function ChainCard({ chain, onDelete }) {
                     borderRadius: 'var(--radius-sm)', padding: '0.3125rem 0.625rem',
                     fontSize: '0.75rem', fontWeight: 500,
                     color: confidence ? color : 'var(--text-secondary)',
-                    whiteSpace: 'nowrap',
+                    whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4,
                   }}
                 >
                   {truncateName(item.move.name)}
+                  {tt !== 'global' && (
+                    <span style={{
+                      fontSize: 8, fontWeight: 700, color: tc,
+                      background: `${tc}18`, border: `0.5px solid ${tc}44`,
+                      borderRadius: 3, padding: '1px 3px',
+                      letterSpacing: '0.06em', textTransform: 'uppercase',
+                    }}>{tt === 'personal' ? 'P' : 'C'}</span>
+                  )}
                   {confidence && (
-                    <span style={{ marginLeft: 5, fontSize: '0.625rem', fontWeight: 700, opacity: 0.8 }}>
+                    <span style={{ fontSize: '0.625rem', fontWeight: 700, opacity: 0.8 }}>
                       {confidence}
                     </span>
                   )}
@@ -260,6 +282,138 @@ function ChainCard({ chain, onDelete }) {
   )
 }
 
+// ── Create personal move form ─────────────────────────────────────────────────
+function CreatePersonalMoveForm({ onCreated, onCancel }) {
+  const [positions, setPositions] = useState([])
+  const [name, setName]           = useState('')
+  const [fromPos, setFromPos]     = useState('')
+  const [toPos, setToPos]         = useState('')
+  const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState(null)
+
+  useEffect(() => {
+    getPositions().then(setPositions).catch(console.error)
+  }, [])
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !fromPos || !toPos) {
+      setError('All fields are required.')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      const from = positions.find(p => p.slug === fromPos)
+      const to   = positions.find(p => p.slug === toPos)
+      if (!from || !to) { setError('Invalid positions.'); setSaving(false); return }
+      const created = await createPersonalMove(name.trim(), from.id, to.id)
+      await addToBoard(created.id)
+      onCreated(created)
+    } catch (e) {
+      setError('Failed to create move.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '0.5px solid #0D9488',
+      borderRadius: 'var(--radius-lg)',
+      padding: '14px 16px', marginBottom: 12,
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: '#0D9488', marginBottom: 12,
+      }}>New Personal Move</div>
+
+      {error && (
+        <div style={{
+          fontSize: 11, color: 'var(--accent)', marginBottom: 8,
+          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+          borderRadius: 'var(--radius-sm)', padding: '4px 8px',
+        }}>{error}</div>
+      )}
+
+      <input
+        autoFocus
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Move name…"
+        style={{
+          width: '100%', padding: '8px 12px', fontSize: 13,
+          fontFamily: 'var(--font-body)', background: 'var(--bg-subtle)',
+          border: '0.5px solid var(--border)', borderRadius: 'var(--radius-md)',
+          color: 'var(--text-primary)', outline: 'none', marginBottom: 8,
+        }}
+      />
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontSize: 10, color: 'var(--text-muted)', marginBottom: 4,
+            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>From</div>
+          <select
+            value={fromPos}
+            onChange={e => setFromPos(e.target.value)}
+            style={{
+              width: '100%', padding: '7px 8px', fontSize: 12,
+              fontFamily: 'var(--font-body)', background: 'var(--bg-subtle)',
+              border: '0.5px solid var(--border)', borderRadius: 'var(--radius-md)',
+              color: 'var(--text-primary)', outline: 'none',
+            }}
+          >
+            <option value="">Select…</option>
+            {positions.map(p => <option key={p.id} value={p.slug}>{p.name}</option>)}
+          </select>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontSize: 10, color: 'var(--text-muted)', marginBottom: 4,
+            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>To</div>
+          <select
+            value={toPos}
+            onChange={e => setToPos(e.target.value)}
+            style={{
+              width: '100%', padding: '7px 8px', fontSize: 12,
+              fontFamily: 'var(--font-body)', background: 'var(--bg-subtle)',
+              border: '0.5px solid var(--border)', borderRadius: 'var(--radius-md)',
+              color: 'var(--text-primary)', outline: 'none',
+            }}
+          >
+            <option value="">Select…</option>
+            {positions.map(p => <option key={p.id} value={p.slug}>{p.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={handleSubmit} disabled={saving}
+          style={{
+            padding: '8px 16px', fontSize: 12, fontWeight: 600,
+            borderRadius: 'var(--radius-md)', border: 'none',
+            background: '#0D9488', color: 'white',
+            cursor: saving ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-body)', opacity: saving ? 0.6 : 1,
+          }}
+        >{saving ? 'Creating…' : 'Create move'}</button>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '8px 12px', fontSize: 12, borderRadius: 'var(--radius-md)',
+            border: '0.5px solid var(--border)', background: 'var(--bg-subtle)',
+            color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+          }}
+        >Cancel</button>
+      </div>
+    </div>
+  )
+}
+
 function EmptyBoard() {
   return (
     <div style={{
@@ -279,11 +433,12 @@ function EmptyBoard() {
 }
 
 export default function ProgressPage() {
-  const [boardItems, setBoardItems] = useState([])
-  const [chains, setChains]         = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState(null)
-  const [filter, setFilter]         = useState('all')
+  const [boardItems, setBoardItems]         = useState([])
+  const [chains, setChains]                 = useState([])
+  const [loading, setLoading]               = useState(true)
+  const [error, setError]                   = useState(null)
+  const [filter, setFilter]                 = useState('all')
+  const [creatingMove, setCreatingMove]     = useState(false)
 
   useEffect(() => {
     Promise.all([getMyBoard(), getMyChains()])
@@ -309,6 +464,12 @@ export default function ProgressPage() {
       await deleteChain(chainId)
       setChains(prev => prev.filter(c => c.id !== chainId))
     } catch (e) { console.error('Failed to delete chain', e) }
+  }
+
+  const handlePersonalMoveCreated = (newMove) => {
+    // Add to board items with no progress yet
+    setBoardItems(prev => [...prev, { move: newMove, progress: null }])
+    setCreatingMove(false)
   }
 
   const rated      = boardItems.filter(i => i.progress?.confidence)
@@ -368,7 +529,30 @@ export default function ProgressPage() {
         }}>{error}</div>
       )}
 
-      {boardItems.length === 0 && !loading ? <EmptyBoard /> : (
+      {boardItems.length === 0 && !loading ? (
+        <>
+          <EmptyBoard />
+          <div style={{ marginTop: 16 }}>
+            {creatingMove ? (
+              <CreatePersonalMoveForm
+                onCreated={handlePersonalMoveCreated}
+                onCancel={() => setCreatingMove(false)}
+              />
+            ) : (
+              <button
+                onClick={() => setCreatingMove(true)}
+                style={{
+                  padding: '8px 16px', fontSize: 12, fontWeight: 600,
+                  borderRadius: 'var(--radius-md)', border: '0.5px solid #0D9488',
+                  background: 'rgba(13,148,136,0.08)', color: '#0D9488',
+                  cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  transition: 'all var(--transition)',
+                }}
+              >+ Create personal move</button>
+            )}
+          </div>
+        </>
+      ) : (
         <>
           <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
             <StatPill label="On board"       value={boardItems.length} />
@@ -378,6 +562,7 @@ export default function ProgressPage() {
             {weak.length > 0 && <StatPill label="Needs work" value={weak.length} accent />}
           </div>
 
+          {/* Chains */}
           {chains.length > 0 && (
             <div style={{ marginBottom: 32 }}>
               <SectionLabel count={chains.length}>My Chains</SectionLabel>
@@ -387,6 +572,7 @@ export default function ProgressPage() {
             </div>
           )}
 
+          {/* Favourites */}
           {favourites.length > 0 && (
             <div style={{ marginBottom: 32 }}>
               <SectionLabel count={favourites.length}>Favourites</SectionLabel>
@@ -396,6 +582,28 @@ export default function ProgressPage() {
             </div>
           )}
 
+          {/* Create personal move */}
+          <div style={{ marginBottom: 20 }}>
+            {creatingMove ? (
+              <CreatePersonalMoveForm
+                onCreated={handlePersonalMoveCreated}
+                onCancel={() => setCreatingMove(false)}
+              />
+            ) : (
+              <button
+                onClick={() => setCreatingMove(true)}
+                style={{
+                  padding: '6px 14px', fontSize: 11, fontWeight: 600,
+                  borderRadius: 'var(--radius-md)', border: '0.5px solid #0D9488',
+                  background: 'rgba(13,148,136,0.08)', color: '#0D9488',
+                  cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  transition: 'all var(--transition)',
+                }}
+              >+ Create personal move</button>
+            )}
+          </div>
+
+          {/* Board with filter tabs */}
           <div>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',

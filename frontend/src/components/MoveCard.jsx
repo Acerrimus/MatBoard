@@ -12,6 +12,19 @@ export function confidenceBg(confidence) {
   return 'rgba(34,197,94,0.08)'
 }
 
+export function moveType(move) {
+  if (!move.created_by && !move.club_id) return 'global'
+  if (move.club_id)                       return 'club'
+  return 'personal'
+}
+
+export function moveTypeColor(move) {
+  const t = moveType(move)
+  if (t === 'club')     return '#F59E0B'
+  if (t === 'personal') return '#0D9488'
+  return 'var(--move-color)'
+}
+
 export default function MoveCard({ move, onClick, isOnBoard }) {
   return (
     <div
