@@ -5,17 +5,12 @@ import MoveDetail from '../components/MoveDetail'
 
 const STARTING_POSITION = 'neutral'
 
-// ── Breadcrumb ────────────────────────────────────────────────────────────────
 function Breadcrumb({ trail, onNavigateTo }) {
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      fontSize: 11,
-      color: 'var(--text-muted)',
-      marginBottom: 22,
-      flexWrap: 'wrap',
+      display: 'flex', alignItems: 'center', gap: 6,
+      fontSize: 12, color: 'var(--text-muted)',
+      marginBottom: 22, flexWrap: 'wrap',
     }}>
       {trail.map((crumb, i) => (
         <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -24,17 +19,11 @@ function Breadcrumb({ trail, onNavigateTo }) {
             <button
               onClick={() => onNavigateTo(i)}
               style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 11,
-                color: 'var(--text-muted)',
-                padding: 0,
-                fontFamily: 'var(--font-body)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 12, color: 'var(--text-muted)',
+                padding: 0, fontFamily: 'var(--font-body)',
               }}
-            >
-              {crumb.name}
-            </button>
+            >{crumb.name}</button>
           ) : (
             <span style={{ color: 'var(--accent)', fontWeight: 500 }}>{crumb.name}</span>
           )}
@@ -44,7 +33,6 @@ function Breadcrumb({ trail, onNavigateTo }) {
   )
 }
 
-// ── Position node ─────────────────────────────────────────────────────────────
 function PositionNode({ position, movesCount }) {
   if (!position) return null
   return (
@@ -53,26 +41,26 @@ function PositionNode({ position, movesCount }) {
       border: '0.5px solid var(--border)',
       borderLeft: '3px solid var(--accent)',
       borderRadius: 'var(--radius-lg)',
-      padding: '20px 24px',
-      marginBottom: 16,
+      padding: '24px 28px',
+      marginBottom: 20,
     }}>
       <div style={{ marginBottom: 10 }}><Chip type="position">Position</Chip></div>
       <div style={{
         fontFamily: 'var(--font-display)',
-        fontSize: 26,
+        fontSize: 36,
         fontWeight: 700,
         letterSpacing: '-0.5px',
         color: 'var(--text-primary)',
-        marginBottom: 6,
+        marginBottom: 8,
       }}>
         {position.name}
       </div>
       {position.description && (
         <p style={{
-          fontSize: 13,
+          fontSize: 14,
           color: 'var(--text-secondary)',
           lineHeight: 1.6,
-          marginBottom: 14,
+          marginBottom: 16,
         }}>
           {position.description}
         </p>
@@ -94,33 +82,25 @@ function StatPill({ label, value }) {
     }}>
       <div style={{
         fontFamily: 'var(--font-display)',
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 700,
         color: 'var(--text-primary)',
         lineHeight: 1,
-      }}>
-        {value}
-      </div>
+      }}>{value}</div>
       <div style={{
-        fontSize: 9,
-        fontWeight: 600,
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        color: 'var(--text-muted)',
-        marginTop: 3,
-      }}>
-        {label}
-      </div>
+        fontSize: 9, fontWeight: 600, letterSpacing: '0.1em',
+        textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 3,
+      }}>{label}</div>
     </div>
   )
 }
 
 function LoadingState() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {[1, 2, 3].map(i => (
         <div key={i} style={{
-          height: 56,
+          height: 68,
           background: 'var(--bg-subtle)',
           borderRadius: 'var(--radius-md)',
           animation: 'pulse 1.4s ease infinite',
@@ -131,21 +111,17 @@ function LoadingState() {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function GraphPage() {
-  const [position, setPosition]         = useState(null)
-  const [moves, setMoves]               = useState([])
-  const [selectedMove, setSelectedMove] = useState(null)
-  const [trail, setTrail]               = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState(null)
-
-  // Board + progress state owned here, passed down to MoveDetail
+  const [position, setPosition]           = useState(null)
+  const [moves, setMoves]                 = useState([])
+  const [selectedMove, setSelectedMove]   = useState(null)
+  const [trail, setTrail]                 = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
   const [boardMoveIds, setBoardMoveIds]   = useState(new Set())
   const [progressMap, setProgressMap]     = useState({})
   const [boardLoading, setBoardLoading]   = useState(true)
 
-  // ── Load board + progress once on mount ────────────────────────────────────
   useEffect(() => {
     Promise.all([getMyBoard(), getMyProgress()])
       .then(([boardData, progressData]) => {
@@ -154,11 +130,10 @@ export default function GraphPage() {
         progressData.forEach(p => { pm[p.move_id] = p })
         setProgressMap(pm)
       })
-      .catch(() => {}) // non-fatal — board just shows empty
+      .catch(() => {})
       .finally(() => setBoardLoading(false))
   }, [])
 
-  // ── Load position ───────────────────────────────────────────────────────────
   const loadPosition = useCallback(async (slug, newTrail) => {
     setLoading(true)
     setSelectedMove(null)
@@ -175,11 +150,8 @@ export default function GraphPage() {
     }
   }, [])
 
-  useEffect(() => {
-    loadPosition(STARTING_POSITION)
-  }, [loadPosition])
+  useEffect(() => { loadPosition(STARTING_POSITION) }, [loadPosition])
 
-  // ── Move click ──────────────────────────────────────────────────────────────
   const handleMoveClick = async (move) => {
     try {
       const full = await getMove(move.slug)
@@ -189,19 +161,16 @@ export default function GraphPage() {
     }
   }
 
-  // ── Navigate to position ────────────────────────────────────────────────────
   const handleNavigateToPosition = (pos) => {
     if (!pos?.slug) return
     loadPosition(pos.slug, [...trail, { name: pos.name, slug: pos.slug }])
   }
 
-  // ── Breadcrumb nav ──────────────────────────────────────────────────────────
   const handleBreadcrumbNav = (index) => {
     const crumb = trail[index]
     loadPosition(crumb.slug, trail.slice(0, index + 1))
   }
 
-  // ── Board change callback — called by MoveDetail ────────────────────────────
   const handleBoardChange = (moveId, added) => {
     setBoardMoveIds(prev => {
       const next = new Set(prev)
@@ -210,15 +179,11 @@ export default function GraphPage() {
     })
   }
 
-  // ── Progress change callback — called by MoveDetail ────────────────────────
   const handleProgressChange = (moveId, progressData) => {
     setProgressMap(prev => {
       const next = { ...prev }
-      if (progressData === null) {
-        delete next[moveId]
-      } else {
-        next[moveId] = progressData
-      }
+      if (progressData === null) delete next[moveId]
+      else next[moveId] = progressData
       return next
     })
   }
@@ -226,28 +191,17 @@ export default function GraphPage() {
   const selectedMoveId = selectedMove?.id
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 32px' }}>
+    <div style={{ maxWidth: 780, margin: '0 auto', padding: '28px 20px' }}>
 
       <div style={{ marginBottom: 24 }}>
         <div style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-          marginBottom: 4,
-        }}>
-          Technique Graph
-        </div>
+          fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+          textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4,
+        }}>Technique Graph</div>
         <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 28,
-          fontWeight: 700,
-          letterSpacing: '-0.5px',
-          color: 'var(--text-primary)',
-        }}>
-          Explore the Graph
-        </h1>
+          fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700,
+          letterSpacing: '-0.5px', color: 'var(--text-primary)',
+        }}>Explore the Graph</h1>
       </div>
 
       {trail.length > 0 && (
@@ -256,16 +210,10 @@ export default function GraphPage() {
 
       {error && (
         <div style={{
-          background: 'var(--accent-soft)',
-          border: '0.5px solid var(--border-accent)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 16px',
-          fontSize: 13,
-          color: 'var(--accent)',
-          marginBottom: 16,
-        }}>
-          {error}
-        </div>
+          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+          borderRadius: 'var(--radius-md)', padding: '12px 16px',
+          fontSize: 13, color: 'var(--accent)', marginBottom: 16,
+        }}>{error}</div>
       )}
 
       {!loading && position && (
@@ -287,23 +235,16 @@ export default function GraphPage() {
       {!selectedMove && (
         <>
           <div style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: 'var(--text-muted)',
-            margin: '18px 0 10px',
+            fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: 'var(--text-muted)',
+            margin: '20px 0 12px',
           }}>
-            {loading
-              ? 'Loading...'
-              : moves.length === 0
-                ? 'No moves mapped yet'
-                : `${moves.length} move${moves.length !== 1 ? 's' : ''} from here`}
+            {loading ? 'Loading...'
+              : moves.length === 0 ? 'No moves mapped yet'
+              : `${moves.length} move${moves.length !== 1 ? 's' : ''} from here`}
           </div>
 
-          {loading ? (
-            <LoadingState />
-          ) : (
+          {loading ? <LoadingState /> : (
             moves.map(move => (
               <MoveCard
                 key={move.id}
@@ -317,14 +258,8 @@ export default function GraphPage() {
       )}
 
       <style>{`
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateY(-6px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.4; }
-        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
     </div>
   )
