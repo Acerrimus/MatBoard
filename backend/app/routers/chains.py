@@ -132,7 +132,23 @@ def set_chain_moves(
     if not existing.data:
         raise HTTPException(status_code=404, detail="Chain not found")
 
-    # Delete existing and re-insert in order
+    # Auto-board any moves not already on the user's board
+    if body.move_ids:
+        board_res = client.table("user_board") \
+            .select("move_id") \
+            .eq("user_id", user.id) \
+            .execute()
+
+        already_boarded = {row["move_id"] for row in board_res.data}
+        to_board = [
+            {"user_id": user.id, "move_id": mid}
+            for mid in body.move_ids
+            if mid not in already_boarded
+        ]
+        if to_board:
+            client.table("user_board").insert(to_board).execute()
+
+    # Delete existing chain moves and re-insert in order
     client.table("chain_moves") \
         .delete() \
         .eq("chain_id", chain_id) \
