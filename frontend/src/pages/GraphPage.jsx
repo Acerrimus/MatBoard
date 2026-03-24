@@ -191,7 +191,7 @@ export default function GraphPage() {
   const selectedMoveId = selectedMove?.id
 
   return (
-    <div style={{ maxWidth: 780, margin: '0 auto', padding: '28px 20px' }}>
+    <div style={{ maxWidth: 780, margin: '0 auto', padding: 'clamp(12px, 3vw, 28px) clamp(12px, 4vw, 20px)' }}>
 
       <div style={{ marginBottom: 24 }}>
         <div style={{
