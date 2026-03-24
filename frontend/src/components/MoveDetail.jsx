@@ -533,8 +533,10 @@ export default function MoveDetail({
                   color: 'var(--text-primary)',
                   marginBottom: 4,
                 }}>
-                  {c.profiles?.display_name || 'User'}
-                </div>
+                  {(Array.isArray(c.profiles)
+                      ? c.profiles[0]?.display_name
+                      : c.profiles?.display_name) || 'User'}
+                  </div>
                 <div style={{
                   fontSize: 13,
                   color: 'var(--text-secondary)',
