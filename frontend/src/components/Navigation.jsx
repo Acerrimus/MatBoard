@@ -16,13 +16,18 @@ import { useState, useEffect } from 'react'
 
 // ── Nav config ────────────────────────────────────────────────────────────────
 const BASE_TABS = [
-  { label: 'Explore',  to: '/explore',  icon: Compass     },
-  { label: 'Progress', to: '/progress', icon: TrendingUp   },
-  { label: 'Home',     to: '/home',     icon: Home         },
+  { label: 'Explore',  to: '/explore',  icon: Compass    },
+  { label: 'Progress', to: '/progress', icon: TrendingUp  },
+  { label: 'Home',     to: '/home',     icon: Home        },
 ]
 
-const COACH_TABS = [
-  { label: 'Club',     to: '/club',     icon: Users        },
+const ATHLETE_COACH_TABS = [
+  { label: 'Club',     to: '/club',     icon: Users       },
+]
+
+const COACH_ONLY_TABS = [
+  { label: 'Athletes',  to: '/dashboard', icon: Users     },
+  { label: 'Curricula', to: '/curricula', icon: BookOpen  },
 ]
 
 // ── Bottom tab bar (mobile) ───────────────────────────────────────────────────
@@ -364,7 +369,9 @@ function MobileHeader({ theme, onToggleTheme, onSignOut, profile, user }) {
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function Navigation({ theme, onToggleTheme, user, profile, onSignOut, children }) {
   const isCoach  = profile?.role === 'coach' || profile?.role === 'admin'
-  const mobileTabs = [...BASE_TABS, ...(isCoach ? COACH_TABS : [])]
+  const mobileTabs = isCoach
+    ? [...BASE_TABS, ...COACH_TABS]
+    : [...BASE_TABS, ...ATHLETE_TABS]
 
   // Track viewport width
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
