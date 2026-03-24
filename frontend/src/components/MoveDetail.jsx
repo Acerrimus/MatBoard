@@ -116,21 +116,13 @@ export default function MoveDetail({
 
   const { user } = useAuth()
 
-  const [clubId, setClubId] = useState(null)
-  const [comments, setComments] = useState([])
-  const [newComment, setNewComment] = useState('')
+  const [clubId, setClubId]           = useState(null)
+  const [comments, setComments]       = useState([])
+  const [newComment, setNewComment]   = useState('')
   const [commentsLoading, setCommentsLoading] = useState(true)
 
-  if (!move) return null
-
-  const videoId = move.youtube_url
-    ? move.youtube_url.match(/(?:v=|youtu\.be\/)([^&\s]+)/)?.[1]
-    : null
-
-  const confidence  = progress?.confidence   ?? null
-  const isFavourite = progress?.is_favourite ?? false
-
   // ── Load club + comments ────────────────────────────────────────────────────
+  // ✅ useEffect BEFORE early return — fixes Rules of Hooks violation
   useEffect(() => {
     if (!user || !move?.id) return
 
@@ -151,13 +143,14 @@ export default function MoveDetail({
 
       setClubId(membership.club_id)
 
+      // ✅ profiles!user_id — fixes ambiguous FK (user_id + athlete_id both ref profiles)
       const { data } = await supabase
         .from('move_comments')
         .select(`
           id,
           comment,
           created_at,
-          profiles(display_name)
+          profiles!user_id(display_name)
         `)
         .eq('club_id', membership.club_id)
         .eq('move_id', move.id)
@@ -170,6 +163,17 @@ export default function MoveDetail({
     loadComments()
   }, [move?.id, user])
 
+  // ── Now safe to early return ────────────────────────────────────────────────
+  if (!move) return null
+
+  const videoId = move.youtube_url
+    ? move.youtube_url.match(/(?:v=|youtu\.be\/)([^&\s]+)/)?.[1]
+    : null
+
+  const confidence  = progress?.confidence   ?? null
+  const isFavourite = progress?.is_favourite ?? false
+
+  // ── Add comment ─────────────────────────────────────────────────────────────
   async function handleAddComment() {
     if (!newComment.trim() || !clubId) return
 
@@ -188,7 +192,7 @@ export default function MoveDetail({
         id,
         comment,
         created_at,
-        profiles(display_name)
+        profiles!user_id(display_name)
       `)
       .eq('club_id', clubId)
       .eq('move_id', move.id)
@@ -235,6 +239,7 @@ export default function MoveDetail({
     }
   }
 
+  // ── Confidence change ───────────────────────────────────────────────────────
   const handleConfidenceChange = async (value) => {
     if (progressLoading) return
     setProgressLoading(true)
@@ -286,6 +291,7 @@ export default function MoveDetail({
         padding: '18px 20px 16px',
         borderBottom: '0.5px solid var(--border)',
         background: bgColor,
+        transition: 'background 0.2s ease',
       }}>
         <div style={{
           display: 'flex',
@@ -299,6 +305,7 @@ export default function MoveDetail({
               fontFamily: 'var(--font-display)',
               fontSize: 22,
               fontWeight: 700,
+              letterSpacing: '-0.4px',
               color: 'var(--text-primary)',
               marginBottom: 6,
             }}>
@@ -316,24 +323,161 @@ export default function MoveDetail({
             )}
           </div>
 
-          <button
-            onClick={onBack}
-            style={{
-              background: 'var(--bg-subtle)',
-              border: '0.5px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '5px 10px',
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            ✕ close
-          </button>
+          {/* Action buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+            <button
+              onClick={onBack}
+              style={{
+                background: 'var(--bg-subtle)',
+                border: '0.5px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '5px 10px',
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              ✕ close
+            </button>
+
+            <button
+              onClick={handleBoardToggle}
+              disabled={boardLoading}
+              style={{
+                background: isOnBoard ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+                border: `0.5px solid ${isOnBoard ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 'var(--radius-sm)',
+                padding: '5px 10px',
+                fontSize: 12,
+                fontWeight: 600,
+                color: isOnBoard ? 'var(--accent)' : 'var(--text-secondary)',
+                cursor: boardLoading ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-body)',
+                opacity: boardLoading ? 0.6 : 1,
+                transition: 'all var(--transition)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {boardLoading ? '...' : isOnBoard ? '✓ On board' : '+ Add to board'}
+            </button>
+
+            {isOnBoard && (
+              <button
+                onClick={handleFavouriteToggle}
+                disabled={progressLoading}
+                title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+                style={{
+                  background: isFavourite ? '#FEF9C3' : 'var(--bg-subtle)',
+                  border: `0.5px solid ${isFavourite ? '#FDE047' : 'var(--border)'}`,
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '5px 10px',
+                  fontSize: 14,
+                  cursor: progressLoading ? 'not-allowed' : 'pointer',
+                  opacity: progressLoading ? 0.6 : 1,
+                  transition: 'all var(--transition)',
+                }}
+              >
+                {isFavourite ? '★' : '☆'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Video */}
+      {videoId ? (
+        <div style={{ position: 'relative', paddingBottom: '40%', background: '#000' }}>
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title={move.name}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{
+              position: 'absolute', top: 0, left: 0,
+              width: '100%', height: '100%', border: 'none',
+            }}
+          />
+        </div>
+      ) : (
+        <div style={{
+          background: 'var(--bg-subtle)',
+          borderBottom: '0.5px solid var(--border)',
+          height: 100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 6,
+        }}>
+          <div style={{ fontSize: 20 }}>▷</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No video attached yet</div>
+        </div>
+      )}
+
+      {/* Stats + confidence */}
+      <div style={{
+        padding: '14px 20px',
+        display: 'flex',
+        gap: 12,
+        borderBottom: '0.5px solid var(--border)',
+        flexWrap: 'wrap',
+        alignItems: 'flex-start',
+      }}>
+        <StatCard label="Scoring value">
+          <span style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 20,
+            fontWeight: 700,
+            color: 'var(--success)',
+          }}>
+            {move.scoring_value ?? 0}pts
+          </span>
+        </StatCard>
+
+        <StatCard label="Risk rating">
+          <RiskDots value={move.risk_rating ?? 0} />
+        </StatCard>
+
+        <StatCard label="From">
+          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+            {move.from_position?.name ?? '—'}
+          </span>
+        </StatCard>
+
+        <StatCard label="To">
+          <button
+            onClick={() => onNavigate(move.to_position)}
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: 'var(--accent)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              fontFamily: 'var(--font-body)',
+              textDecoration: 'underline',
+              textDecorationStyle: 'dotted',
+              textUnderlineOffset: 3,
+            }}
+          >
+            {move.to_position?.name ?? '—'} →
+          </button>
+        </StatCard>
+
+        {isOnBoard && (
+          <div style={{ marginLeft: 'auto' }}>
+            <ConfidenceSelector
+              value={confidence}
+              onChange={handleConfidenceChange}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Coaching cues */}
-      <div style={{ padding: '14px 20px' }}>
+      <div style={{ padding: '14px 20px', borderBottom: '0.5px solid var(--border)' }}>
         <div style={{
           fontSize: 10,
           fontWeight: 600,
@@ -350,10 +494,7 @@ export default function MoveDetail({
       </div>
 
       {/* ───────────── Club Comments ───────────── */}
-      <div style={{
-        padding: '14px 20px',
-        borderTop: '0.5px solid var(--border)',
-      }}>
+      <div style={{ padding: '14px 20px' }}>
         <div style={{
           fontSize: 10,
           fontWeight: 600,
@@ -394,7 +535,6 @@ export default function MoveDetail({
                 }}>
                   {c.profiles?.display_name || 'User'}
                 </div>
-
                 <div style={{
                   fontSize: 13,
                   color: 'var(--text-secondary)',
@@ -443,6 +583,7 @@ export default function MoveDetail({
           </div>
         )}
       </div>
+
     </div>
   )
 }
