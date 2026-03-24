@@ -101,8 +101,7 @@ function BottomTabBar({ tabs }) {
 // ── Sidebar (desktop) ─────────────────────────────────────────────────────────
 function DesktopSidebar({ theme, onToggleTheme, user, profile, onSignOut }) {
   const isCoach = profile?.role === 'coach' || profile?.role === 'admin'
-  const tabs    = [...BASE_TABS, ...(isCoach ? COACH_TABS : [])]
-
+  const tabs = [...BASE_TABS, ...(isCoach ? [] : ATHLETE_COACH_TABS)]
   return (
     <aside style={{
       width: 'var(--sidebar-width)',
@@ -370,8 +369,9 @@ function MobileHeader({ theme, onToggleTheme, onSignOut, profile, user }) {
 export default function Navigation({ theme, onToggleTheme, user, profile, onSignOut, children }) {
   const isCoach  = profile?.role === 'coach' || profile?.role === 'admin'
   const mobileTabs = isCoach
-    ? [...BASE_TABS, ...COACH_TABS]
-    : [...BASE_TABS, ...ATHLETE_TABS]
+    ? [...BASE_TABS, ...COACH_ONLY_TABS]
+    : [...BASE_TABS, ...ATHLETE_COACH_TABS]
+
 
   // Track viewport width
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
