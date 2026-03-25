@@ -1,19 +1,51 @@
 # backend/app/routers/clubs.py
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from typing import Literal
+from pydantic import BaseModel, validator
+from typing import Optional, Literal
 from app.auth import get_current_user, get_supabase_client
+from app.utils import slugify, make_unique_slug, make_unique_position_slug, verify_positions_exist
 
 router = APIRouter()
 
 
-# ---------------------------------------------------------------------------
-# Models
-# ---------------------------------------------------------------------------
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def assert_coach_in_club(club_id: str, user_id: str, client):
+    """Raises 403 if the user is not a coach in the given club."""
+    res = client.table("club_memberships") \
+        .select("role") \
+        .eq("club_id", club_id) \
+        .eq("user_id", user_id) \
+        .execute()
+    if not res.data or res.data[0]["role"] != "coach":
+        raise HTTPException(status_code=403, detail="Must be a coach in this club")
+
+
+def assert_club_owner(club_id: str, user_id: str, client):
+    """Raises 403 if the user is not the owner of the club."""
+    res = client.table("clubs") \
+        .select("id") \
+        .eq("id", club_id) \
+        .eq("owner_id", user_id) \
+        .execute()
+    if not res.data:
+        raise HTTPException(status_code=403, detail="Not the club owner")
+
+
+# ── Schemas ───────────────────────────────────────────────────────────────────
 
 class ClubCreate(BaseModel):
     name: str
+
+    @validator("name")
+    def name_valid(cls, v):
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Club name must be at least 2 characters")
+        if len(v) > 100:
+            raise ValueError("Club name must be 100 characters or fewer")
+        return v
 
 
 class ClubJoin(BaseModel):
@@ -24,74 +56,84 @@ class MemberRoleUpdate(BaseModel):
     role: Literal["athlete", "coach"]
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+class ClubMoveCreate(BaseModel):
+    name: str
+    from_position_id: str
+    to_position_id: str
+    description: Optional[str] = ""
 
-def _assert_club_owner(club_id: str, user_id: str, client):
-    """Raises 403 if the authed user is not the owner of the club."""
-    res = client.table("clubs") \
-        .select("id") \
-        .eq("id", club_id) \
-        .eq("owner_id", user_id) \
-        .execute()
+    @validator("name")
+    def name_valid(cls, v):
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Move name must be at least 2 characters")
+        if len(v) > 100:
+            raise ValueError("Move name must be 100 characters or fewer")
+        return v
 
-    if not res.data:
-        raise HTTPException(status_code=403, detail="Not the club owner")
+    @validator("description")
+    def description_valid(cls, v):
+        if v and len(v) > 1000:
+            raise ValueError("Description must be 1000 characters or fewer")
+        return v or ""
 
 
-# ---------------------------------------------------------------------------
-# Create club
-# ---------------------------------------------------------------------------
+class ClubPositionCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+
+    @validator("name")
+    def name_valid(cls, v):
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Position name must be at least 2 characters")
+        if len(v) > 100:
+            raise ValueError("Position name must be 100 characters or fewer")
+        return v
+
+    @validator("description")
+    def description_valid(cls, v):
+        if v and len(v) > 1000:
+            raise ValueError("Description must be 1000 characters or fewer")
+        return v or ""
+
+
+# ── Club CRUD ─────────────────────────────────────────────────────────────────
 
 @router.post("/")
 def create_club(
     body: ClubCreate,
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
+    slug = slugify(body.name)
 
-    print("AUTH HEADER:", client.postgrest.session.headers.get("Authorization", "MISSING"))
-    if not body.name.strip():
-        raise HTTPException(status_code=400, detail="Club name cannot be empty")
-
-    slug = body.name.strip().lower()
-    slug = "-".join(slug.split())
-    slug = "".join(c for c in slug if c.isalnum() or c == "-")
-
-    club_res = client.table("clubs") \
-        .insert({
-            "name": body.name.strip(),
-            "slug": slug,
-            "owner_id": user.id,
-        }) \
-        .execute()
+    club_res = client.table("clubs").insert({
+        "name":     body.name,
+        "slug":     slug,
+        "owner_id": user.id,
+    }).execute()
 
     if not club_res.data:
         raise HTTPException(status_code=500, detail="Failed to create club")
 
     club = club_res.data[0]
 
-    client.table("club_memberships") \
-        .insert({
-            "club_id": club["id"],
-            "user_id": user.id,
-            "role": "coach",
-        }) \
-        .execute()
+    # Creator is automatically a coach member
+    client.table("club_memberships").insert({
+        "club_id": club["id"],
+        "user_id": user.id,
+        "role":    "coach",
+    }).execute()
 
     return club
 
-
-# ---------------------------------------------------------------------------
-# Join club  (fix: joiners are athletes, not coaches)
-# ---------------------------------------------------------------------------
 
 @router.post("/join")
 def join_club(
     body: ClubJoin,
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
     club_res = client.table("clubs") \
         .select("id, name") \
@@ -112,43 +154,38 @@ def join_club(
     if existing.data:
         raise HTTPException(status_code=409, detail="Already a member of this club")
 
-    client.table("club_memberships") \
-        .insert({
-            "club_id": club["id"],
-            "user_id": user.id,
-            "role": "athlete",           # fixed: was hardcoded "coach"
-        }) \
-        .execute()
+    client.table("club_memberships").insert({
+        "club_id": club["id"],
+        "user_id": user.id,
+        "role":    "athlete",
+    }).execute()
 
     return club
 
 
-# ---------------------------------------------------------------------------
-# GET /clubs/mine  — works for both athletes and coaches
-# ---------------------------------------------------------------------------
-
 @router.get("/mine")
 def get_my_club(
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
-    # Find the club this user belongs to via membership
-    membership_res = client.table("club_memberships") \
+    memberships_res = client.table("club_memberships") \
         .select("club_id, role") \
         .eq("user_id", user.id) \
         .execute()
 
-    if not membership_res.data:
+    if not memberships_res.data:
         raise HTTPException(status_code=404, detail="Not a member of any club")
 
-    # Take the first club for now — multi-club is a future concern
-    membership = membership_res.data[0]
-    club_id = membership["club_id"]
-    membership_role = membership["role"]
+    # Prefer coach membership if the user has multiple rows
+    # (can happen when toggling roles via onboarding during development)
+    membership = (
+        next((m for m in memberships_res.data if m["role"] == "coach"), None)
+        or memberships_res.data[0]
+    )
 
     club_res = client.table("clubs") \
         .select("id, name, slug, owner_id, invite_code, created_at") \
-        .eq("id", club_id) \
+        .eq("id", membership["club_id"]) \
         .execute()
 
     if not club_res.data:
@@ -160,21 +197,20 @@ def get_my_club(
     if club["owner_id"] != user.id:
         club.pop("invite_code", None)
 
-    club["membership_role"] = membership_role
+    club["membership_role"] = membership["role"]
     return club
 
 
-# ---------------------------------------------------------------------------
-# GET /clubs/{club_id}/members  — coach/owner only
-# ---------------------------------------------------------------------------
+# ── Member management ─────────────────────────────────────────────────────────
 
 @router.get("/{club_id}/members")
 def get_club_members(
     club_id: str,
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
-    _assert_club_owner(club_id, user.id, client)
+    """Owner-only. Returns full member list with profiles."""
+    assert_club_owner(club_id, user.id, client)
 
     memberships_res = client.table("club_memberships") \
         .select("user_id, role, created_at") \
@@ -185,7 +221,6 @@ def get_club_members(
     if not memberships_res.data:
         return []
 
-    # Fetch profiles for all members in one query
     user_ids = [m["user_id"] for m in memberships_res.data]
 
     profiles_res = client.table("profiles") \
@@ -195,31 +230,25 @@ def get_club_members(
 
     profiles_by_id = {p["id"]: p for p in (profiles_res.data or [])}
 
-    members = []
-    for m in memberships_res.data:
-        profile = profiles_by_id.get(m["user_id"], {})
-        members.append({
-            "user_id": m["user_id"],
-            "display_name": profile.get("display_name"),
-            "avatar_url": profile.get("avatar_url"),
-            "role": m["role"],
-            "joined_at": m["created_at"],
-        })
+    return [
+        {
+            "user_id":      m["user_id"],
+            "display_name": profiles_by_id.get(m["user_id"], {}).get("display_name"),
+            "avatar_url":   profiles_by_id.get(m["user_id"], {}).get("avatar_url"),
+            "role":         m["role"],
+            "joined_at":    m["created_at"],
+        }
+        for m in memberships_res.data
+    ]
 
-    return members
-
-
-# ---------------------------------------------------------------------------
-# GET /clubs/{club_id}/roster  — any club member (athletes + coaches)
-# ---------------------------------------------------------------------------
 
 @router.get("/{club_id}/roster")
 def get_club_roster(
     club_id: str,
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
-    # Verify requesting user is actually a member of this club
+    """Any club member can call this. Returns all members with profiles."""
     membership_check = client.table("club_memberships") \
         .select("id") \
         .eq("club_id", club_id) \
@@ -247,23 +276,17 @@ def get_club_roster(
 
     profiles_by_id = {p["id"]: p for p in (profiles_res.data or [])}
 
-    members = []
-    for m in memberships_res.data:
-        profile = profiles_by_id.get(m["user_id"], {})
-        members.append({
-            "user_id": m["user_id"],
-            "display_name": profile.get("display_name"),
-            "avatar_url": profile.get("avatar_url"),
-            "role": m["role"],
-            "joined_at": m["created_at"],
-        })
+    return [
+        {
+            "user_id":      m["user_id"],
+            "display_name": profiles_by_id.get(m["user_id"], {}).get("display_name"),
+            "avatar_url":   profiles_by_id.get(m["user_id"], {}).get("avatar_url"),
+            "role":         m["role"],
+            "joined_at":    m["created_at"],
+        }
+        for m in memberships_res.data
+    ]
 
-    return members
-
-
-# ---------------------------------------------------------------------------
-# PATCH /clubs/{club_id}/members/{user_id}/role  — coach/owner only
-# ---------------------------------------------------------------------------
 
 @router.patch("/{club_id}/members/{member_id}/role")
 def update_member_role(
@@ -271,16 +294,12 @@ def update_member_role(
     member_id: str,
     body: MemberRoleUpdate,
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
-    _assert_club_owner(club_id, user.id, client)
+    assert_club_owner(club_id, user.id, client)
 
-    # Prevent owner demoting themselves
     if member_id == user.id:
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot change your own role"
-        )
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
 
     res = client.table("club_memberships") \
         .update({"role": body.role}) \
@@ -294,61 +313,31 @@ def update_member_role(
     return {"user_id": member_id, "role": body.role}
 
 
-def slugify(name: str) -> str:
-    import re
-    s = name.lower().strip()
-    s = re.sub(r'[^\w\s-]', '', s)
-    s = re.sub(r'[\s_-]+', '-', s)
-    return s
-
-
-class ClubMoveCreate(BaseModel):
-    name: str
-    from_position_id: str
-    to_position_id: str
-    description: Optional[str] = ""
-
-
-class ClubPositionCreate(BaseModel):
-    name: str
-    description: Optional[str] = ""
-
+# ── Club content creation ─────────────────────────────────────────────────────
 
 @router.post("/{club_id}/moves")
 def create_club_move(
     club_id: str,
     body: ClubMoveCreate,
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
-
-    # Verify coach role in this club
-    membership = client.table("club_memberships") \
-        .select("role") \
-        .eq("club_id", club_id) \
-        .eq("user_id", user.id) \
-        .execute()
-
-    if not membership.data or membership.data[0]["role"] != "coach":
-        raise HTTPException(status_code=403, detail="Must be a coach in this club")
-
-    if not body.name.strip():
-        raise HTTPException(status_code=400, detail="Move name cannot be empty")
+    """
+    Creates a move scoped to this club.
+    - Caller must be a coach in the club
+    - Both positions must exist in the DB
+    - Name validated by schema (2-100 chars), also enforced by DB constraint
+    """
+    assert_coach_in_club(club_id, user.id, client)
+    verify_positions_exist(body.from_position_id, body.to_position_id, client)
 
     slug = slugify(body.name)
-
-    existing = client.table("moves") \
-        .select("id") \
-        .eq("slug", slug) \
-        .execute()
-
-    if existing.data:
-        slug = f"{slug}-{club_id[:8]}"
+    slug = make_unique_slug(slug, club_id[:8], client)
 
     res = client.table("moves").insert({
-        "name":             body.name.strip(),
+        "name":             body.name,
         "slug":             slug,
-        "description":      body.description or "",
+        "description":      body.description,
         "from_position_id": body.from_position_id,
         "to_position_id":   body.to_position_id,
         "club_id":          club_id,
@@ -366,35 +355,22 @@ def create_club_position(
     club_id: str,
     body: ClubPositionCreate,
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
-    # Verify coach role
-    membership = client.table("club_memberships") \
-        .select("role") \
-        .eq("club_id", club_id) \
-        .eq("user_id", user.id) \
-        .execute()
-
-    if not membership.data or membership.data[0]["role"] != "coach":
-        raise HTTPException(status_code=403, detail="Must be a coach in this club")
-
-    if not body.name.strip():
-        raise HTTPException(status_code=400, detail="Position name cannot be empty")
+    """
+    Creates a position scoped to this club.
+    - Caller must be a coach in the club
+    - Name validated by schema (2-100 chars), also enforced by DB constraint
+    """
+    assert_coach_in_club(club_id, user.id, client)
 
     slug = slugify(body.name)
-
-    existing = client.table("positions") \
-        .select("id") \
-        .eq("slug", slug) \
-        .execute()
-
-    if existing.data:
-        slug = f"{slug}-{club_id[:8]}"
+    slug = make_unique_position_slug(slug, club_id[:8], client)
 
     res = client.table("positions").insert({
-        "name":        body.name.strip(),
+        "name":        body.name,
         "slug":        slug,
-        "description": body.description or "",
+        "description": body.description,
         "club_id":     club_id,
         "created_by":  user.id,
     }).execute()

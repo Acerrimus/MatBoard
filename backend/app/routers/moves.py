@@ -1,18 +1,15 @@
+# backend/app/routers/moves.py
+
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional
 from app.auth import get_current_user, get_supabase_client
-import re
+from app.utils import slugify, make_unique_slug, verify_positions_exist
 
 router = APIRouter()
 
 
-def slugify(name: str) -> str:
-    s = name.lower().strip()
-    s = re.sub(r'[^\w\s-]', '', s)
-    s = re.sub(r'[\s_-]+', '-', s)
-    return s
-
+# ── Schemas ───────────────────────────────────────────────────────────────────
 
 class PersonalMoveCreate(BaseModel):
     name: str
@@ -20,11 +17,36 @@ class PersonalMoveCreate(BaseModel):
     to_position_id: str
     description: Optional[str] = ""
 
+    @validator("name")
+    def name_valid(cls, v):
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Move name must be at least 2 characters")
+        if len(v) > 100:
+            raise ValueError("Move name must be 100 characters or fewer")
+        return v
+
+    @validator("description")
+    def description_valid(cls, v):
+        if v and len(v) > 1000:
+            raise ValueError("Description must be 1000 characters or fewer")
+        return v or ""
+
+
+# ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.get("/")
 def get_moves(
-    client=Depends(get_supabase_client)
+    user=Depends(get_current_user),
+    client=Depends(get_supabase_client),
 ):
+    """
+    Returns all moves visible to the current user.
+    RLS controls visibility:
+      - Global moves (club_id NULL, created_by NULL) → everyone authenticated
+      - Personal moves (club_id NULL, created_by = X) → creator only
+      - Club moves (club_id = Y) → club members only
+    """
     res = client.table("moves") \
         .select("""
             id, name, slug, description,
@@ -40,8 +62,13 @@ def get_moves(
 @router.get("/{slug}")
 def get_move(
     slug: str,
-    client=Depends(get_supabase_client)
+    user=Depends(get_current_user),
+    client=Depends(get_supabase_client),
 ):
+    """
+    Returns a single move by slug.
+    RLS controls visibility — returns 404 if not visible to the user.
+    """
     res = client.table("moves") \
         .select("""
             id, name, slug, description,
@@ -51,7 +78,7 @@ def get_move(
             to_position:positions!to_position_id(id, name, slug)
         """) \
         .eq("slug", slug) \
-        .single() \
+        .maybeSingle() \
         .execute()
 
     if not res.data:
@@ -63,26 +90,24 @@ def get_move(
 def create_personal_move(
     body: PersonalMoveCreate,
     user=Depends(get_current_user),
-    client=Depends(get_supabase_client)
+    client=Depends(get_supabase_client),
 ):
-    if not body.name.strip():
-        raise HTTPException(status_code=400, detail="Move name cannot be empty")
+    """
+    Creates a personal move scoped to the authenticated user.
+    - club_id is always NULL for personal moves
+    - created_by is always the authenticated user
+    - Both positions must exist in the DB
+    - Name validated by schema (2-100 chars), also enforced by DB constraint
+    """
+    verify_positions_exist(body.from_position_id, body.to_position_id, client)
 
     slug = slugify(body.name)
-
-    # Make slug unique by appending user id fragment if needed
-    existing = client.table("moves") \
-        .select("id") \
-        .eq("slug", slug) \
-        .execute()
-
-    if existing.data:
-        slug = f"{slug}-{user.id[:8]}"
+    slug = make_unique_slug(slug, user.id[:8], client)
 
     res = client.table("moves").insert({
-        "name":             body.name.strip(),
+        "name":             body.name,
         "slug":             slug,
-        "description":      body.description or "",
+        "description":      body.description,
         "from_position_id": body.from_position_id,
         "to_position_id":   body.to_position_id,
         "club_id":          None,
