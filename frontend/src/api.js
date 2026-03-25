@@ -135,6 +135,11 @@ export const getClubDashboard = (clubId, curriculumId = null) => {
   return request(`/dashboard/${clubId}${params}`)
 }
 
+// ── Athlete Insights ──────────────────────────────────────────────────────────
+// Accessible by the athlete themselves or a coach in the same club.
+export const getAthleteInsights = (clubId, athleteId) =>
+  request(`/dashboard/${clubId}/athletes/${athleteId}/insights`)
+
 // ── Curricula ─────────────────────────────────────────────────────────────────
 export const getCurricula               = ()                        => request('/curricula/')
 export const getCurriculum              = (id)                      => request(`/curricula/${id}`)
@@ -157,9 +162,7 @@ export const unsetCompReady       = (athleteId, moveId)   => requestDelete(`/com
 // ── Club curricula (athlete-accessible) ───────────────────────────────────────
 export const getClubCurricula = (clubId) => request(`/curricula/club/${clubId}`)
 
-
-// ── Create new moves (athlete-accessible) ───────────────────────────────────────
-
+// ── Create new moves / positions ──────────────────────────────────────────────
 export const createPersonalMove = (name, fromPositionId, toPositionId) =>
   requestPost('/moves/personal', { name, from_position_id: fromPositionId, to_position_id: toPositionId })
 

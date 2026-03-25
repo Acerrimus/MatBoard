@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getAthleteOverview, setCompReady, unsetCompReady } from '../api'
+import { getAthleteOverview, setCompReady, unsetCompReady, getAthleteInsights } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
+import { useAuth } from '../context/AuthContext'
+import { supabase } from '../supabase'
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 function useIsMobile() {
@@ -53,6 +55,197 @@ function StatPill({ label, value, accent, gold }) {
         fontSize: '0.625rem', fontWeight: 600, letterSpacing: '0.12em',
         textTransform: 'uppercase', color: 'var(--text-muted)',
       }}>{label}</div>
+    </div>
+  )
+}
+
+// ── Insight card ───────────────────────────────────────────────────────────────
+function InsightCard({ icon, label, moveName, confidence, squadAvg, fromPosition, variant }) {
+  // variant: 'danger' | 'success' | 'focus'
+  const colors = {
+    danger:  { border: '#EF4444', bg: '#EF444408', badge: '#EF4444', badgeBg: '#EF444415' },
+    success: { border: '#22C55E', bg: '#22C55E08', badge: '#22C55E', badgeBg: '#22C55E15' },
+    focus:   { border: '#7C3AED', bg: '#7C3AED08', badge: '#7C3AED', badgeBg: '#7C3AED15' },
+  }
+  const c = colors[variant] || colors.focus
+
+  return (
+    <div style={{
+      background: c.bg,
+      border: `0.5px solid ${c.border}`,
+      borderRadius: 'var(--radius-md)',
+      padding: '0.875rem 1rem',
+      flex: 1,
+      minWidth: '10rem',
+    }}>
+      <div style={{
+        fontSize: '0.5625rem', fontWeight: 600, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.375rem',
+        display: 'flex', alignItems: 'center', gap: '0.3rem',
+      }}>
+        <span>{icon}</span> {label}
+      </div>
+
+      <div style={{
+        fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700,
+        color: 'var(--text-primary)', marginBottom: '0.25rem', lineHeight: 1.3,
+      }}>
+        {moveName}
+      </div>
+
+      {fromPosition && (
+        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', marginBottom: '0.375rem' }}>
+          from {fromPosition.name}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: '0.6875rem', fontWeight: 700,
+          color: c.badge,
+          background: c.badgeBg,
+          border: `0.5px solid ${c.border}`,
+          borderRadius: 'var(--radius-sm)',
+          padding: '2px 7px',
+          fontFamily: 'var(--font-display)',
+        }}>
+          {confidence}/5
+        </span>
+
+        {squadAvg != null && (
+          <span style={{
+            fontSize: '0.625rem', color: 'var(--text-muted)',
+          }}>
+            Squad avg: <strong style={{ color: 'var(--text-secondary)' }}>{squadAvg}</strong>
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Insights panel ─────────────────────────────────────────────────────────────
+function AthleteInsightsPanel({ insights, loading }) {
+  if (loading) {
+    return (
+      <div style={{ marginBottom: '2rem' }}>
+        <SectionLabel>Insights</SectionLabel>
+        <div style={{
+          display: 'flex', gap: '0.625rem', flexWrap: 'wrap',
+        }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{
+              flex: 1, minWidth: '10rem', height: '6rem',
+              background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)',
+              animation: 'pulse 1.4s ease infinite',
+              animationDelay: `${i * 0.1}s`,
+            }} />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!insights) return null
+
+  const { weakest, strongest, focus, unrated_curriculum_moves } = insights
+
+  // If no data at all yet
+  if (!weakest && !strongest && !focus && (!unrated_curriculum_moves || unrated_curriculum_moves.length === 0)) {
+    return (
+      <div style={{ marginBottom: '2rem' }}>
+        <SectionLabel>Insights</SectionLabel>
+        <div style={{
+          background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+          borderRadius: 'var(--radius-md)', padding: '1.25rem',
+          fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center',
+        }}>
+          No insights yet — athlete needs to rate more moves
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginBottom: '2rem' }}>
+      <SectionLabel>Insights</SectionLabel>
+
+      {/* Main insight cards */}
+      <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+        {focus && (
+          <InsightCard
+            icon="🎯"
+            label="Focus Area"
+            moveName={focus.move_name}
+            confidence={focus.confidence}
+            squadAvg={focus.squad_avg}
+            fromPosition={focus.from_position}
+            variant="focus"
+          />
+        )}
+        {weakest && (!focus || focus.move_id !== weakest.move_id) && (
+          <InsightCard
+            icon="⚠️"
+            label="Weakest Move"
+            moveName={weakest.move_name}
+            confidence={weakest.confidence}
+            squadAvg={weakest.squad_avg}
+            fromPosition={weakest.from_position}
+            variant="danger"
+          />
+        )}
+        {strongest && (
+          <InsightCard
+            icon="💪"
+            label="Strongest Move"
+            moveName={strongest.move_name}
+            confidence={strongest.confidence}
+            squadAvg={strongest.squad_avg}
+            fromPosition={strongest.from_position}
+            variant="success"
+          />
+        )}
+      </div>
+
+      {/* Unrated curriculum moves nudge */}
+      {unrated_curriculum_moves && unrated_curriculum_moves.length > 0 && (
+        <div style={{
+          background: 'var(--bg-surface)',
+          border: '0.5px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem 1rem',
+          display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+        }}>
+          <span style={{ fontSize: '0.875rem', flexShrink: 0, marginTop: 1 }}>📋</span>
+          <div>
+            <div style={{
+              fontSize: '0.75rem', fontWeight: 600,
+              color: 'var(--text-secondary)', marginBottom: '0.375rem',
+            }}>
+              {unrated_curriculum_moves.length} curriculum {unrated_curriculum_moves.length === 1 ? 'move' : 'moves'} not yet rated
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+              {unrated_curriculum_moves.slice(0, 6).map(m => (
+                <span key={m.id} style={{
+                  fontSize: '0.6875rem', color: 'var(--text-muted)',
+                  background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)', padding: '2px 8px',
+                }}>
+                  {m.name}
+                </span>
+              ))}
+              {unrated_curriculum_moves.length > 6 && (
+                <span style={{
+                  fontSize: '0.6875rem', color: 'var(--text-muted)',
+                  padding: '2px 4px',
+                }}>
+                  +{unrated_curriculum_moves.length - 6} more
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -190,7 +383,7 @@ function AthleteChainCard({ chain, progress }) {
                 <div style={{
                   background: bg, border: `1.5px solid ${color}`,
                   borderRadius: 'var(--radius-sm)',
-                                    padding: '0.25rem 0.5rem',
+                  padding: '0.25rem 0.5rem',
                   fontSize: '0.6875rem', fontWeight: 500,
                   color: conf ? color : 'var(--text-secondary)',
                   whiteSpace: 'nowrap',
@@ -241,12 +434,33 @@ export default function AthleteOverviewPage() {
   const { athleteId } = useParams()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
+  const { user } = useAuth()
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [compReadyIds, setCompReadyIds] = useState([])
   const [toggling, setToggling] = useState(null) // move_id currently being toggled
+
+  const [insights, setInsights] = useState(null)
+  const [insightsLoading, setInsightsLoading] = useState(true)
+  const [clubId, setClubId] = useState(null)
+
+  // ── Fetch club membership to get clubId for insights ──────────────────────
+  useEffect(() => {
+    if (!user) return
+    async function loadClubId() {
+      const { data: membership } = await supabase
+        .from('club_memberships')
+        .select('club_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (membership?.club_id) {
+        setClubId(membership.club_id)
+      }
+    }
+    loadClubId()
+  }, [user])
 
   useEffect(() => {
     async function load() {
@@ -262,6 +476,24 @@ export default function AthleteOverviewPage() {
     }
     load()
   }, [athleteId])
+
+  // ── Fetch athlete insights once we have clubId ─────────────────────────────
+  useEffect(() => {
+    if (!clubId || !athleteId) return
+    async function loadInsights() {
+      setInsightsLoading(true)
+      try {
+        const result = await getAthleteInsights(clubId, athleteId)
+        setInsights(result)
+      } catch (err) {
+        console.error('Insights load failed:', err)
+        setInsights(null)
+      } finally {
+        setInsightsLoading(false)
+      }
+    }
+    loadInsights()
+  }, [clubId, athleteId])
 
   const handleToggleCompReady = useCallback(async (moveId, isCurrentlyReady) => {
     setToggling(moveId)
@@ -366,6 +598,9 @@ export default function AthleteOverviewPage() {
         <StatPill label="Comp Ready" value={compReadyCount} gold />
       </div>
 
+      {/* ── Insights panel ──────────────────────────────────────────────── */}
+      <AthleteInsightsPanel insights={insights} loading={insightsLoading} />
+
       {/* ── Personal chains ─────────────────────────────────────────────── */}
       <div style={{ marginBottom: '2rem' }}>
         <SectionLabel count={chains.length}>Personal Chains</SectionLabel>
@@ -403,7 +638,7 @@ export default function AthleteOverviewPage() {
         ) : (
           grouped.map(({ pos, rows }) => (
             <div key={pos} style={{ marginBottom: '1.25rem' }}>
-              {/* Position group header */}
+                            {/* Position group header */}
               <div style={{
                 fontSize: '0.6875rem', fontWeight: 600,
                 color: 'var(--text-secondary)',
@@ -422,7 +657,7 @@ export default function AthleteOverviewPage() {
                 borderRadius: '0 0 var(--radius-md) var(--radius-md)',
                 overflow: 'hidden',
               }}>
-                {rows.map((row, i) => (
+                {rows.map((row) => (
                   <MoveRow
                     key={row.move_id}
                     row={row}
