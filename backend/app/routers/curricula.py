@@ -124,7 +124,7 @@ async def get_curriculum(
             move = moves_map.get(cm["move_id"])
             if move:
                 moves.append({**move, "position": cm["position"]})
-        
+
         # Sort by position to maintain chain order
         moves.sort(key=lambda m: m["position"])
 
@@ -306,6 +306,7 @@ async def remove_move_from_chain(
     supabase.table("curriculum_chain_moves").delete().eq("chain_id", chain_id).eq("move_id", move_id).execute()
     return {"deleted": True}
 
+
 # ── List curricula for club members (athletes + coaches) ──────────────────────
 
 @router.get("/club/{club_id}")
@@ -316,7 +317,9 @@ async def list_club_curricula(
 ):
     """
     Returns curricula with chains + moves for any club member.
-    Athletes get their own progress attached to each move.
+    Includes both global seed curricula (club_id IS NULL) and
+    club-owned curricula. Athletes get their own progress attached
+    to each move.
     """
     # Verify membership
     membership_resp = (
@@ -329,18 +332,31 @@ async def list_club_curricula(
     if not membership_resp.data:
         raise HTTPException(status_code=403, detail="Not a member of this club")
 
-    # Get curricula
-    curricula_resp = (
+    # Fetch global curricula (club_id IS NULL) and club-owned curricula separately
+    # then merge. Supabase python client does not support OR filters cleanly
+    # across null and non-null in one query.
+    global_resp = (
+        supabase.table("curricula")
+        .select("id, name, description, created_at")
+        .is_("club_id", "null")
+        .order("created_at")
+        .execute()
+    )
+    club_resp = (
         supabase.table("curricula")
         .select("id, name, description, created_at")
         .eq("club_id", club_id)
         .order("created_at", desc=True)
         .execute()
     )
-    if not curricula_resp.data:
+
+    # Global curricula first, then club-specific on top
+    all_curricula = (global_resp.data or []) + (club_resp.data or [])
+
+    if not all_curricula:
         return []
 
-    curriculum_ids = [c["id"] for c in curricula_resp.data]
+    curriculum_ids = [c["id"] for c in all_curricula]
 
     # Get all chains for all curricula in one query
     chains_resp = (
@@ -353,13 +369,16 @@ async def list_club_curricula(
     chain_ids = [c["id"] for c in chains_resp.data]
 
     # Get all chain moves in one query
-    chain_moves_resp = (
-        supabase.table("curriculum_chain_moves")
-        .select("chain_id, move_id, position")
-        .in_("chain_id", chain_ids)
-        .order("position")
-        .execute()
-    ) if chain_ids else type("R", (), {"data": []})()
+    if chain_ids:
+        chain_moves_resp = (
+            supabase.table("curriculum_chain_moves")
+            .select("chain_id, move_id, position")
+            .in_("chain_id", chain_ids)
+            .order("position")
+            .execute()
+        )
+    else:
+        chain_moves_resp = type("R", (), {"data": []})()
 
     # Collect all move IDs
     all_move_ids = list({cm["move_id"] for cm in chain_moves_resp.data})
@@ -418,7 +437,7 @@ async def list_club_curricula(
 
     # Assemble final response
     result = []
-    for curriculum in curricula_resp.data:
+    for curriculum in all_curricula:
         chains = chains_by_curriculum.get(curriculum["id"], [])
         result.append({
             **curriculum,
