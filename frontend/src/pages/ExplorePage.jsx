@@ -31,6 +31,32 @@ const BAND_Y     = { standing: 0, transition: 500, ground: 1000 }
 const BAND_LABEL = { standing: 'Standing', transition: 'Transitions', ground: 'Ground' }
 const PHASE_ORDER = ['standing', 'transition', 'ground']
 
+// ── Phase assignment ──────────────────────────────────────────────────────────
+// Assigns a display phase to a position based on its slug.
+// Used for map layout banding until a `phase` column exists in the DB.
+const STANDING_SLUGS = new Set([
+  'neutral',
+  'inside-tie',
+  '2-on-1-russian-tie',
+  'underhook',
+  'clinch-bodylock',
+  'front-headlock',
+])
+const TRANSITION_SLUGS = new Set([
+  'double-leg-shot',
+  'high-crotch',
+  'single-leg-controlled',
+  'firemans-carry-position',
+  'scramble',
+])
+// Anything not in the above two sets falls into ground (par terre, back, turtle)
+
+function getPhase(position) {
+  if (STANDING_SLUGS.has(position.slug))    return 'standing'
+  if (TRANSITION_SLUGS.has(position.slug))  return 'transition'
+  return 'ground'
+}
+
 // ── Map layout ────────────────────────────────────────────────────────────────
 function buildMapLayout(positions, moves) {
   const connectivity = {}
@@ -42,7 +68,7 @@ function buildMapLayout(positions, moves) {
 
   const byPhase = { standing: [], transition: [], ground: [] }
   positions.forEach(p => {
-    const ph = p.phase ?? 'ground'
+    const ph = p.phase ?? getPhase(p)  // prefer DB value if it ever exists
     if (!byPhase[ph]) byPhase[ph] = []
     byPhase[ph].push(p)
   })
