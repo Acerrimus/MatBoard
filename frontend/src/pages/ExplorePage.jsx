@@ -13,6 +13,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
 } from '@xyflow/react'
+import dagre from 'dagre'
 import '@xyflow/react/dist/style.css'
 import { getGraph, getMyBoard, getMyProgress, getMove, createChain, setChainMoves } from '../api'
 import { confidenceColor } from '../components/MoveCard'
@@ -21,103 +22,75 @@ import MoveDetail from '../components/MoveDetail'
 // ── Constants ─────────────────────────────────────────────────────────────────
 const NODE_W         = 160
 const NODE_H         = 48
-const H_GAP          = 40
-const LEVEL_GAP      = 140  // vertical gap between levels
+const H_GAP          = 60   // dagre ranksep / nodesep
+const LEVEL_GAP      = 140
 const POSITION_COLOR = '#DC2626'
 const MOVE_COLOR     = '#3B82F6'
 const UNDISCOVERED   = '#A1A1AA'
 
-const BAND_Y     = { standing: 0, transition: 500, ground: 1000 }
-const BAND_LABEL = { standing: 'Standing', transition: 'Transitions', ground: 'Ground' }
-const PHASE_ORDER = ['standing', 'transition', 'ground']
-
-// ── Phase assignment ──────────────────────────────────────────────────────────
-// Assigns a display phase to a position based on its slug.
-// Used for map layout banding until a `phase` column exists in the DB.
-const STANDING_SLUGS = new Set([
-  'neutral',
-  'inside-tie',
-  '2-on-1-russian-tie',
-  'underhook',
-  'clinch-bodylock',
-  'front-headlock',
-])
-const TRANSITION_SLUGS = new Set([
-  'double-leg-shot',
-  'high-crotch',
-  'single-leg-controlled',
-  'firemans-carry-position',
-  'scramble',
-])
-// Anything not in the above two sets falls into ground (par terre, back, turtle)
-
-function getPhase(position) {
-  if (STANDING_SLUGS.has(position.slug))    return 'standing'
-  if (TRANSITION_SLUGS.has(position.slug))  return 'transition'
-  return 'ground'
-}
-
-// ── Map layout ────────────────────────────────────────────────────────────────
-function buildMapLayout(positions, moves) {
-  const connectivity = {}
-  positions.forEach(p => { connectivity[p.id] = 0 })
-  moves.forEach(m => {
-    if (connectivity[m.from_position_id] !== undefined) connectivity[m.from_position_id]++
-    if (connectivity[m.to_position_id]   !== undefined) connectivity[m.to_position_id]++
+// ── Dagre layout ──────────────────────────────────────────────────────────────
+// Computes (x, y) for each position node using the actual move graph structure.
+// Top-to-bottom flow. Neutral naturally rises to the top because it has the
+// most outgoing edges. Par Terre / Back Control sink to the bottom because
+// most edges point into them.
+function buildDagreLayout(positions, moves) {
+  const g = new dagre.graphlib.Graph()
+  g.setDefaultEdgeLabel(() => ({}))
+  g.setGraph({
+    rankdir: 'TB',   // top → bottom
+    ranksep: 160,    // vertical gap between ranks
+    nodesep: 60,     // horizontal gap between nodes in same rank
+    marginx: 80,
+    marginy: 80,
   })
 
-  const byPhase = { standing: [], transition: [], ground: [] }
   positions.forEach(p => {
-    const ph = p.phase ?? getPhase(p)  // prefer DB value if it ever exists
-    if (!byPhase[ph]) byPhase[ph] = []
-    byPhase[ph].push(p)
+    g.setNode(p.id, { width: NODE_W, height: NODE_H })
   })
-  PHASE_ORDER.forEach(phase => {
-    byPhase[phase]?.sort((a, b) => {
-      const d = (connectivity[b.id] ?? 0) - (connectivity[a.id] ?? 0)
-      return d !== 0 ? d : a.name.localeCompare(b.name)
-    })
+
+  // Only add edges between positions that actually exist in our node set
+  const posIds = new Set(positions.map(p => p.id))
+  moves.forEach(m => {
+    if (posIds.has(m.from_position_id) && posIds.has(m.to_position_id)) {
+      // Avoid duplicate edges — dagre only needs one per pair for layout
+      g.setEdge(m.from_position_id, m.to_position_id)
+    }
   })
+
+  dagre.layout(g)
 
   const posXY = {}
-  PHASE_ORDER.forEach(phase => {
-    const ps     = byPhase[phase] ?? []
-    const totalW = ps.length * NODE_W + (ps.length - 1) * H_GAP
-    const startX = -totalW / 2
-    ps.forEach((p, i) => {
-      posXY[p.id] = { x: startX + i * (NODE_W + H_GAP), y: BAND_Y[phase] ?? 0 }
-    })
+  positions.forEach(p => {
+    const node = g.node(p.id)
+    // dagre returns centre coordinates — ReactFlow wants top-left
+    posXY[p.id] = {
+      x: node.x - NODE_W / 2,
+      y: node.y - NODE_H / 2,
+    }
   })
   return posXY
 }
 
 // ── Focus layout ──────────────────────────────────────────────────────────────
-// Builds nodes/edges for the chain view.
-// levels = [ { position, moves: [...], selectedMoveId } ]
 function buildFocusLayout(levels, allMoves, allPositions, boardMoveIds, progressMap, callbacks) {
   const nodes = []
   const edges = []
 
   levels.forEach((level, li) => {
-    const posY     = li * (NODE_H + LEVEL_GAP) * 2
-    const movesY   = posY + NODE_H + LEVEL_GAP * 0.8
+    const posY   = li * (NODE_H + LEVEL_GAP) * 2
+    const movesY = posY + NODE_H + LEVEL_GAP * 0.8
     const { position, moves, selectedMoveId } = level
 
-    // Position node
     const isTop = li === 0
     nodes.push({
       id:        `pos-${li}-${position.id}`,
       type:      isTop ? 'focusCenter' : 'focusDest',
       position:  { x: -((NODE_W + 40) / 2), y: posY },
-      data:      {
-        name:    position.name,
-        isTop,
-      },
+      data:      { name: position.name, isTop },
       draggable:  false,
       selectable: false,
     })
 
-    // Move nodes for this level
     const totalW = moves.length * NODE_W + (moves.length - 1) * H_GAP
     const startX = -totalW / 2
 
@@ -128,42 +101,39 @@ function buildFocusLayout(levels, allMoves, allPositions, boardMoveIds, progress
       const confidence = progressMap[m.id]?.confidence ?? null
 
       nodes.push({
-        id:        `move-${li}-${m.id}`,
-        type:      'focusMove',
-        position:  { x, y: movesY },
-        data:      {
-          name:        m.name,
+        id:       `move-${li}-${m.id}`,
+        type:     'focusMove',
+        position: { x, y: movesY },
+        data:     {
+          name: m.name,
           isOnBoard,
           confidence,
           isSelected,
-          onSelect:    () => callbacks.onSelectMove(li, m),
-          onDetail:    () => callbacks.onDetail(m),
+          onSelect: () => callbacks.onSelectMove(li, m),
+          onDetail: () => callbacks.onDetail(m),
         },
         draggable: false,
       })
 
-      // Edge: position → move
       edges.push({
         id:     `e-pm-${li}-${m.id}`,
         source: `pos-${li}-${position.id}`,
         target: `move-${li}-${m.id}`,
         type:   'straight',
         style:  {
-          stroke: isSelected ? (isOnBoard ? MOVE_COLOR : UNDISCOVERED) : 'var(--border)',
+          stroke:      isSelected ? (isOnBoard ? MOVE_COLOR : UNDISCOVERED) : 'var(--border)',
           strokeWidth: isSelected ? 2 : 1,
-          opacity: isSelected ? 0.9 : 0.3,
+          opacity:     isSelected ? 0.9 : 0.3,
         },
       })
     })
   })
 
-  // Edge from selected move of level N to position of level N+1
   levels.forEach((level, li) => {
     if (li >= levels.length - 1) return
     const nextLevel = levels[li + 1]
     const selMove   = level.moves.find(m => m.id === level.selectedMoveId)
     if (!selMove) return
-
     edges.push({
       id:     `e-mp-${li}`,
       source: `move-${li}-${selMove.id}`,
@@ -209,22 +179,6 @@ function MapPositionNode({ data }) {
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
       <Handle type="source" position={Position.Right}  style={{ opacity: 0 }} />
     </>
-  )
-}
-
-// ── Map: Band label ───────────────────────────────────────────────────────────
-function BandLabelNode({ data }) {
-  return (
-    <div style={{ pointerEvents: 'none', userSelect: 'none', width: 200 }}>
-      <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 600,
-        letterSpacing: '0.14em', textTransform: 'uppercase',
-        color: 'var(--text-muted)', opacity: 0.6, marginBottom: 6,
-      }}>
-        {data.label}
-      </div>
-      <div style={{ width: 120, height: 1, background: 'var(--border)', opacity: 0.4 }} />
-    </div>
   )
 }
 
@@ -310,7 +264,7 @@ function FocusMoveNode({ data }) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top}    style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
       <div
         style={{
           width: NODE_W, height: NODE_H,
@@ -322,13 +276,11 @@ function FocusMoveNode({ data }) {
           cursor: 'pointer',
           opacity: isSelected ? 1 : 0.55,
           transition: 'all 0.15s',
-          position: 'relative',
         }}
         onClick={onSelect}
         onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
         onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.55' }}
       >
-        {/* Confidence dot */}
         <div style={{
           width: 26, height: 26, borderRadius: 6, flexShrink: 0,
           background: isOnBoard ? 'rgba(59,130,246,0.1)' : 'var(--bg-subtle)',
@@ -337,7 +289,6 @@ function FocusMoveNode({ data }) {
         }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor }} />
         </div>
-
         <span style={{
           fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: isSelected ? 600 : 500,
           color: textColor,
@@ -345,8 +296,6 @@ function FocusMoveNode({ data }) {
         }}>
           {name}
         </span>
-
-        {/* Detail button */}
         <div
           onClick={e => { e.stopPropagation(); onDetail() }}
           title="View detail"
@@ -367,7 +316,6 @@ function FocusMoveNode({ data }) {
 
 const nodeTypes = {
   mapPosition: MapPositionNode,
-  bandLabel:   BandLabelNode,
   focusCenter: FocusCenterNode,
   focusDest:   FocusDestNode,
   focusMove:   FocusMoveNode,
@@ -385,10 +333,10 @@ function SaveChainModal({ moves, onSave, onClose }) {
     setSaving(true)
     setError(null)
     try {
-      const chain   = await createChain(name.trim())
+      const chain = await createChain(name.trim())
       await setChainMoves(chain.id, moves.map(m => m.id))
       onSave(chain)
-    } catch (e) {
+    } catch {
       setError('Failed to save chain. Try again.')
     } finally {
       setSaving(false)
@@ -396,20 +344,20 @@ function SaveChainModal({ moves, onSave, onClose }) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 100,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-    <div style={{
-      background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-      borderRadius: 'var(--radius-xl)', padding: '1.75rem',
-      width: 'min(380px, calc(100vw - 2rem))',
-      margin: '0 1rem',
-      boxSizing: 'border-box',
-    }}>
+      <div style={{
+        background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-xl)', padding: '1.75rem',
+        width: 'min(380px, calc(100vw - 2rem))',
+        margin: '0 1rem', boxSizing: 'border-box',
+      }}>
         <div style={{
           fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700,
           color: 'var(--text-primary)', marginBottom: 6,
@@ -419,7 +367,6 @@ function SaveChainModal({ moves, onSave, onClose }) {
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>
           {moves.length} move{moves.length !== 1 ? 's' : ''}: {moves.map(m => m.name).join(' → ')}
         </div>
-
         <label style={{
           fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)',
           letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -441,7 +388,6 @@ function SaveChainModal({ moves, onSave, onClose }) {
             outline: 'none', marginBottom: 16, boxSizing: 'border-box',
           }}
         />
-
         {error && (
           <div style={{
             background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
@@ -451,7 +397,6 @@ function SaveChainModal({ moves, onSave, onClose }) {
             {error}
           </div>
         )}
-
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={onClose}
@@ -497,11 +442,10 @@ function ExploreInner({
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  // Focus state
-  const [focusTrail, setFocusTrail]   = useState([])  // [position, ...]
-  const [chainLevels, setChainLevels] = useState([])  // [{ position, moves, selectedMoveId }]
+  const [focusTrail, setFocusTrail]     = useState([])
+  const [chainLevels, setChainLevels]   = useState([])
   const [showSaveModal, setShowSaveModal] = useState(false)
-  const [savedChain, setSavedChain]   = useState(null)
+  const [savedChain, setSavedChain]     = useState(null)
 
   const { fitView } = useReactFlow()
   const fitQueued   = useRef(false)
@@ -540,21 +484,14 @@ function ExploreInner({
   const onSelectMove = useCallback((levelIndex, move) => {
     const destPosition = rawPositions.find(p => p.id === move.to_position_id)
     if (!destPosition) return
-
     const destMoves = filteredMoves.filter(m => m.from_position_id === destPosition.id)
-
     setChainLevels(prev => {
-      // Update selected move at this level, clear everything below
       const updated = prev.slice(0, levelIndex + 1).map((l, i) =>
         i === levelIndex ? { ...l, selectedMoveId: move.id } : l
       )
-      // Add next level
       return [...updated, { position: destPosition, moves: destMoves, selectedMoveId: null }]
     })
-    setFocusTrail(prev => {
-      const updated = prev.slice(0, levelIndex + 1)
-      return [...updated, destPosition]
-    })
+    setFocusTrail(prev => [...prev.slice(0, levelIndex + 1), destPosition])
   }, [rawPositions, filteredMoves])
 
   // ── Move detail ─────────────────────────────────────────────────────────────
@@ -583,38 +520,29 @@ function ExploreInner({
     let newEdges = []
 
     if (focusPosition && chainLevels.length) {
-      const callbacks = {
-        onSelectMove,
-        onDetail: handleMoveClick,
-      }
+      // Focus / chain drill-down mode — unchanged from before
       const { nodes: fn, edges: fe } = buildFocusLayout(
         chainLevels, filteredMoves, filteredPositions,
-        boardMoveIds, progressMap, callbacks
+        boardMoveIds, progressMap,
+        { onSelectMove, onDetail: handleMoveClick }
       )
       newNodes = fn
       newEdges = fe
     } else {
-      // Map mode
-      const posXY = buildMapLayout(filteredPositions, filteredMoves)
-
-      PHASE_ORDER.forEach(phase => {
-        newNodes.push({
-          id: `band-${phase}`, type: 'bandLabel',
-          position: { x: -700, y: (BAND_Y[phase] ?? 0) - 12 },
-          data: { label: BAND_LABEL[phase] },
-          draggable: false, selectable: false, connectable: false,
-        })
-      })
+      // Map mode — dagre layout
+      const posXY = buildDagreLayout(filteredPositions, filteredMoves)
 
       filteredPositions.forEach(p => {
         newNodes.push({
-          id: `pos-${p.id}`, type: 'mapPosition',
+          id:       `pos-${p.id}`,
+          type:     'mapPosition',
           position: posXY[p.id] ?? { x: 0, y: 0 },
-          data: { name: p.name, slug: p.slug, onFocus: () => enterFocus(p) },
+          data:     { name: p.name, slug: p.slug, onFocus: () => enterFocus(p) },
           draggable: false,
         })
       })
 
+      // Aggregate edges — one per position pair, coloured by confidence
       const pairMoves = {}
       filteredMoves.forEach(m => {
         const key = `${m.from_position_id}__${m.to_position_id}`
@@ -629,9 +557,15 @@ function ExploreInner({
         const confs          = ms.map(m => progressMap[m.id]?.confidence).filter(Boolean)
         const avgConf        = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length : null
         newEdges.push({
-          id: `agg-${key}`, source: `pos-${fromId}`, target: `pos-${toId}`,
-          type: 'aggregate',
-          data: { count: ms.length, onBoardCount, avgConfidence: avgConf, curvature: hasReverse ? 0.35 : 0.2 },
+          id:     `agg-${key}`,
+          source: `pos-${fromId}`,
+          target: `pos-${toId}`,
+          type:   'aggregate',
+          data:   {
+            count: ms.length, onBoardCount,
+            avgConfidence: avgConf,
+            curvature: hasReverse ? 0.35 : 0.2,
+          },
         })
       })
     }
@@ -639,26 +573,38 @@ function ExploreInner({
     setNodes(newNodes)
     setEdges(newEdges)
     fitQueued.current = true
-  }, [filteredPositions, filteredMoves, chainLevels, boardMoveIds, progressMap, focusPosition, enterFocus, onSelectMove, handleMoveClick])
+  }, [filteredPositions, filteredMoves, chainLevels, boardMoveIds, progressMap,
+      focusPosition, enterFocus, onSelectMove, handleMoveClick])
 
   useEffect(() => {
     if (!fitQueued.current) return
-const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued.current = false }, 500)
+    const t = setTimeout(() => {
+      fitView({ padding: 0.3, duration: 400 })
+      fitQueued.current = false
+    }, 50)
     return () => clearTimeout(t)
   }, [nodes, fitView])
 
   const handleBoardChange = useCallback((moveId, added) => {
-    setBoardMoveIds(prev => { const n = new Set(prev); added ? n.add(moveId) : n.delete(moveId); return n })
+    setBoardMoveIds(prev => {
+      const n = new Set(prev)
+      added ? n.add(moveId) : n.delete(moveId)
+      return n
+    })
   }, [setBoardMoveIds])
 
   const handleProgressChange = useCallback((moveId, data) => {
-    setProgressMap(prev => { const n = { ...prev }; data === null ? delete n[moveId] : n[moveId] = data; return n })
+    setProgressMap(prev => {
+      const n = { ...prev }
+      data === null ? delete n[moveId] : n[moveId] = data
+      return n
+    })
   }, [setProgressMap])
 
   return (
     <div style={{ height: '100dvh', position: 'relative' }}>
 
-      {/* Top bar */}
+      {/* Top bar — breadcrumb trail */}
       <div style={{
         position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
         zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
@@ -682,7 +628,6 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
       {/* Save chain button */}
       {chainMoves.length >= 1 && (
         <>
-          {/* Desktop — top right */}
           {window.innerWidth >= 768 && (
             <div style={{
               position: 'absolute', top: 16, right: panelMove ? 432 : 16,
@@ -712,24 +657,18 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
               </button>
             </div>
           )}
-
-          {/* Mobile — bottom center */}
           {window.innerWidth < 768 && (
             <div style={{
               position: 'absolute', bottom: 24,
               left: '50%', transform: 'translateX(-50%)',
               zIndex: 10, pointerEvents: 'all',
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: 8,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
             }}>
               {savedChain && (
                 <div style={{
-                  fontSize: '0.6875rem', fontWeight: 600,
-                  color: 'var(--success)',
-                  background: 'var(--success-soft)',
-                  border: '0.5px solid var(--success-border)',
-                  borderRadius: 'var(--radius-sm)', padding: '5px 10px',
-                  whiteSpace: 'nowrap',
+                  fontSize: '0.6875rem', fontWeight: 600, color: 'var(--success)',
+                  background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
+                  borderRadius: 'var(--radius-sm)', padding: '5px 10px', whiteSpace: 'nowrap',
                 }}>
                   ✓ Saved as "{savedChain.name}"
                 </div>
@@ -738,8 +677,7 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
                 onClick={() => { setSavedChain(null); setShowSaveModal(true) }}
                 style={{
                   background: 'var(--accent)', border: 'none',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '0.75rem 1.5rem',
+                  borderRadius: 'var(--radius-md)', padding: '0.75rem 1.5rem',
                   fontSize: '0.875rem', fontWeight: 600, color: '#fff',
                   cursor: 'pointer', fontFamily: 'var(--font-body)',
                   boxShadow: '0 4px 12px rgba(220,38,38,0.35)',
@@ -766,37 +704,43 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
       )}
 
       {/* Legend */}
-      {window.innerWidth >= 768 && <div style={{
-        position: 'absolute', bottom: 80, left: 16, zIndex: 10,
-        background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-md)', padding: '10px 14px',
-        display: 'flex', flexDirection: 'column', gap: 6,
-        fontSize: 11, color: 'var(--text-secondary)', pointerEvents: 'none',
-      }}>
-        {focusPosition ? (
-          <>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Click a move to trace a chain</div>
-            <LegendItem square color={MOVE_COLOR}   label="Move (on board)" />
-            <LegendItem square color={UNDISCOVERED} label="Move (undiscovered)" />
-            <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
-            <LegendItem dot color="#22C55E" label="Confidence 4–5" />
-            <LegendItem dot color="#F59E0B" label="Confidence 3" />
-            <LegendItem dot color="#EF4444" label="Confidence 1–2" />
-            <LegendItem dot color="#7C3AED" label="On board, unrated" />
-          </>
-        ) : (
-          <>
-            <LegendItem square color={POSITION_COLOR} label="Position (click to explore)" />
-            <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Edge = avg confidence</div>
-            <LegendItem dot color="#22C55E" label="Strong (4–5)" />
-            <LegendItem dot color="#F59E0B" label="Developing (3)" />
-            <LegendItem dot color="#EF4444" label="Weak (1–2)" />
-            <LegendItem dot color="#7C3AED" label="On board, unrated" />
-            <LegendItem dot color="var(--border-strong)" label="Not explored" />
-          </>
-        )}
-      </div>}
+      {window.innerWidth >= 768 && (
+        <div style={{
+          position: 'absolute', bottom: 80, left: 16, zIndex: 10,
+          background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+          borderRadius: 'var(--radius-md)', padding: '10px 14px',
+          display: 'flex', flexDirection: 'column', gap: 6,
+          fontSize: 11, color: 'var(--text-secondary)', pointerEvents: 'none',
+        }}>
+          {focusPosition ? (
+            <>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
+                Click a move to trace a chain
+              </div>
+              <LegendItem square color={MOVE_COLOR}   label="Move (on board)" />
+              <LegendItem square color={UNDISCOVERED} label="Move (undiscovered)" />
+              <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
+              <LegendItem dot color="#22C55E" label="Confidence 4–5" />
+              <LegendItem dot color="#F59E0B" label="Confidence 3" />
+              <LegendItem dot color="#EF4444" label="Confidence 1–2" />
+              <LegendItem dot color="#7C3AED" label="On board, unrated" />
+            </>
+          ) : (
+            <>
+              <LegendItem square color={POSITION_COLOR} label="Position (click to explore)" />
+              <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
+                Edge = avg confidence
+              </div>
+              <LegendItem dot color="#22C55E" label="Strong (4–5)" />
+              <LegendItem dot color="#F59E0B" label="Developing (3)" />
+              <LegendItem dot color="#EF4444" label="Weak (1–2)" />
+              <LegendItem dot color="#7C3AED" label="On board, unrated" />
+              <LegendItem dot color="var(--border-strong)" label="Not explored" />
+            </>
+          )}
+        </div>
+      )}
 
       {/* MoveDetail panel */}
       {panelMove && (
@@ -819,7 +763,6 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
 
       {/* Save chain modal */}
       {showSaveModal && (
-        
         <SaveChainModal
           moves={chainMoves}
           onSave={chain => { setSavedChain(chain); setShowSaveModal(false) }}
@@ -837,19 +780,23 @@ const t = setTimeout(() => { fitView({ padding: 0.3, duration: 400 }); fitQueued
         proOptions={{ hideAttribution: true }}
         nodesFocusable={false}
         nodesConnectable={false}
-        onNodeClick={(_, node) => { if (node.data?.onSelect) node.data.onSelect(); else if (node.data?.onFocus) node.data.onFocus() }}
+        onNodeClick={(_, node) => {
+          if (node.data?.onSelect) node.data.onSelect()
+          else if (node.data?.onFocus) node.data.onFocus()
+        }}
       >
         <Background color="var(--border)" gap={28} size={1} />
         {window.innerWidth >= 768 && <Controls showInteractive={false} />}
-        {window.innerWidth >= 768 && <MiniMap
-          nodeColor={n => {
-            if (n.type === 'bandLabel') return 'transparent'
-            if (['mapPosition','focusCenter','focusDest'].includes(n.type)) return POSITION_COLOR
-            return n.data?.isOnBoard ? MOVE_COLOR : UNDISCOVERED
-          }}
-          maskColor="rgba(0,0,0,0.05)"
-          style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border)' }}
-        />}
+        {window.innerWidth >= 768 && (
+          <MiniMap
+            nodeColor={n => {
+              if (['mapPosition', 'focusCenter', 'focusDest'].includes(n.type)) return POSITION_COLOR
+              return n.data?.isOnBoard ? MOVE_COLOR : UNDISCOVERED
+            }}
+            maskColor="rgba(0,0,0,0.05)"
+            style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border)' }}
+          />
+        )}
       </ReactFlow>
     </div>
   )
@@ -887,12 +834,20 @@ export default function ExplorePage() {
   }, [rawMoves])
 
   if (loading) return (
-    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+    <div style={{
+      height: '100%', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      color: 'var(--text-muted)', fontSize: 13,
+    }}>
       Loading graph...
     </div>
   )
   if (error) return (
-    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontSize: 13 }}>
+    <div style={{
+      height: '100%', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      color: 'var(--accent)', fontSize: 13,
+    }}>
       {error}
     </div>
   )
@@ -911,6 +866,7 @@ export default function ExplorePage() {
   )
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const crumbStyle = (isActive) => ({
   background: 'none', border: 'none', cursor: 'pointer',
   fontSize: 11, fontWeight: 600,
@@ -918,7 +874,7 @@ const crumbStyle = (isActive) => ({
   fontFamily: 'var(--font-body)', padding: '0 4px',
 })
 
-function LegendItem({ color, label, square }) {
+function LegendItem({ color, label, square, dot }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
       {square
