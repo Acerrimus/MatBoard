@@ -37,7 +37,7 @@ function buildDagreLayout(positions, moves) {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
   g.setGraph({
-    rankdir: 'LR',   // Left to right.
+    rankdir: 'TB',   // top → bottom
     ranksep: 160,    // vertical gap between ranks
     nodesep: 60,     // horizontal gap between nodes in same rank
     marginx: 80,
