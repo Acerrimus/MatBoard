@@ -177,7 +177,7 @@ function DesktopSidebar({ theme, onToggleTheme, user, profile, onSignOut }) {
             {({ isActive }) => (
               <>
                 <Settings size={14} strokeWidth={isActive ? 2.4 : 1.8} />
-                Club Settings
+                Club
               </>
             )}
           </NavLink>

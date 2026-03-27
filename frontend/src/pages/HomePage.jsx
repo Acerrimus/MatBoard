@@ -768,7 +768,7 @@ function HomePageInner({ user, profile, displayName, role, isCoach, navigate }) 
                   />
                   <QuickLink
                     to="/club"
-                    label="Club Settings"
+                    label="Club"
                     description="Manage members and invite athletes"
                   />
                 </div>
