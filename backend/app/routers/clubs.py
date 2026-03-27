@@ -213,9 +213,9 @@ def get_club_members(
     assert_club_owner(club_id, user.id, client)
 
     memberships_res = client.table("club_memberships") \
-        .select("user_id, role, created_at") \
+        .select("user_id, role, joined_at") \
         .eq("club_id", club_id) \
-        .order("created_at") \
+        .order("joined_at") \
         .execute()
 
     if not memberships_res.data:
@@ -236,7 +236,7 @@ def get_club_members(
             "display_name": profiles_by_id.get(m["user_id"], {}).get("display_name"),
             "avatar_url":   profiles_by_id.get(m["user_id"], {}).get("avatar_url"),
             "role":         m["role"],
-            "joined_at":    m["created_at"],
+            "joined_at":    m["joined_at"],
         }
         for m in memberships_res.data
     ]
@@ -259,9 +259,9 @@ def get_club_roster(
         raise HTTPException(status_code=403, detail="Not a member of this club")
 
     memberships_res = client.table("club_memberships") \
-        .select("user_id, role, created_at") \
+        .select("user_id, role, joined_at") \
         .eq("club_id", club_id) \
-        .order("created_at") \
+        .order("joined_at") \
         .execute()
 
     if not memberships_res.data:
@@ -282,7 +282,7 @@ def get_club_roster(
             "display_name": profiles_by_id.get(m["user_id"], {}).get("display_name"),
             "avatar_url":   profiles_by_id.get(m["user_id"], {}).get("avatar_url"),
             "role":         m["role"],
-            "joined_at":    m["created_at"],
+            "joined_at":    m["joined_at"],
         }
         for m in memberships_res.data
     ]
