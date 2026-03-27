@@ -523,6 +523,12 @@ export default function ClubPage() {
     setLoading(true)
     try {
       const clubData = await getMyClub()
+
+      if (!clubData || !clubData.id) {
+        setClub(null)
+        return
+      }
+
       setClub(clubData)
 
       const [memberData, currData] = await Promise.all([
@@ -578,14 +584,24 @@ export default function ClubPage() {
     </div>
   )
   
-  if (error) return (
+if (error) return (
   <div style={{ maxWidth: '42.5rem', margin: '0 auto', padding: '1.75rem 1.5rem' }}>
     <div style={{
       background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
       borderRadius: 'var(--radius-md)', padding: '0.875rem 1rem',
       fontSize: '0.8125rem', color: 'var(--accent)',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
     }}>
-      Could not load club data. Please refresh and try again.
+      <span>Could not load club data — this is usually temporary.</span>
+      <button
+        onClick={() => { setError(null); load() }}
+        style={{
+          background: 'var(--accent)', color: '#fff',
+          border: 'none', borderRadius: 'var(--radius-sm)',
+          padding: '6px 12px', fontSize: '0.75rem', fontWeight: 600,
+          cursor: 'pointer', fontFamily: 'var(--font-body)', flexShrink: 0,
+        }}
+      >Retry</button>
     </div>
   </div>
 )
