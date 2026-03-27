@@ -38,8 +38,8 @@ function buildDagreLayout(positions, moves) {
   g.setDefaultEdgeLabel(() => ({}))
   g.setGraph({
     rankdir: 'TB',   // top → bottom
-    ranksep: 160,    // vertical gap between ranks
-    nodesep: 60,     // horizontal gap between nodes in same rank
+    ranksep: 80,    // vertical gap between ranks
+    nodesep: 30,     // horizontal gap between nodes in same rank
     marginx: 80,
     marginy: 80,
   })
