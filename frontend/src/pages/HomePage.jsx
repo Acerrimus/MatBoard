@@ -387,6 +387,34 @@ export default function HomePage() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
+  // Guard: do not render until profile is confirmed hydrated.
+  // undefined = still loading, null = confirmed no profile (onboarding),
+  // object = ready. Returning null here is safe — Protected already shows
+  // LoadingScreen for the initial load. This covers re-render windows on
+  // auth events.
+  if (profile === undefined) return null
+
+  const displayName =
+    profile?.display_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Wrestler'
+
+  const role = profile?.role ?? null
+  const isCoach = role === 'coach' || role === 'admin'
+
+  return <HomePageInner
+    user={user}
+    profile={profile}
+    displayName={displayName}
+    role={role}
+    isCoach={isCoach}
+    navigate={navigate}
+  />
+}
+
+// Inner component receives stable props — profile is guaranteed defined here.
+function HomePageInner({ user, profile, displayName, role, isCoach, navigate }) {
   const [clubId, setClubId] = useState(null)
   const [clubName, setClubName] = useState(null)
 
@@ -400,15 +428,6 @@ export default function HomePage() {
   const [athleteStats, setAthleteStats] = useState(null)
   const [athleteStatsLoading, setAthleteStatsLoading] = useState(false)
 
-  const displayName =
-    profile?.display_name ||
-    user?.user_metadata?.full_name ||
-    user?.email?.split('@')[0] ||
-    'Wrestler'
-
-  const role = profile?.role ?? null
-  const isCoach = role === 'coach' || role === 'admin'
-
   // ── Greeting ───────────────────────────────────────────────────────────────
   const hour = new Date().getHours()
   const greeting =
@@ -417,19 +436,30 @@ export default function HomePage() {
     'Good evening'
 
   // ── 1. Resolve club membership ─────────────────────────────────────────────
+  // Uses role-preferring logic — never .maybeSingle() — to handle users with
+  // multiple club_memberships rows (e.g. coach + athlete rows in same club).
   useEffect(() => {
     if (!user || !profile) return
 
     async function resolveClub() {
-      const { data: membership } = await supabase
+      const { data: memberships, error } = await supabase
         .from('club_memberships')
-        .select('club_id, clubs(name)')
+        .select('club_id, role, clubs(name)')
         .eq('user_id', user.id)
-        .maybeSingle()
 
-      if (membership?.club_id) {
-        setClubId(membership.club_id)
-        setClubName(membership.clubs?.name || null)
+      if (error) {
+        console.error('Failed to resolve club membership:', error)
+        return
+      }
+
+      if (memberships?.length) {
+        // Prefer coach role over athlete role — matches multi-membership constraint
+        const preferred =
+          memberships.find(m => m.role === 'coach') ||
+          memberships.find(m => m.role === 'admin') ||
+          memberships[0]
+        setClubId(preferred.club_id)
+        setClubName(preferred.clubs?.name || null)
       }
     }
 
@@ -750,8 +780,10 @@ export default function HomePage() {
 
       {/* ════════════════════════════════════════════════════════════════ */}
       {/* ATHLETE VIEW                                                     */}
+      {/* !isCoach && role !== null guards against rendering during any   */}
+      {/* window where role is not yet confirmed                          */}
       {/* ════════════════════════════════════════════════════════════════ */}
-      {role === 'athlete' && (
+      {!isCoach && role !== null && (
         <>
           {/* ── Progress stat pills ─────────────────────────────────── */}
           <div style={{
