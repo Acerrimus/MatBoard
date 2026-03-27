@@ -90,6 +90,20 @@ async function requestDelete(path) {
   }
 }
 
+// ── Other Base  helpers ────────────────────────────────────────────────────────
+export async function updateMyProfile(updates) {
+  const res = await fetch(`${API}/users/me/profile`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${await getToken()}`,
+    },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) throw new Error('Failed to update profile')
+  return res.json()
+}
+
 // ── Positions & moves ─────────────────────────────────────────────────────────
 export const getPositions         = ()     => request('/positions/')
 export const getPosition          = (slug) => request(`/positions/${slug}`)
@@ -105,6 +119,7 @@ export const deleteProgress       = (moveId)                                  =>
 // ── Profiles ──────────────────────────────────────────────────────────────────
 export const setMyRole            = (role) => requestPatch('/profiles/me/role', { role })
 export const skipClubSetup        = ()     => requestPatch('/profiles/me/skip-club-setup', {})
+
 
 // ── Clubs ─────────────────────────────────────────────────────────────────────
 export const createClub           = (name)                       => requestPost('/clubs/', { name })

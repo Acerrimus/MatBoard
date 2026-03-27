@@ -64,3 +64,29 @@ def skip_club_setup(
         raise HTTPException(status_code=500, detail="Failed to update profile")
 
     return response.data[0]
+
+
+    class ProfileUpdate(BaseModel):
+    display_name: str | None = None
+
+
+@router.patch("/me/profile")
+def update_my_profile(
+    body: ProfileUpdate,
+    user=Depends(get_current_user),
+    client=Depends(get_supabase_client)
+):
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    updates["id"] = user.id
+
+    response = client.table("profiles") \
+        .upsert(updates) \
+        .execute()
+
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Failed to update profile")
+
+    return response.data[0]
