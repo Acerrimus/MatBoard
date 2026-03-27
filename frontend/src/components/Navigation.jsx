@@ -29,8 +29,8 @@ const ATHLETE_COACH_TABS = [
 ]
 
 const COACH_ONLY_TABS = [
-  { label: 'Athletes',  to: '/dashboard', icon: Users     },
-  { label: 'Curricula', to: '/curricula', icon: BookOpen  },
+  { label: 'Athletes', to: '/dashboard', icon: Users    },
+  { label: 'Club',     to: '/club',      icon: Settings },
 ]
 
 // ── Bottom tab bar (mobile) ───────────────────────────────────────────────────
@@ -447,7 +447,7 @@ function MobileHeader({ theme, onToggleTheme, onSignOut, profile, user }) {
 export default function Navigation({ theme, onToggleTheme, user, profile, onSignOut, children }) {
   const isCoach  = profile?.role === 'coach' || profile?.role === 'admin'
   const mobileTabs = isCoach
-    ? [...BASE_TABS, ...COACH_ONLY_TABS]
+    ? [BASE_TABS[0], BASE_TABS[2], ...COACH_ONLY_TABS]
     : [...BASE_TABS, ...ATHLETE_COACH_TABS]
 
 
