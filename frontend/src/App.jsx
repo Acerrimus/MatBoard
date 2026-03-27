@@ -21,11 +21,11 @@ function getInitialTheme() {
 }
 
 function Protected({ children }) {
-  const { user, profile, loading, profileError } = useAuth()
+  const { user, profile, loading, profileError, signOut } = useAuth()
   if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   if (profile === undefined) return <LoadingScreen />
-  if (profileError) return children
+  if (profileError) return <ProfileErrorScreen onSignOut={signOut} />
   if (profile === null || !profile.role) return <Navigate to="/onboarding" replace />
   return children
 }
@@ -57,6 +57,65 @@ function LoadingScreen() {
         }} />
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+}
+
+function ProfileErrorScreen({ onSignOut }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg-page)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem',
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, maxWidth: 320, textAlign: 'center' }}>
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 20, fontWeight: 700,
+          letterSpacing: '-0.3px',
+          color: 'var(--text-primary)',
+        }}>
+          Mat<span style={{ color: 'var(--accent)' }}>board</span>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: 0 }}>
+          We couldn't load your profile. This is usually a temporary issue.
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '8px 16px',
+              background: 'var(--accent)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+          <button
+            onClick={onSignOut}
+            style={{
+              padding: '8px 16px',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
