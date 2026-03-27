@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { setMyRole } from '../api'
 
 export default function OnboardingPage() {
-  const { user, setProfile } = useAuth() 
+  const { user, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(null)
@@ -16,7 +16,7 @@ export default function OnboardingPage() {
     setError(null)
     try {
       await setMyRole(role)
-      setProfile(prev => ({ ...prev, role }))  
+      await refreshProfile()
       if (role === 'coach') {
         navigate('/club-setup')
       } else {

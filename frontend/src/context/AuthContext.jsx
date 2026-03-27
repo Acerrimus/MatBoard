@@ -24,6 +24,10 @@ export function AuthProvider({ children }) {
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) { setProfile(null); return }
 
+    // Reset to undefined so Protected shows LoadingScreen instead of
+    // redirecting to /onboarding during a refetch
+    setProfile(undefined)
+
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const { data, error } = await withTimeout(
