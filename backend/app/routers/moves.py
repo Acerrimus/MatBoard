@@ -105,16 +105,32 @@ def create_personal_move(
     slug = make_unique_slug(slug, user.id[:8], client)
 
     res = client.table("moves").insert({
-        "name":             body.name,
-        "slug":             slug,
-        "description":      body.description,
-        "from_position_id": body.from_position_id,
-        "to_position_id":   body.to_position_id,
-        "club_id":          None,
-        "created_by":       user.id,
+    "name":             body.name,
+    "slug":             slug,
+    "description":      body.description,
+    "from_position_id": body.from_position_id,
+    "to_position_id":   body.to_position_id,
+    "club_id":          None,
+    "created_by":       user.id,
     }).execute()
 
     if not res.data:
         raise HTTPException(status_code=500, detail="Failed to create move")
 
-    return res.data[0]
+    move_id = res.data[0]["id"]
+    full = client.table("moves") \
+        .select("""
+            id, name, slug, description,
+            scoring_value, risk_rating, sport,
+            club_id, created_by,
+            from_position:positions!from_position_id(id, name, slug),
+            to_position:positions!to_position_id(id, name, slug)
+        """) \
+        .eq("id", move_id) \
+        .single() \
+        .execute()
+
+    if not full.data:
+        raise HTTPException(status_code=500, detail="Failed to fetch created move")
+
+    return full.data
