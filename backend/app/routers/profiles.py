@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Optional
 from app.auth import get_current_user, get_supabase_client
 
 router = APIRouter()
@@ -12,6 +12,10 @@ class RoleUpdate(BaseModel):
 
 class SkipClubSetup(BaseModel):
     club_setup_skipped: bool = True
+
+
+class ProfileUpdate(BaseModel):
+    display_name: Optional[str] = None
 
 
 @router.get("/me")
@@ -64,10 +68,6 @@ def skip_club_setup(
         raise HTTPException(status_code=500, detail="Failed to update profile")
 
     return response.data[0]
-
-
-    class ProfileUpdate(BaseModel):
-    display_name: str | None = None
 
 
 @router.patch("/me/profile")
