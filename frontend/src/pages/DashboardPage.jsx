@@ -192,11 +192,11 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
                     textUnderlineOffset: 3,
                   }}
                 >{athlete.display_name || 'Unnamed'}</button>
-                {hasFavourite && <span style={{ fontSize: '0.875rem', color: '#FDE047' }}>★</span>}
+                {hasFavourite && <span style={{ fontSize: '0.875rem', color: var(--comp-ready) }}>★</span>}
                 {compReadyCount > 0 && (
                   <span style={{
                     fontSize: '0.6rem', fontWeight: 600, color: 'var(--comp-ready)',
-                    background: '#F59E0B18', border: '0.5px solid #F59E0B44',
+                    background: var(--comp-ready-soft), border: '0.5px solid var(--comp-ready-border)',
                     borderRadius: 20, padding: '1px 6px', letterSpacing: '0.06em',
                   }}>⬡ {compReadyCount} comp ready</span>
                 )}
@@ -226,7 +226,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
                       title={move.name}
                       style={{
                         background: bg, border: `1.5px solid ${color}`,
-                        boxShadow: isCompReady ? `0 0 0 1.5px #F59E0B` : 'none',
+                        boxShadow: isCompReady ? `0 0 0 1.5px var(--comp-ready)` : 'none',
                         borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.5rem',
                         fontSize: '0.6875rem', fontWeight: 500,
                         color: conf ? color : 'var(--text-secondary)',
@@ -412,7 +412,7 @@ function FlatMatrix({ athletes, moves, matrix, athleteAggregates, moveAggregates
                             <div style={{
                               position: 'absolute', inset: -3,
                               borderRadius: 'calc(var(--radius-sm) + 2px)',
-                              border: '1.5px solid #F59E0B', boxShadow: '0 0 6px #F59E0B44',
+                              border: '1.5px solid var(--comp-ready)', boxShadow: '0 0 6px var(--comp-ready-border)',
                               pointerEvents: 'none', zIndex: 1,
                             }} />
                           )}

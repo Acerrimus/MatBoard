@@ -721,7 +721,7 @@ function ExploreInner({
               <LegendItem square color={UNDISCOVERED} label="Move (undiscovered)" />
               <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
               <LegendItem dot color="#22C55E" label="Confidence 4–5" />
-              <LegendItem dot color="#F59E0B" label="Confidence 3" />
+              <LegendItem dot color="var(--comp-ready)" label="Confidence 3" />
               <LegendItem dot color="#EF4444" label="Confidence 1–2" />
               <LegendItem dot color="#7C3AED" label="On board, unrated" />
             </>
@@ -733,7 +733,7 @@ function ExploreInner({
                 Edge = avg confidence
               </div>
               <LegendItem dot color="#22C55E" label="Strong (4–5)" />
-              <LegendItem dot color="#F59E0B" label="Developing (3)" />
+              <LegendItem dot color="var(--comp-ready)" label="Developing (3)" />
               <LegendItem dot color="#EF4444" label="Weak (1–2)" />
               <LegendItem dot color="#7C3AED" label="On board, unrated" />
               <LegendItem dot color="var(--border-strong)" label="Not explored" />

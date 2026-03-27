@@ -35,9 +35,9 @@ function SectionLabel({ children, count }) {
 }
 
 function StatPill({ label, value, accent, gold }) {
-  const borderColor = gold ? '#F59E0B' : accent ? 'var(--border-accent)' : 'var(--stat-border)'
-  const bg = gold ? '#F59E0B0E' : accent ? 'var(--accent-soft)' : 'var(--stat-bg)'
-  const textColor = gold ? '#F59E0B' : accent ? 'var(--accent)' : 'var(--text-primary)'
+  const borderColor = gold ? var(--comp-ready) : accent ? 'var(--border-accent)' : 'var(--stat-border)'
+  const bg = gold ? var(--comp-ready-soft) : accent ? 'var(--accent-soft)' : 'var(--stat-bg)'
+  const textColor = gold ? var(--comp-ready) : accent ? 'var(--accent)' : 'var(--text-primary)'
   return (
     <div style={{
       background: bg,
@@ -262,7 +262,7 @@ function MoveRow({ row, athleteId, isCompReady, onToggleCompReady, toggling }) {
       display: 'flex', alignItems: 'center', gap: '0.75rem',
       padding: '0.625rem 1rem',
       borderBottom: '0.5px solid var(--border)',
-      background: isCompReady ? '#F59E0B06' : 'transparent',
+      background: isCompReady ? var(--comp-ready-soft) : 'transparent',
     }}>
       {/* Confidence badge */}
       <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -270,8 +270,8 @@ function MoveRow({ row, athleteId, isCompReady, onToggleCompReady, toggling }) {
           <div style={{
             position: 'absolute', inset: -3,
             borderRadius: 'calc(var(--radius-sm) + 2px)',
-            border: '1.5px solid #F59E0B',
-            boxShadow: '0 0 6px #F59E0B44',
+            border: '1.5px solid var(--comp-ready)',
+            boxShadow: '0 0 6px var(--comp-ready-border)',
             pointerEvents: 'none', zIndex: 1,
           }} />
         )}
@@ -297,11 +297,11 @@ function MoveRow({ row, athleteId, isCompReady, onToggleCompReady, toggling }) {
           flexWrap: 'wrap',
         }}>
           <span style={{ color: 'var(--text-move)', fontWeight: 600 }}>{move.name}</span>
-          {is_favourite && <span style={{ color: '#FDE047', fontSize: '0.75rem' }}>★</span>}
+          {is_favourite && <span style={{ color: var(--comp-ready), fontSize: '0.75rem' }}>★</span>}
           {isCompReady && (
             <span style={{
               fontSize: '0.5625rem', fontWeight: 600, color: 'var(--comp-ready)',
-              background: '#F59E0B18', border: '0.5px solid #F59E0B44',
+              background: var(--comp-ready-soft), border: '0.5px solid var(--comp-ready-border)',
               borderRadius: 20, padding: '1px 6px', letterSpacing: '0.06em',
             }}>⬡ comp ready</span>
           )}
@@ -329,9 +329,9 @@ function MoveRow({ row, athleteId, isCompReady, onToggleCompReady, toggling }) {
           flexShrink: 0,
           width: '2.75rem', height: '2.75rem',
           borderRadius: 'var(--radius-sm)',
-          border: isCompReady ? '1.5px solid #F59E0B' : '0.5px solid var(--border)',
-          background: isCompReady ? '#F59E0B18' : 'var(--bg-subtle)',
-          color: isCompReady ? '#F59E0B' : 'var(--text-muted)',
+          border: isCompReady ? '1.5px solid var(--comp-ready)' : '0.5px solid var(--border)',
+          background: isCompReady ? var(--comp-ready-soft) : 'var(--bg-subtle)',
+          color: isCompReady ? var(--comp-ready) : 'var(--text-muted)',
           cursor: toggling === move.id ? 'default' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '1rem',

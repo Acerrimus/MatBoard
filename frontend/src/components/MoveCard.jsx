@@ -1,7 +1,7 @@
 export function confidenceColor(confidence) {
   if (!confidence) return 'var(--border)'
   if (confidence <= 2) return '#EF4444'
-  if (confidence === 3) return '#F59E0B'
+  if (confidence === 3) return var(--comp-ready)
   return '#22C55E'
 }
 
@@ -20,7 +20,7 @@ export function moveType(move) {
 
 export function moveTypeColor(move) {
   const t = moveType(move)
-  if (t === 'club')     return '#F59E0B'
+  if (t === 'club')     return var(--comp-ready)
   if (t === 'personal') return '#0D9488'
   return 'var(--move-color)'
 }

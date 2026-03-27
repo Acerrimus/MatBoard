@@ -47,17 +47,17 @@ function SectionLabel({ children }) {
 // ── Stat pill ──────────────────────────────────────────────────────────────────
 function StatPill({ label, value, accent, gold, loading }) {
   const borderColor = gold
-    ? '#F59E0B'
+    ? var(--comp-ready)
     : accent
     ? 'var(--border-accent)'
     : 'var(--border)'
   const bg = gold
-    ? '#F59E0B0E'
+    ? var(--comp-ready-soft)
     : accent
     ? 'var(--accent-soft)'
     : 'var(--bg-surface)'
   const textColor = gold
-    ? '#F59E0B'
+    ? var(--comp-ready)
     : accent
     ? 'var(--text-accent)'
     : 'var(--text-primary)'
@@ -313,8 +313,8 @@ function SquadInsightStrip({ insights, movesMap }) {
       {most_inconsistent && (
         <div style={{
           flex: 1, minWidth: '9rem',
-          background: '#F59E0B08',
-          border: '0.5px solid #F59E0B',
+          background: var(--comp-ready-soft),
+          border: '0.5px solid var(--comp-ready)',
           borderRadius: 'var(--radius-md)',
           padding: '0.75rem 1rem',
         }}>
