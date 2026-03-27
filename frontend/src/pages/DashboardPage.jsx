@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
 import { getMyClub, getClubDashboard, getCurricula } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
 
@@ -556,7 +555,6 @@ function EmptySquad({ clubName, inviteCode }) {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth()
   const navigate    = useNavigate()
   const [club, setClub]                     = useState(null)
   const [dashboard, setDashboard]           = useState(null)
