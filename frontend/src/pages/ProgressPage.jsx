@@ -153,8 +153,8 @@ function MoveRow({ item, onProgressChange }) {
       <button
         onClick={handleFav} disabled={saving}
         style={{
-          background: isFav ? '#FEF9C3' : 'var(--bg-subtle)',
-          border: `0.5px solid ${isFav ? var(--comp-ready) : 'var(--border)'}`,
+          background: isFav ? 'var(--comp-ready-soft)' : 'var(--bg-subtle)',
+          border: `0.5px solid ${isFav ? 'var(--comp-ready)' : 'var(--border)'}`,
           borderRadius: 'var(--radius-sm)', width: 28, height: 28,
           fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer',
           transition: 'all var(--transition)', flexShrink: 0,

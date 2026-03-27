@@ -35,9 +35,9 @@ function SectionLabel({ children, count }) {
 }
 
 function StatPill({ label, value, accent, gold }) {
-  const borderColor = gold ? var(--comp-ready) : accent ? 'var(--border-accent)' : 'var(--stat-border)'
-  const bg = gold ? var(--comp-ready-soft) : accent ? 'var(--accent-soft)' : 'var(--stat-bg)'
-  const textColor = gold ? var(--comp-ready) : accent ? 'var(--accent)' : 'var(--text-primary)'
+  const borderColor = gold ? 'var(--comp-ready)' : accent ? 'var(--border-accent)' : 'var(--stat-border)'
+  const bg = gold ? 'var(--comp-ready-soft)' : accent ? 'var(--accent-soft)' : 'var(--stat-bg)'
+  const textColor = gold ? 'var(--comp-ready)' : accent ? 'var(--accent)' : 'var(--text-primary)'
   return (
     <div style={{
       background: bg,
@@ -262,7 +262,7 @@ function MoveRow({ row, athleteId, isCompReady, onToggleCompReady, toggling }) {
       display: 'flex', alignItems: 'center', gap: '0.75rem',
       padding: '0.625rem 1rem',
       borderBottom: '0.5px solid var(--border)',
-      background: isCompReady ? var(--comp-ready-soft) : 'transparent',
+      background: isCompReady ? 'var(--comp-ready-soft)' : 'transparent',
     }}>
       {/* Confidence badge */}
       <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -330,8 +330,8 @@ function MoveRow({ row, athleteId, isCompReady, onToggleCompReady, toggling }) {
           width: '2.75rem', height: '2.75rem',
           borderRadius: 'var(--radius-sm)',
           border: isCompReady ? '1.5px solid var(--comp-ready)' : '0.5px solid var(--border)',
-          background: isCompReady ? var(--comp-ready-soft) : 'var(--bg-subtle)',
-          color: isCompReady ? var(--comp-ready) : 'var(--text-muted)',
+          background: isCompReady ? 'var(--comp-ready-soft)' : 'var(--bg-subtle)',
+          color: isCompReady ? 'var(--comp-ready)' : 'var(--text-muted)',
           cursor: toggling === move.id ? 'default' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '1rem',

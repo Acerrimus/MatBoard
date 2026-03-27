@@ -47,17 +47,17 @@ function SectionLabel({ children }) {
 // ── Stat pill ──────────────────────────────────────────────────────────────────
 function StatPill({ label, value, accent, gold, loading }) {
   const borderColor = gold
-    ? var(--comp-ready)
+    ? 'var(--comp-ready)'
     : accent
     ? 'var(--border-accent)'
     : 'var(--border)'
   const bg = gold
-    ? var(--comp-ready-soft)
+    ? 'var(--comp-ready-soft)'
     : accent
     ? 'var(--accent-soft)'
     : 'var(--bg-surface)'
   const textColor = gold
-    ? var(--comp-ready)
+    ? 'var(--comp-ready)'
     : accent
     ? 'var(--text-accent)'
     : 'var(--text-primary)'

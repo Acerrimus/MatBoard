@@ -374,8 +374,8 @@ export default function MoveDetail({
               disabled={progressLoading}
               title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
               style={{
-                background: isFavourite ? '#FEF9C3' : 'var(--bg-subtle)',
-                border: `0.5px solid ${isFavourite ? var(--comp-ready) : 'var(--border)'}`,
+                background: isFavourite ? 'var(--comp-ready-soft)' : 'var(--bg-subtle)',
+                border: `0.5px solid ${isFavourite ? 'var(--comp-ready)' : 'var(--border)'}`,
                 borderRadius: 'var(--radius-sm)',
                 padding: '9px 16px',
                 fontSize: 16,
