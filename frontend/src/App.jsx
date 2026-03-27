@@ -158,11 +158,11 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Route path="/landing" element={<LandingPage />} />
       <AuthProvider>
         <Routes>
           <Route path="/login"      element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/landing"    element={<LandingPage />} />
           <Route path="/*" element={
             <Protected>
               <AppShell theme={theme} onToggleTheme={toggleTheme} />
