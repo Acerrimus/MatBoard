@@ -91,18 +91,7 @@ async function requestDelete(path) {
 }
 
 // ── Other Base  helpers ────────────────────────────────────────────────────────
-export async function updateMyProfile(updates) {
-  const res = await fetch(`${API}/users/me/profile`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${await getToken()}`,
-    },
-    body: JSON.stringify(updates),
-  })
-  if (!res.ok) throw new Error('Failed to update profile')
-  return res.json()
-}
+export const updateMyProfile = (updates) => requestPatch('/profiles/me/profile', updates)
 
 // ── Positions & moves ─────────────────────────────────────────────────────────
 export const getPositions         = ()     => request('/positions/')
