@@ -18,7 +18,7 @@ export default function OnboardingPage() {
       await setMyRole(role)
       await refreshProfile()
       if (role === 'coach') {
-        navigate('/club-setup')
+        navigate('/club')
       } else {
         navigate('/')
       }
