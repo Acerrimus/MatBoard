@@ -515,6 +515,10 @@ export default function ClubPage() {
   const [roleUpdating, setRoleUpdating] = useState(null)
 
   const load = useCallback(async () => {
+    // Guard: do not fire until auth has fully hydrated.
+    // profile === undefined means AuthContext is still initialising.
+    // profile === null means confirmed logged out. Only undefined is unsafe.
+    if (profile === undefined) return
     setLoading(true)
     try {
       const clubData = await getMyClub()
@@ -533,7 +537,7 @@ export default function ClubPage() {
     } finally {
       setLoading(false)
     }
-  }, [isCoach])
+  }, [isCoach, profile])
 
   useEffect(() => { load() }, [load])
 
