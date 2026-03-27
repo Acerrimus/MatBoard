@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getMyClub, getClubDashboard, getCurricula } from '../api'
@@ -643,10 +643,11 @@ export default function DashboardPage() {
     insights,
   } = dashboard
 
-  const moveNameById = {}
-  moves.forEach(m => {
-  moveNameById[m.id] = m.name
-})
+  const moveNameById = useMemo(() => {
+    const map = {}
+    moves.forEach(m => { map[m.id] = m.name })
+    return map
+  }, [moves])
 
   const athleteAggs    = Object.values(athlete_aggregates)
   const ratedAthletes  = athleteAggs.filter(a => a.avg_confidence != null)
