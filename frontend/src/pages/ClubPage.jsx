@@ -449,7 +449,7 @@ function CurriculumCard({ curriculum }) {
                               <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>—</span>
                             )}
                             {move.is_favourite && (
-                              <span style={{ fontSize: '0.5rem', color: var(--comp-ready) }}>★</span>
+                              <span style={{ fontSize: '0.5rem', color: 'var(--comp-ready)' }}>★</span>
                             )}
                           </div>
                           {i < chain.moves.length - 1 && (

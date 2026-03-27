@@ -313,7 +313,7 @@ function SquadInsightStrip({ insights, movesMap }) {
       {most_inconsistent && (
         <div style={{
           flex: 1, minWidth: '9rem',
-          background: var(--comp-ready-soft),
+          background: 'var(--comp-ready-soft)',
           border: '0.5px solid var(--comp-ready)',
           borderRadius: 'var(--radius-md)',
           padding: '0.75rem 1rem',

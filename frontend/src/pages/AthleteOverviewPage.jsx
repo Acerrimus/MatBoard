@@ -297,11 +297,11 @@ function MoveRow({ row, athleteId, isCompReady, onToggleCompReady, toggling }) {
           flexWrap: 'wrap',
         }}>
           <span style={{ color: 'var(--text-move)', fontWeight: 600 }}>{move.name}</span>
-          {is_favourite && <span style={{ color: var(--comp-ready), fontSize: '0.75rem' }}>★</span>}
+          {is_favourite && <span style={{ color: 'var(--comp-ready)', fontSize: '0.75rem' }}>★</span>}
           {isCompReady && (
             <span style={{
               fontSize: '0.5625rem', fontWeight: 600, color: 'var(--comp-ready)',
-              background: var(--comp-ready-soft), border: '0.5px solid var(--comp-ready-border)',
+              background: 'var(--comp-ready-soft)', border: '0.5px solid var(--comp-ready-border)',
               borderRadius: 20, padding: '1px 6px', letterSpacing: '0.06em',
             }}>⬡ comp ready</span>
           )}

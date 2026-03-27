@@ -192,11 +192,11 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
                     textUnderlineOffset: 3,
                   }}
                 >{athlete.display_name || 'Unnamed'}</button>
-                {hasFavourite && <span style={{ fontSize: '0.875rem', color: var(--comp-ready) }}>★</span>}
+                {hasFavourite && <span style={{ fontSize: '0.875rem', color: 'var(--comp-ready)' }}>★</span>}
                 {compReadyCount > 0 && (
                   <span style={{
                     fontSize: '0.6rem', fontWeight: 600, color: 'var(--comp-ready)',
-                    background: var(--comp-ready-soft), border: '0.5px solid var(--comp-ready-border)',
+                    background: 'var(--comp-ready-soft)', border: '0.5px solid var(--comp-ready-border)',
                     borderRadius: 20, padding: '1px 6px', letterSpacing: '0.06em',
                   }}>⬡ {compReadyCount} comp ready</span>
                 )}
