@@ -513,6 +513,7 @@ export default function ClubPage() {
   const [curricula, setCurricula] = useState([])
   const [loading, setLoading] = useState(true)
   const [roleUpdating, setRoleUpdating] = useState(null)
+  const [error, setError] = useState(null)
 
   const load = useCallback(async () => {
     // Guard: do not fire until auth has fully hydrated.
@@ -532,9 +533,17 @@ export default function ClubPage() {
       ])
       setMembers(memberData)
       setCurricula(currData)
+
     } catch (err) {
-      if (err.message.includes('404')) setClub(null)
-    } finally {
+      if (err.message.includes('404')) {
+        setClub(null)
+      } else {
+        console.error('Club load failed:', err)
+        setError(err.message)
+      }
+    }
+
+    finally {
       setLoading(false)
     }
   }, [isCoach, profile])
@@ -568,6 +577,18 @@ export default function ClubPage() {
       <style>{`@keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }`}</style>
     </div>
   )
+  
+  if (error) return (
+  <div style={{ maxWidth: '42.5rem', margin: '0 auto', padding: '1.75rem 1.5rem' }}>
+    <div style={{
+      background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+      borderRadius: 'var(--radius-md)', padding: '0.875rem 1rem',
+      fontSize: '0.8125rem', color: 'var(--accent)',
+    }}>
+      Could not load club data. Please refresh and try again.
+    </div>
+  </div>
+)
 
   if (!club) {
     return <NoClub onCreated={load} onJoined={load} />
