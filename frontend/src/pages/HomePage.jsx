@@ -320,7 +320,7 @@ function SquadInsightStrip({ insights, movesMap }) {
         }}>
           <div style={{
             fontSize: '0.5625rem', fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: '#F59E0B', marginBottom: '0.375rem',
+            textTransform: 'uppercase', color: 'var(--comp-ready)', marginBottom: '0.375rem',
           }}>
             📊 Most inconsistent
           </div>

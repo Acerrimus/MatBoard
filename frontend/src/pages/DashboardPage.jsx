@@ -195,7 +195,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
                 {hasFavourite && <span style={{ fontSize: '0.875rem', color: '#FDE047' }}>★</span>}
                 {compReadyCount > 0 && (
                   <span style={{
-                    fontSize: '0.6rem', fontWeight: 600, color: '#F59E0B',
+                    fontSize: '0.6rem', fontWeight: 600, color: 'var(--comp-ready)',
                     background: '#F59E0B18', border: '0.5px solid #F59E0B44',
                     borderRadius: 20, padding: '1px 6px', letterSpacing: '0.06em',
                   }}>⬡ {compReadyCount} comp ready</span>
@@ -241,7 +241,7 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
                       ) : (
                         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
                       )}
-                      {isCompReady && <span style={{ fontSize: 11, color: '#F59E0B' }}>⬡</span>}
+                      {isCompReady && <span style={{ fontSize: 11, color: 'var(--comp-ready)' }}>⬡</span>}
                     </div>
                     {i < moves.length - 1 && (
                       <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', padding: '0 0.2rem', flexShrink: 0 }}>→</div>

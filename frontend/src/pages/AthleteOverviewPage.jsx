@@ -300,7 +300,7 @@ function MoveRow({ row, athleteId, isCompReady, onToggleCompReady, toggling }) {
           {is_favourite && <span style={{ color: '#FDE047', fontSize: '0.75rem' }}>★</span>}
           {isCompReady && (
             <span style={{
-              fontSize: '0.5625rem', fontWeight: 600, color: '#F59E0B',
+              fontSize: '0.5625rem', fontWeight: 600, color: 'var(--comp-ready)',
               background: '#F59E0B18', border: '0.5px solid #F59E0B44',
               borderRadius: 20, padding: '1px 6px', letterSpacing: '0.06em',
             }}>⬡ comp ready</span>
