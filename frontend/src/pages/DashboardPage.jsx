@@ -133,21 +133,21 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
           <div key={`flow-${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
             {i === 0 && move.from_position && (
               <>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{move.from_position.name}</span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{move.from_position.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
               </>
             )}
             <span
               title={move.name}
-              style={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-move)' }}
+              style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-move)' }}
             >{truncateName(move.name, 18)}</span>
             {i < moves.length - 1 && (
-              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
             )}
             {i === moves.length - 1 && move.to_position && (
               <>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{move.to_position.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 0.2rem' }}>→</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{move.to_position.name}</span>
               </>
             )}
           </div>
@@ -235,13 +235,13 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
                     >
                       {truncateName(move.name)}
                       {conf ? (
-                        <span style={{ fontWeight: 700, fontSize: '0.625rem', fontFamily: 'var(--font-display)', opacity: 0.9 }}>
+                        <span style={{ fontWeight: 700, fontSize: 11, fontFamily: 'var(--font-display)', opacity: 0.9 }}>
                           {conf}
                         </span>
                       ) : (
-                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>—</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
                       )}
-                      {isCompReady && <span style={{ fontSize: '0.5rem', color: '#F59E0B' }}>⬡</span>}
+                      {isCompReady && <span style={{ fontSize: 11, color: '#F59E0B' }}>⬡</span>}
                     </div>
                     {i < moves.length - 1 && (
                       <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', padding: '0 0.2rem', flexShrink: 0 }}>→</div>
@@ -259,9 +259,9 @@ function ChainDashboardCard({ chain, athletes, matrix, positionComfort, compRead
                   background: borderColor, transition: 'width 0.3s ease',
                 }} />
               </div>
-              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                {ratedCount} of {moves.length} rated
-              </span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  {ratedCount} of {moves.length} rated
+                </span>
             </div>
           </div>
         )

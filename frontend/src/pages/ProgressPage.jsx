@@ -319,13 +319,13 @@ function CreatePersonalMoveForm({ onCreated, onCancel }) {
   return (
     <div style={{
       background: 'var(--bg-surface)',
-      border: '0.5px solid #0D9488',
+      border: '0.5px solid var(--move-color)',
       borderRadius: 'var(--radius-lg)',
       padding: '14px 16px', marginBottom: 12,
     }}>
       <div style={{
         fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
-        textTransform: 'uppercase', color: '#0D9488', marginBottom: 12,
+        textTransform: 'uppercase', color: 'var(--move-color)', marginBottom: 12,
       }}>New Personal Move</div>
 
       {error && (
@@ -396,7 +396,7 @@ function CreatePersonalMoveForm({ onCreated, onCancel }) {
           style={{
             padding: '8px 16px', fontSize: 12, fontWeight: 600,
             borderRadius: 'var(--radius-md)', border: 'none',
-            background: '#0D9488', color: 'white',
+            background: 'var(--move-color)', color: 'white',
             cursor: saving ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-body)', opacity: saving ? 0.6 : 1,
           }}
@@ -542,9 +542,9 @@ export default function ProgressPage() {
               <button
                 onClick={() => setCreatingMove(true)}
                 style={{
-                  padding: '8px 16px', fontSize: 12, fontWeight: 600,
-                  borderRadius: 'var(--radius-md)', border: '0.5px solid #0D9488',
-                  background: 'rgba(13,148,136,0.08)', color: '#0D9488',
+                  padding: '6px 14px', fontSize: 11, fontWeight: 600,
+                  borderRadius: 'var(--radius-md)', border: '0.5px solid var(--move-color)',
+                  background: 'var(--move-soft)', color: 'var(--move-color)',
                   cursor: 'pointer', fontFamily: 'var(--font-body)',
                   transition: 'all var(--transition)',
                 }}
@@ -594,8 +594,8 @@ export default function ProgressPage() {
                 onClick={() => setCreatingMove(true)}
                 style={{
                   padding: '6px 14px', fontSize: 11, fontWeight: 600,
-                  borderRadius: 'var(--radius-md)', border: '0.5px solid #0D9488',
-                  background: 'rgba(13,148,136,0.08)', color: '#0D9488',
+                  borderRadius: 'var(--radius-md)', border: '0.5px solid var(--move-color)',
+                  background: 'var(--move-soft)', color: 'var(--move-color)',
                   cursor: 'pointer', fontFamily: 'var(--font-body)',
                   transition: 'all var(--transition)',
                 }}
