@@ -130,9 +130,7 @@ function AthleteInsightsPanel({ insights, loading }) {
     return (
       <div style={{ marginBottom: '2rem' }}>
         <SectionLabel>Insights</SectionLabel>
-        <div style={{
-          display: 'flex', gap: '0.625rem', flexWrap: 'wrap',
-        }}>
+        <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
           {[1, 2, 3].map(i => (
             <div key={i} style={{
               flex: 1, minWidth: '10rem', height: '6rem',
@@ -148,9 +146,33 @@ function AthleteInsightsPanel({ insights, loading }) {
 
   if (!insights) return null
 
+  if (insights.insufficient_data) {
+    return (
+      <div style={{ marginBottom: '2rem' }}>
+        <SectionLabel>Insights</SectionLabel>
+        <div style={{
+          background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+          borderRadius: 'var(--radius-md)', padding: '1.25rem',
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+        }}>
+          <span style={{ fontSize: '1.25rem' }}>📊</span>
+          <div>
+            <div style={{
+              fontSize: '0.8125rem', fontWeight: 600,
+              color: 'var(--text-primary)', marginBottom: '0.25rem',
+            }}>Not enough data yet</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Rate at least {insights.min_required} moves to unlock insights.
+              {insights.rated_count > 0 && ` ${insights.rated_count} rated so far.`}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const { weakest, strongest, focus, unrated_curriculum_moves } = insights
 
-  // If no data at all yet
   if (!weakest && !strongest && !focus && (!unrated_curriculum_moves || unrated_curriculum_moves.length === 0)) {
     return (
       <div style={{ marginBottom: '2rem' }}>
@@ -170,7 +192,6 @@ function AthleteInsightsPanel({ insights, loading }) {
     <div style={{ marginBottom: '2rem' }}>
       <SectionLabel>Insights</SectionLabel>
 
-      {/* Main insight cards */}
       <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
         {focus && (
           <InsightCard
@@ -207,7 +228,6 @@ function AthleteInsightsPanel({ insights, loading }) {
         )}
       </div>
 
-      {/* Unrated curriculum moves nudge */}
       {unrated_curriculum_moves && unrated_curriculum_moves.length > 0 && (
         <div style={{
           background: 'var(--bg-surface)',
