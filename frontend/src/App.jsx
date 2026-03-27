@@ -13,6 +13,7 @@ import CurriculaPage from './pages/CurriculaPage'
 import AthleteOverviewPage from './pages/AthleteOverviewPage'
 import './styles/globals.css'
 import HomePage from './pages/HomePage'
+import LandingPage from './pages/LandingPage'
 
 function getInitialTheme() {
   const stored = localStorage.getItem('mb-theme')
@@ -157,6 +158,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Route path="/landing" element={<LandingPage />} />
       <AuthProvider>
         <Routes>
           <Route path="/login"      element={<LoginPage />} />
