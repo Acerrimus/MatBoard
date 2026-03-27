@@ -835,7 +835,29 @@ function HomePageInner({ user, profile, displayName, role, isCoach, navigate }) 
                 <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
                   {[1, 2, 3].map(i => <Skeleton key={i} height={90} delay={i * 0.1} />)}
                 </div>
-              ) : !athleteInsights || (!athleteInsights.focus && !athleteInsights.weakest && !athleteInsights.strongest) ? (
+              ) : !athleteInsights || athleteInsights.insufficient_data ? (
+                <div style={{
+                  background: 'var(--bg-surface)',
+                  border: '0.5px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.25rem',
+                  display: 'flex', alignItems: 'center', gap: '0.75rem',
+                }}>
+                  <span style={{ fontSize: '1.25rem' }}>📊</span>
+                  <div>
+                    <div style={{
+                      fontSize: '0.8125rem', fontWeight: 600,
+                      color: 'var(--text-primary)', marginBottom: '0.25rem',
+                    }}>Not enough data yet</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      Rate at least {athleteInsights?.min_required ?? 3} moves to unlock your insights.{' '}
+                      <Link to="/explore" style={{ color: 'var(--text-accent)', fontWeight: 600 }}>
+                        Start in the graph →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ) : !athleteInsights.focus && !athleteInsights.weakest && !athleteInsights.strongest ? (
                 <div style={{
                   background: 'var(--bg-surface)',
                   border: '0.5px solid var(--border)',
@@ -844,10 +866,7 @@ function HomePageInner({ user, profile, displayName, role, isCoach, navigate }) 
                   fontSize: '0.8125rem', color: 'var(--text-muted)',
                   textAlign: 'center',
                 }}>
-                  Rate at least 5 moves to unlock your personalised insights.{' '}
-                  <Link to="/explore" style={{ color: 'var(--text-accent)', fontWeight: 600 }}>
-                    Start in the graph →
-                  </Link>
+                  No insights yet — rate more moves to see your strengths and weaknesses.
                 </div>
               ) : (
                 <>
