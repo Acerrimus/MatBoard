@@ -14,20 +14,21 @@ function withTimeout(promise, ms) {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser]                 = useState(null)
-  const [session, setSession]           = useState(null)
-  const [profile, setProfile]           = useState(undefined)
+  const [user, setUser]               = useState(null)
+  const [session, setSession]         = useState(null)
+  const [profile, setProfile]         = useState(undefined)
   const [profileError, setProfileError] = useState(false)
-  const [loading, setLoading]           = useState(true)
-  const initialised                     = useRef(false)
+  const [loading, setLoading]         = useState(true)
+  const initialised                   = useRef(false)
 
-  const fetchProfile = useCallback(async (userId, { silent = false } = {}) => {
+  // ── Change 1: fetchProfile never resets to undefined if we already
+  // have a profile for this user. Only reset when switching users.
+  const fetchProfile = useCallback(async (userId, { forceReset = false } = {}) => {
     if (!userId) { setProfile(null); return }
 
-    // Only reset to undefined (shows LoadingScreen) when this is NOT a
-    // silent background refresh — e.g. token refresh on tab focus.
-    // A silent fetch updates profile in place without unmounting the page.
-    if (!silent) {
+    // Only flash the loading state on first load or explicit user switch.
+    // Never on TOKEN_REFRESHED — that's what was causing remounts.
+    if (forceReset) {
       setProfile(undefined)
     }
 
@@ -45,9 +46,7 @@ export function AuthProvider({ children }) {
         console.warn(`Profile fetch attempt ${attempt} failed:`, err.message)
         if (attempt === 3) {
           setProfileError(true)
-          // On a silent refresh failure, don't wipe the profile the user
-          // already has — they're still authenticated, just keep what we have.
-          if (!silent) setProfile(null)
+          setProfile(null)
         } else {
           await new Promise(r => setTimeout(r, 1000 * attempt))
         }
@@ -56,7 +55,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id, { silent: true })
+    if (user) await fetchProfile(user.id) // no forceReset — silent refresh
   }, [user, fetchProfile])
 
   useEffect(() => {
@@ -70,8 +69,8 @@ export function AuthProvider({ children }) {
         setSession(session)
         setUser(session?.user ?? null)
         if (session?.user) {
-          // Initial load — not silent, show LoadingScreen until profile resolves
-          await fetchProfile(session.user.id, { silent: false })
+          // forceReset: true on init — we have no profile yet, loading state is correct
+          await fetchProfile(session.user.id, { forceReset: true })
         } else {
           setProfile(null)
         }
@@ -93,28 +92,25 @@ export function AuthProvider({ children }) {
       async (event, session) => {
         if (!initialised.current) return
 
+        // ── Change 2: TOKEN_REFRESHED just updates the session token.
+        // The user hasn't changed. Don't touch profile. Don't cause remounts.
         if (event === 'TOKEN_REFRESHED') {
-          // Token refreshed silently — Supabase client already has the new token
-          // internally. buildHeaders() calls getSession() fresh each time so it
-          // will pick it up automatically. No state update needed — pushing new
-          // object references into React state causes re-renders that fire data
-          // fetches during the refresh window, which return 401s.
+          setSession(session)
           return
         }
 
-        if (event === 'SIGNED_OUT') {
-          setSession(null)
-          setUser(null)
-          setProfile(null)
-          setProfileError(false)
-          return
-        }
+        // ── Change 3: SIGNED_OUT clears everything.
+        // SIGNED_IN with a different user fetches fresh profile with reset.
+        const incomingUserId = session?.user?.id ?? null
+        const currentUserId  = incomingUserId // read before setUser
 
-        // SIGNED_IN, USER_UPDATED, etc.
         setSession(session)
         setUser(session?.user ?? null)
+
         if (session?.user) {
-          await fetchProfile(session.user.id, { silent: true })
+          // forceReset only if this is a different user than before
+          const isNewUser = incomingUserId !== user?.id
+          await fetchProfile(session.user.id, { forceReset: isNewUser })
         } else {
           setProfile(null)
         }
