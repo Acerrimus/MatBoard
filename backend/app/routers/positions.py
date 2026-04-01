@@ -68,7 +68,7 @@ def get_moves_from_position(
     moves_res = client.table("moves") \
         .select("""
             id, name, slug, description,
-            scoring_value, risk_rating, sport,
+            scoring_value, risk_rating, sport, styles,
             club_id, created_by,
             from_position:positions!from_position_id(id, name, slug),
             to_position:positions!to_position_id(id, name, slug)
