@@ -70,7 +70,7 @@ function nodeStyle(avgConf, hasAnyOnBoard, isActive) {
   }
   if (!avgConf && !hasAnyOnBoard) {
     return {
-      background:  'rgba(255,255,255,0.03)',
+      background:  'var(--bg-subtle)',
       borderColor: 'rgba(255,255,255,0.1)',
       borderWidth: '1px',
       color:       'var(--text-muted)',
