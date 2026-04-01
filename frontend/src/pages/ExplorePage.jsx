@@ -28,6 +28,13 @@ const POSITION_COLOR = '#DC2626'
 const MOVE_COLOR     = '#3B82F6'
 const UNDISCOVERED   = '#A1A1AA'
 
+// ── Style label display map ───────────────────────────────────────────────────
+const STYLE_LABELS = {
+  folkstyle: 'Folkstyle',
+  freestyle: 'Freestyle',
+  greco:     'Greco-Roman',
+}
+
 // ── Dagre layout ──────────────────────────────────────────────────────────────
 // Computes (x, y) for each position node using the actual move graph structure.
 // Top-to-bottom flow. Neutral naturally rises to the top because it has the
@@ -322,6 +329,41 @@ const nodeTypes = {
 }
 const edgeTypes = { aggregate: AggregateEdge }
 
+// ── Style toggle pill ─────────────────────────────────────────────────────────
+function StyleToggle({ styles, activeStyle, onChange }) {
+  if (!styles.length) return null
+  return (
+    <div style={{
+      position: 'absolute', top: 16, left: 16, zIndex: 10,
+      display: 'flex', alignItems: 'center', gap: 4,
+      background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+      borderRadius: 'var(--radius-lg)', padding: '4px 6px',
+      pointerEvents: 'all',
+    }}>
+      {['all', ...styles].map(s => (
+        <button
+          key={s}
+          onClick={() => onChange(s)}
+          style={{
+            background: activeStyle === s ? 'var(--accent)' : 'none',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            padding: '4px 10px',
+            fontSize: 11, fontWeight: 600,
+            color: activeStyle === s ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            transition: 'all 0.15s',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ── Save chain modal ──────────────────────────────────────────────────────────
 function SaveChainModal({ moves, onSave, onClose }) {
   const [name, setName]     = useState('')
@@ -436,32 +478,45 @@ function ExploreInner({
   rawPositions, rawMoves,
   boardMoveIds, setBoardMoveIds,
   progressMap, setProgressMap,
-  activeSport, setActiveSport, sports,
+  activeStyle, setActiveStyle, styles,
   panelMove, setPanelMove,
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
-  const [focusTrail, setFocusTrail]     = useState([])
-  const [chainLevels, setChainLevels]   = useState([])
+  const [focusTrail, setFocusTrail]       = useState([])
+  const [chainLevels, setChainLevels]     = useState([])
   const [showSaveModal, setShowSaveModal] = useState(false)
-  const [savedChain, setSavedChain]     = useState(null)
+  const [savedChain, setSavedChain]       = useState(null)
 
   const { fitView } = useReactFlow()
   const fitQueued   = useRef(false)
 
+  // ── Style filtering ─────────────────────────────────────────────────────────
+  // styles is a text array on each move — e.g. ['folkstyle'] or ['freestyle']
   const filteredMoves = useMemo(() => {
-    if (activeSport === 'all') return rawMoves
-    return rawMoves.filter(m => (m.sport ?? 'wrestling') === activeSport)
-  }, [rawMoves, activeSport])
+    if (activeStyle === 'all') return rawMoves
+    return rawMoves.filter(m => Array.isArray(m.styles) && m.styles.includes(activeStyle))
+  }, [rawMoves, activeStyle])
 
+  // Positions are derived from whichever moves are visible — no separate position
+  // style filter needed. A position only appears if at least one visible move
+  // references it.
   const filteredPositions = useMemo(() => {
-    if (activeSport === 'all') return rawPositions
+    if (activeStyle === 'all') return rawPositions
     const ids = new Set(filteredMoves.flatMap(m => [m.from_position_id, m.to_position_id]))
     return rawPositions.filter(p => ids.has(p.id))
-  }, [rawPositions, filteredMoves, activeSport])
+  }, [rawPositions, filteredMoves, activeStyle])
 
   const focusPosition = focusTrail.length > 0 ? focusTrail[focusTrail.length - 1] : null
+
+  // ── Reset focus trail when style changes ────────────────────────────────────
+  // If the user switches style mid-drill-down, the focused position may not
+  // exist in the new filtered set. Safest move: reset to map view.
+  useEffect(() => {
+    setFocusTrail([])
+    setChainLevels([])
+  }, [activeStyle])
 
   // ── Enter focus ─────────────────────────────────────────────────────────────
   const enterFocus = useCallback((position) => {
@@ -520,7 +575,7 @@ function ExploreInner({
     let newEdges = []
 
     if (focusPosition && chainLevels.length) {
-      // Focus / chain drill-down mode — unchanged from before
+      // Focus / chain drill-down mode
       const { nodes: fn, edges: fe } = buildFocusLayout(
         chainLevels, filteredMoves, filteredPositions,
         boardMoveIds, progressMap,
@@ -603,6 +658,13 @@ function ExploreInner({
 
   return (
     <div style={{ height: '100dvh', position: 'relative' }}>
+
+      {/* Style toggle — top left, only visible when multiple styles exist */}
+      <StyleToggle
+        styles={styles}
+        activeStyle={activeStyle}
+        onChange={setActiveStyle}
+      />
 
       {/* Top bar — breadcrumb trail */}
       <div style={{
@@ -808,7 +870,7 @@ export default function ExplorePage() {
   const [rawMoves, setRawMoves]         = useState([])
   const [boardMoveIds, setBoardMoveIds] = useState(new Set())
   const [progressMap, setProgressMap]   = useState({})
-  const [activeSport, setActiveSport]   = useState('all')
+  const [activeStyle, setActiveStyle]   = useState('all')
   const [panelMove, setPanelMove]       = useState(null)
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
@@ -828,9 +890,14 @@ export default function ExplorePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const sports = useMemo(() => {
-    const set = new Set(rawMoves.map(m => m.sport ?? 'wrestling'))
-    return set.size > 1 ? ['all', ...Array.from(set)] : []
+  // Derive unique styles from seed data — only show toggle if more than one
+  // style is present. Greco will appear here automatically once seeded.
+  const styles = useMemo(() => {
+    const set = new Set()
+    rawMoves.forEach(m => {
+      if (Array.isArray(m.styles)) m.styles.forEach(s => set.add(s))
+    })
+    return set.size > 1 ? Array.from(set).sort() : []
   }, [rawMoves])
 
   if (loading) return (
@@ -858,8 +925,8 @@ export default function ExplorePage() {
         rawPositions={rawPositions} rawMoves={rawMoves}
         boardMoveIds={boardMoveIds} setBoardMoveIds={setBoardMoveIds}
         progressMap={progressMap}   setProgressMap={setProgressMap}
-        activeSport={activeSport}   setActiveSport={setActiveSport}
-        sports={sports}
+        activeStyle={activeStyle}   setActiveStyle={setActiveStyle}
+        styles={styles}
         panelMove={panelMove}       setPanelMove={setPanelMove}
       />
     </ReactFlowProvider>
