@@ -889,13 +889,14 @@ export default function ExplorePage() {
     loadPosition(slug)
   }, []) // intentionally mount-only
 
-  // ── Style-filtered moves ───────────────────────────────────────────────────
-  const filteredMoves = useMemo(() => {
-    if (activeStyle === 'all') return moves
-    return moves.filter(m =>
-      Array.isArray(m.styles) && m.styles.includes(activeStyle)
-    )
-  }, [moves, activeStyle])
+// ── Style-filtered moves ───────────────────────────────────────────────────
+const filteredMoves = useMemo(() => {
+  if (activeStyle === 'all') return moves
+  return moves.filter(m => {
+    const moveStyles = Array.isArray(m.styles) ? m.styles : []
+    return moveStyles.includes(activeStyle)
+  })
+}, [moves, activeStyle])
 
   // ── Click a move row ───────────────────────────────────────────────────────
   const handleMoveClick = useCallback(async (move) => {
