@@ -51,6 +51,9 @@ def similarity(a, b):
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
 def best_match(move_name, videos, threshold=0.35):
+    if not videos:                          
+        return None, 0.0
+    
     scored = [
         (v, similarity(move_name, v["title"]))
         for v in videos
@@ -66,6 +69,10 @@ def main():
     print("Fetching playlist videos...")
     videos = get_playlist_videos(PLAYLIST_ID, YOUTUBE_API_KEY)
     print(f"  {len(videos)} videos found\n")
+
+    if not videos:                          
+        print("ERROR: No videos fetched. Check your PLAYLIST_ID and YOUTUBE_API_KEY.")
+        return
 
     print("Fetching moves from Supabase...")
     moves = get_moves()
