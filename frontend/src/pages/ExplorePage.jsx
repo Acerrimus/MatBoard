@@ -870,7 +870,7 @@ export default function ExplorePage() {
   const [rawMoves, setRawMoves]         = useState([])
   const [boardMoveIds, setBoardMoveIds] = useState(new Set())
   const [progressMap, setProgressMap]   = useState({})
-  const [activeStyle, setActiveStyle]   = useState('all')
+  const [activeStyle, setActiveStyle]   = useState('freestyle')
   const [panelMove, setPanelMove]       = useState(null)
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
