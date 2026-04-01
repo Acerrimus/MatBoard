@@ -20,9 +20,9 @@ import { confidenceColor } from '../components/MoveCard'
 import MoveDetail from '../components/MoveDetail'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const NODE_W         = 160
-const NODE_H         = 48
-const H_GAP          = 60   // dagre ranksep / nodesep
+const NODE_W         = 148
+const NODE_H         = 40
+const H_GAP          = 60
 const LEVEL_GAP      = 140
 const POSITION_COLOR = '#DC2626'
 const MOVE_COLOR     = '#3B82F6'
@@ -36,30 +36,24 @@ const STYLE_LABELS = {
 }
 
 // ── Dagre layout ──────────────────────────────────────────────────────────────
-// Computes (x, y) for each position node using the actual move graph structure.
-// Top-to-bottom flow. Neutral naturally rises to the top because it has the
-// most outgoing edges. Par Terre / Back Control sink to the bottom because
-// most edges point into them.
 function buildDagreLayout(positions, moves) {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
   g.setGraph({
-    rankdir: 'TB',   // top → bottom
-    ranksep: 60,    // vertical gap between ranks
-    nodesep: 15,     // horizontal gap between nodes in same rank
-    marginx: 80,
-    marginy: 80,
+    rankdir: 'TB',
+    ranksep: 80,
+    nodesep: 40,
+    marginx: 60,
+    marginy: 60,
   })
 
   positions.forEach(p => {
     g.setNode(p.id, { width: NODE_W, height: NODE_H })
   })
 
-  // Only add edges between positions that actually exist in our node set
   const posIds = new Set(positions.map(p => p.id))
   moves.forEach(m => {
     if (posIds.has(m.from_position_id) && posIds.has(m.to_position_id)) {
-      // Avoid duplicate edges — dagre only needs one per pair for layout
       g.setEdge(m.from_position_id, m.to_position_id)
     }
   })
@@ -69,7 +63,6 @@ function buildDagreLayout(positions, moves) {
   const posXY = {}
   positions.forEach(p => {
     const node = g.node(p.id)
-    // dagre returns centre coordinates — ReactFlow wants top-left
     posXY[p.id] = {
       x: node.x - NODE_W / 2,
       y: node.y - NODE_H / 2,
@@ -164,21 +157,27 @@ function MapPositionNode({ data }) {
         onClick={data.onFocus}
         style={{
           width: NODE_W, height: NODE_H,
-          background: 'var(--bg-surface)',
-          border: `2px solid ${POSITION_COLOR}`,
-          borderRadius: 10,
+          background: 'rgba(220,38,38,0.07)',
+          border: '1px solid rgba(220,38,38,0.45)',
+          borderRadius: 20,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '0 14px', cursor: 'pointer',
-          transition: 'background 0.15s',
+          transition: 'all 0.15s',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-soft)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-surface)'}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = 'rgba(220,38,38,0.14)'
+          e.currentTarget.style.borderColor = 'rgba(220,38,38,0.75)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = 'rgba(220,38,38,0.07)'
+          e.currentTarget.style.borderColor = 'rgba(220,38,38,0.45)'
+        }}
       >
         <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700,
+          fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700,
           color: 'var(--text-primary)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          pointerEvents: 'none',
+          pointerEvents: 'none', letterSpacing: '0.01em',
         }}>
           {data.name}
         </span>
@@ -197,11 +196,11 @@ function AggregateEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
   const onBoard = data.onBoardCount ?? 0
   const color   = data.avgConfidence
     ? confidenceColor(data.avgConfidence)
-    : onBoard > 0 ? '#7C3AED' : 'var(--border-strong)'
+    : onBoard > 0 ? '#7C3AED' : 'rgba(255,255,255,0.12)'
   return (
     <BaseEdge id={id} path={edgePath} style={{
-      stroke: color, strokeWidth: onBoard > 0 ? 2.5 : 1.5,
-      opacity: onBoard > 0 ? 0.85 : 0.25,
+      stroke: color, strokeWidth: onBoard > 0 ? 2 : 1,
+      opacity: onBoard > 0 ? 0.7 : 0.4,
     }} />
   )
 }
@@ -211,16 +210,16 @@ function FocusCenterNode({ data }) {
   return (
     <>
       <div style={{
-        width: NODE_W + 40, height: NODE_H + 12,
-        background: 'var(--accent-soft)',
-        border: `2.5px solid ${POSITION_COLOR}`,
-        borderRadius: 12,
+        width: NODE_W + 40, height: NODE_H + 8,
+        background: 'rgba(220,38,38,0.12)',
+        border: '1.5px solid rgba(220,38,38,0.6)',
+        borderRadius: 24,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '0 16px', userSelect: 'none',
       }}>
         <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700,
-          color: 'var(--accent)',
+          fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+          color: '#DC2626',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {data.name}
@@ -237,16 +236,16 @@ function FocusDestNode({ data }) {
     <>
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
       <div style={{
-        width: NODE_W + 40, height: NODE_H + 12,
-        background: 'var(--accent-soft)',
-        border: `2.5px solid ${POSITION_COLOR}`,
-        borderRadius: 12,
+        width: NODE_W + 40, height: NODE_H + 8,
+        background: 'rgba(220,38,38,0.08)',
+        border: '1px solid rgba(220,38,38,0.4)',
+        borderRadius: 24,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '0 16px', userSelect: 'none',
       }}>
         <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700,
-          color: 'var(--accent)',
+          fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+          color: 'var(--text-primary)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {data.name}
@@ -261,9 +260,13 @@ function FocusDestNode({ data }) {
 function FocusMoveNode({ data }) {
   const { isOnBoard, isSelected, confidence, name, onSelect, onDetail } = data
   const border   = isSelected
-    ? (isOnBoard ? MOVE_COLOR : UNDISCOVERED)
+    ? (isOnBoard ? 'rgba(59,130,246,0.7)' : 'rgba(161,161,170,0.5)')
     : 'var(--border)'
-  const bg       = isSelected && isOnBoard ? 'rgba(59,130,246,0.08)' : 'var(--bg-surface)'
+  const bg = isSelected && isOnBoard
+    ? 'rgba(59,130,246,0.09)'
+    : isSelected
+    ? 'rgba(161,161,170,0.06)'
+    : 'var(--bg-surface)'
   const dotColor = confidence
     ? confidenceColor(confidence)
     : isOnBoard ? '#7C3AED' : 'var(--border)'
@@ -276,25 +279,25 @@ function FocusMoveNode({ data }) {
         style={{
           width: NODE_W, height: NODE_H,
           background: bg,
-          border: `2px solid ${border}`,
+          border: `1px solid ${border}`,
           borderRadius: 10,
           display: 'flex', alignItems: 'center',
           padding: '0 10px', gap: 8,
           cursor: 'pointer',
-          opacity: isSelected ? 1 : 0.55,
+          opacity: isSelected ? 1 : 0.5,
           transition: 'all 0.15s',
         }}
         onClick={onSelect}
         onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.55' }}
+        onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.5' }}
       >
         <div style={{
-          width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+          width: 22, height: 22, borderRadius: 6, flexShrink: 0,
           background: isOnBoard ? 'rgba(59,130,246,0.1)' : 'var(--bg-subtle)',
-          border: `1px solid ${isOnBoard ? 'rgba(59,130,246,0.25)' : 'var(--border)'}`,
+          border: `1px solid ${isOnBoard ? 'rgba(59,130,246,0.2)' : 'var(--border)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor }} />
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor }} />
         </div>
         <span style={{
           fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: isSelected ? 600 : 500,
@@ -307,7 +310,7 @@ function FocusMoveNode({ data }) {
           onClick={e => { e.stopPropagation(); onDetail() }}
           title="View detail"
           style={{
-            width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+            width: 16, height: 16, borderRadius: 4, flexShrink: 0,
             background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 9, color: 'var(--text-muted)', cursor: 'pointer',
@@ -329,37 +332,148 @@ const nodeTypes = {
 }
 const edgeTypes = { aggregate: AggregateEdge }
 
-// ── Style toggle pill ─────────────────────────────────────────────────────────
-function StyleToggle({ styles, activeStyle, onChange }) {
-  if (!styles.length) return null
+// ── Mobile: Position list ─────────────────────────────────────────────────────
+function MobilePositionList({ positions, moves, activeStyle, setActiveStyle, styles, onSelect }) {
+  const [search, setSearch] = useState('')
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return positions
+    const q = search.toLowerCase()
+    return positions.filter(p => p.name.toLowerCase().includes(q))
+  }, [positions, search])
+
+  const moveCount = useMemo(() => {
+    const map = {}
+    moves.forEach(m => {
+      map[m.from_position_id] = (map[m.from_position_id] ?? 0) + 1
+    })
+    return map
+  }, [moves])
+
   return (
     <div style={{
-      position: 'absolute', top: 16, left: 16, zIndex: 10,
-      display: 'flex', alignItems: 'center', gap: 4,
-      background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-      borderRadius: 'var(--radius-lg)', padding: '4px 6px',
-      pointerEvents: 'all',
+      height: '100dvh', display: 'flex', flexDirection: 'column',
+      background: 'var(--bg-page)',
     }}>
-      {['all', ...styles].map(s => (
-        <button
-          key={s}
-          onClick={() => onChange(s)}
-          style={{
-            background: activeStyle === s ? 'var(--accent)' : 'none',
-            border: 'none',
-            borderRadius: 'var(--radius-md)',
-            padding: '4px 10px',
-            fontSize: 11, fontWeight: 600,
-            color: activeStyle === s ? '#fff' : 'var(--text-muted)',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            transition: 'all 0.15s',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
-        </button>
-      ))}
+      {/* Header */}
+      <div style={{
+        padding: '16px 16px 12px',
+        borderBottom: '0.5px solid var(--border)',
+        background: 'var(--bg-surface)',
+        flexShrink: 0,
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700,
+          color: 'var(--text-primary)', marginBottom: 12,
+        }}>
+          Positions
+        </div>
+
+        {/* Style toggle */}
+        {styles.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            {['all', ...styles].map(s => (
+              <button
+                key={s}
+                onClick={() => setActiveStyle(s)}
+                style={{
+                  padding: '5px 12px',
+                  background: activeStyle === s ? 'var(--accent)' : 'var(--bg-subtle)',
+                  border: activeStyle === s ? 'none' : '0.5px solid var(--border)',
+                  borderRadius: 20,
+                  fontSize: 12, fontWeight: 600,
+                  color: activeStyle === s ? '#fff' : 'var(--text-muted)',
+                  cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search positions..."
+            style={{
+              width: '100%', padding: '9px 12px 9px 34px',
+              background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+              borderRadius: 10, fontSize: 14,
+              color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
+              outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+          <span style={{
+            position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
+            fontSize: 14, color: 'var(--text-muted)', pointerEvents: 'none',
+          }}>
+            ⌕
+          </span>
+        </div>
+      </div>
+
+      {/* List */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 32px' }}>
+        {filtered.map(p => {
+          const count = moveCount[p.id] ?? 0
+          return (
+            <button
+              key={p.id}
+              onClick={() => onSelect(p)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '13px 14px',
+                background: 'var(--bg-surface)',
+                border: '0.5px solid var(--border)',
+                borderRadius: 12, marginBottom: 8,
+                cursor: 'pointer', textAlign: 'left',
+                fontFamily: 'var(--font-body)',
+                transition: 'border-color 0.15s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: 'rgba(220,38,38,0.6)', flexShrink: 0,
+                }} />
+                <span style={{
+                  fontSize: 14, fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-display)',
+                }}>
+                  {p.name}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {count > 0 && (
+                  <span style={{
+                    fontSize: 11, color: 'var(--text-muted)',
+                    background: 'var(--bg-subtle)',
+                    border: '0.5px solid var(--border)',
+                    borderRadius: 6, padding: '2px 7px',
+                  }}>
+                    {count} move{count !== 1 ? 's' : ''}
+                  </span>
+                )}
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>›</span>
+              </div>
+            </button>
+          )
+        })}
+        {filtered.length === 0 && (
+          <div style={{
+            textAlign: 'center', color: 'var(--text-muted)',
+            fontSize: 13, marginTop: 40,
+          }}>
+            No positions match "{search}"
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -389,7 +503,7 @@ function SaveChainModal({ moves, onSave, onClose }) {
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(0,0,0,0.5)',
+        background: 'rgba(0,0,0,0.55)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -481,6 +595,9 @@ function ExploreInner({
   activeStyle, setActiveStyle, styles,
   panelMove, setPanelMove,
 }) {
+  // ── isMobile declared first — used throughout this component ────────────────
+  const isMobile = useRef(window.innerWidth < 768).current
+
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
@@ -493,15 +610,11 @@ function ExploreInner({
   const fitQueued   = useRef(false)
 
   // ── Style filtering ─────────────────────────────────────────────────────────
-  // styles is a text array on each move — e.g. ['folkstyle'] or ['freestyle']
   const filteredMoves = useMemo(() => {
     if (activeStyle === 'all') return rawMoves
     return rawMoves.filter(m => Array.isArray(m.styles) && m.styles.includes(activeStyle))
   }, [rawMoves, activeStyle])
 
-  // Positions are derived from whichever moves are visible — no separate position
-  // style filter needed. A position only appears if at least one visible move
-  // references it.
   const filteredPositions = useMemo(() => {
     if (activeStyle === 'all') return rawPositions
     const ids = new Set(filteredMoves.flatMap(m => [m.from_position_id, m.to_position_id]))
@@ -510,9 +623,7 @@ function ExploreInner({
 
   const focusPosition = focusTrail.length > 0 ? focusTrail[focusTrail.length - 1] : null
 
-  // ── Reset focus trail when style changes ────────────────────────────────────
-  // If the user switches style mid-drill-down, the focused position may not
-  // exist in the new filtered set. Safest move: reset to map view.
+  // ── Reset focus when style changes ──────────────────────────────────────────
   useEffect(() => {
     setFocusTrail([])
     setChainLevels([])
@@ -567,15 +678,15 @@ function ExploreInner({
       .filter(Boolean)
   }, [chainLevels])
 
-  // ── Build graph ─────────────────────────────────────────────────────────────
+  // ── Build graph (desktop only) ───────────────────────────────────────────────
   useEffect(() => {
+    if (isMobile) return
     if (!filteredPositions.length) return
 
     let newNodes = []
     let newEdges = []
 
     if (focusPosition && chainLevels.length) {
-      // Focus / chain drill-down mode
       const { nodes: fn, edges: fe } = buildFocusLayout(
         chainLevels, filteredMoves, filteredPositions,
         boardMoveIds, progressMap,
@@ -584,7 +695,6 @@ function ExploreInner({
       newNodes = fn
       newEdges = fe
     } else {
-      // Map mode — dagre layout
       const posXY = buildDagreLayout(filteredPositions, filteredMoves)
 
       filteredPositions.forEach(p => {
@@ -597,7 +707,6 @@ function ExploreInner({
         })
       })
 
-      // Aggregate edges — one per position pair, coloured by confidence
       const pairMoves = {}
       filteredMoves.forEach(m => {
         const key = `${m.from_position_id}__${m.to_position_id}`
@@ -628,7 +737,7 @@ function ExploreInner({
     setNodes(newNodes)
     setEdges(newEdges)
     fitQueued.current = true
-  }, [filteredPositions, filteredMoves, chainLevels, boardMoveIds, progressMap,
+  }, [isMobile, filteredPositions, filteredMoves, chainLevels, boardMoveIds, progressMap,
       focusPosition, enterFocus, onSelectMove, handleMoveClick])
 
   useEffect(() => {
@@ -656,43 +765,110 @@ function ExploreInner({
     })
   }, [setProgressMap])
 
+  // ── Mobile: position list → focus drill-down ─────────────────────────────────
+  if (isMobile && !focusPosition) {
+    return (
+      <>
+        <MobilePositionList
+          positions={filteredPositions}
+          moves={filteredMoves}
+          activeStyle={activeStyle}
+          setActiveStyle={setActiveStyle}
+          styles={styles}
+          onSelect={enterFocus}
+        />
+        {panelMove && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'var(--bg-page)', overflowY: 'auto',
+          }}>
+            <MoveDetail
+              move={panelMove}
+              onNavigate={() => setPanelMove(null)}
+              onBack={() => setPanelMove(null)}
+              isOnBoard={boardMoveIds.has(panelMove.id)}
+              progress={progressMap[panelMove.id] ?? null}
+              onBoardChange={handleBoardChange}
+              onProgressChange={handleProgressChange}
+            />
+          </div>
+        )}
+      </>
+    )
+  }
+
+  // ── Desktop (and mobile in focus mode) ───────────────────────────────────────
   return (
     <div style={{ height: '100dvh', position: 'relative' }}>
 
-      {/* Style toggle — top left, only visible when multiple styles exist */}
-      <StyleToggle
-        styles={styles}
-        activeStyle={activeStyle}
-        onChange={setActiveStyle}
-      />
-
-      {/* Top bar — breadcrumb trail */}
+      {/* Top bar — unified strip: style toggle left, breadcrumb centre */}
       <div style={{
-        position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 10, display: 'flex', alignItems: 'center', gap: 0,
         background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-lg)', padding: '6px 12px', pointerEvents: 'all',
-        maxWidth: '70vw',
+        borderRadius: 'var(--radius-lg)', pointerEvents: 'all',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        overflow: 'hidden',
+        maxWidth: 'calc(100vw - 200px)',
       }}>
-        <button onClick={() => exitFocus(0)} style={crumbStyle(focusTrail.length === 0)}>
-          All Positions
-        </button>
-        {focusTrail.map((pos, i) => (
-          <span key={`${pos.id}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ color: 'var(--border-strong)', fontSize: 10 }}>›</span>
-            <button onClick={() => exitFocus(i + 1)} style={crumbStyle(i === focusTrail.length - 1)}>
-              {pos.name}
-            </button>
-          </span>
-        ))}
+        {/* Style pills — only rendered when multiple styles present */}
+        {styles.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 2,
+            padding: '4px 6px',
+            borderRight: '0.5px solid var(--border)',
+          }}>
+            {['all', ...styles].map(s => (
+              <button
+                key={s}
+                onClick={() => setActiveStyle(s)}
+                style={{
+                  background: activeStyle === s ? 'var(--accent)' : 'none',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '4px 9px',
+                  fontSize: 11, fontWeight: 600,
+                  color: activeStyle === s ? '#fff' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                  transition: 'all 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Breadcrumb */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '6px 10px', flexWrap: 'wrap',
+        }}>
+          <button
+            onClick={() => exitFocus(0)}
+            style={crumbStyle(focusTrail.length === 0)}
+          >
+            {isMobile ? '← Positions' : 'All Positions'}
+          </button>
+          {focusTrail.map((pos, i) => (
+            <span key={`${pos.id}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: 'var(--border-strong)', fontSize: 10 }}>›</span>
+              <button onClick={() => exitFocus(i + 1)} style={crumbStyle(i === focusTrail.length - 1)}>
+                {pos.name}
+              </button>
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Save chain button */}
       {chainMoves.length >= 1 && (
         <>
-          {window.innerWidth >= 768 && (
+          {!isMobile && (
             <div style={{
-              position: 'absolute', top: 16, right: panelMove ? 432 : 16,
+              position: 'absolute', top: 12, right: panelMove ? 432 : 16,
               zIndex: 10, pointerEvents: 'all',
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
@@ -712,14 +888,14 @@ function ExploreInner({
                   borderRadius: 'var(--radius-md)', padding: '7px 16px',
                   fontSize: 12, fontWeight: 600, color: '#fff',
                   cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  boxShadow: 'var(--shadow-sm)',
+                  boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
                 }}
               >
                 Save chain ({chainMoves.length} move{chainMoves.length !== 1 ? 's' : ''})
               </button>
             </div>
           )}
-          {window.innerWidth < 768 && (
+          {isMobile && (
             <div style={{
               position: 'absolute', bottom: 24,
               left: '50%', transform: 'translateX(-50%)',
@@ -753,10 +929,10 @@ function ExploreInner({
         </>
       )}
 
-      {/* Hint */}
-      {!focusPosition && (
+      {/* Hint — desktop map only */}
+      {!isMobile && !focusPosition && (
         <div style={{
-          position: 'absolute', top: 68, left: '50%', transform: 'translateX(-50%)',
+          position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)',
           zIndex: 10, fontSize: 11, color: 'var(--text-muted)', pointerEvents: 'none',
           background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
           borderRadius: 'var(--radius-md)', padding: '4px 12px', whiteSpace: 'nowrap',
@@ -765,8 +941,8 @@ function ExploreInner({
         </div>
       )}
 
-      {/* Legend */}
-      {window.innerWidth >= 768 && (
+      {/* Legend — desktop only */}
+      {!isMobile && (
         <div style={{
           position: 'absolute', bottom: 80, left: 16, zIndex: 10,
           background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
@@ -804,9 +980,12 @@ function ExploreInner({
         </div>
       )}
 
-      {/* MoveDetail panel */}
+      {/* MoveDetail panel — desktop side panel, mobile full screen */}
       {panelMove && (
-        <div style={{
+        <div style={isMobile ? {
+          position: 'fixed', inset: 0, zIndex: 50,
+          background: 'var(--bg-page)', overflowY: 'auto',
+        } : {
           position: 'absolute', top: 16, right: 16,
           width: 400, maxHeight: 'calc(100% - 32px)',
           overflowY: 'auto', zIndex: 10,
@@ -847,9 +1026,9 @@ function ExploreInner({
           else if (node.data?.onFocus) node.data.onFocus()
         }}
       >
-        <Background color="var(--border)" gap={28} size={1} />
-        {window.innerWidth >= 768 && <Controls showInteractive={false} />}
-        {window.innerWidth >= 768 && (
+        <Background color="var(--border)" gap={32} size={0.75} />
+        {!isMobile && <Controls showInteractive={false} />}
+        {!isMobile && (
           <MiniMap
             nodeColor={n => {
               if (['mapPosition', 'focusCenter', 'focusDest'].includes(n.type)) return POSITION_COLOR
@@ -870,7 +1049,7 @@ export default function ExplorePage() {
   const [rawMoves, setRawMoves]         = useState([])
   const [boardMoveIds, setBoardMoveIds] = useState(new Set())
   const [progressMap, setProgressMap]   = useState({})
-  const [activeStyle, setActiveStyle]   = useState('freestyle')
+  const [activeStyle, setActiveStyle]   = useState('folkstyle')
   const [panelMove, setPanelMove]       = useState(null)
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
@@ -890,8 +1069,8 @@ export default function ExplorePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Derive unique styles from seed data — only show toggle if more than one
-  // style is present. Greco will appear here automatically once seeded.
+  // Derive unique styles — toggle only appears when more than one style present.
+  // Greco will appear automatically once seeded.
   const styles = useMemo(() => {
     const set = new Set()
     rawMoves.forEach(m => {
@@ -938,15 +1117,15 @@ const crumbStyle = (isActive) => ({
   background: 'none', border: 'none', cursor: 'pointer',
   fontSize: 11, fontWeight: 600,
   color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-  fontFamily: 'var(--font-body)', padding: '0 4px',
+  fontFamily: 'var(--font-body)', padding: '0 2px',
 })
 
-function LegendItem({ color, label, square, dot }) {
+function LegendItem({ color, label, square }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
       {square
-        ? <div style={{ width: 13, height: 13, borderRadius: 3, border: `2px solid ${color}`, flexShrink: 0 }} />
-        : <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        ? <div style={{ width: 12, height: 12, borderRadius: 3, border: `1.5px solid ${color}`, flexShrink: 0 }} />
+        : <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
       }
       <span>{label}</span>
     </div>
