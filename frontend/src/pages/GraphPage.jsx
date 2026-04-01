@@ -720,6 +720,7 @@ function GraphInner({
         source: `pos-${fromId}`,
         target: `pos-${toId}`,
         type:   'aggregate',
+        zIndex: 0,         
         data: {
           count:         ms.length,
           onBoardCount,
