@@ -602,6 +602,14 @@ function GraphInner({
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [activePopup, setActivePopup]    = useState(null)
 
+  // ── Ref that always reflects current activePopup ───────────────────────────
+  // Used inside handleNodeClick so the callback never needs activePopup
+  // in its dependency array — breaking the layout rebuild loop.
+  const activePopupRef = useRef(null)
+  useEffect(() => {
+    activePopupRef.current = activePopup
+  }, [activePopup])
+
   // ── Style filtering ────────────────────────────────────────────────────────
   const filteredMoves = useMemo(() => {
     if (activeStyle === 'all') return rawMoves
@@ -648,8 +656,11 @@ function GraphInner({
   }, [filteredPositions, filteredMoves, boardMoveIds, progressMap])
 
   // ── Node click ─────────────────────────────────────────────────────────────
+  // Reads activePopup via ref — no dep on activePopup state,
+  // so this callback is stable and does not trigger the layout effect.
   const handleNodeClick = useCallback((position, nodeEl) => {
-    if (activePopup?.position.id === position.id) {
+    const current = activePopupRef.current
+    if (current?.position.id === position.id) {
       setActivePopup(null)
       return
     }
@@ -669,9 +680,14 @@ function GraphInner({
       },
       screenPos,
     })
-  }, [activePopup, positionStats])
+  }, [positionStats])
+  // positionStats is still a dep here because we read it to build the popup
+  // stats snapshot. That's correct — positionStats only changes when data
+  // changes, not when the popup opens/closes.
 
   // ── Build nodes + edges ────────────────────────────────────────────────────
+  // activePopup and handleNodeClick are intentionally excluded.
+  // isActive is applied in a separate shallow effect below.
   useEffect(() => {
     if (!filteredPositions.length) return
 
@@ -689,7 +705,7 @@ function GraphInner({
         zIndex:    1,
         data: {
           name:          p.name,
-          isActive:      activePopup?.position.id === p.id,
+          isActive:      false,          // always false here — patched below
           avgConf:       ps.avgConfidence ?? null,
           hasAnyOnBoard: ps.hasAnyOnBoard ?? false,
           onClick:       (e) => handleNodeClick(p, e?.currentTarget),
@@ -720,7 +736,7 @@ function GraphInner({
         source: `pos-${fromId}`,
         target: `pos-${toId}`,
         type:   'aggregate',
-        zIndex: 0,         
+        zIndex: 0,
         data: {
           count:         ms.length,
           onBoardCount,
@@ -738,10 +754,27 @@ function GraphInner({
     filteredMoves,
     boardMoveIds,
     progressMap,
-    activePopup,
-    handleNodeClick,
     positionStats,
+    handleNodeClick,
   ])
+
+  // ── Patch isActive on nodes when popup changes ─────────────────────────────
+  // Shallow update — only touches the isActive flag, never recalculates
+  // layout or edges. This is what was previously forcing a full rebuild
+  // on every popup open/close.
+  useEffect(() => {
+    setNodes(prev =>
+      prev.map(n => {
+        const posId    = n.id.replace('pos-', '')
+        const isActive = activePopup?.position.id === posId
+        if (n.data.isActive === isActive) return n   // no change, skip
+        return {
+          ...n,
+          data: { ...n.data, isActive },
+        }
+      })
+    )
+  }, [activePopup, setNodes])
 
   // ── Fit view after nodes settle ────────────────────────────────────────────
   useEffect(() => {
