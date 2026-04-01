@@ -98,6 +98,9 @@ export default function MoveDetail({
   progress,
   onBoardChange,
   onProgressChange,
+  inline = false,           // When true: suppress close button + To nav link.
+                            // Used by ExplorePage when rendering detail below a move row.
+                            // Standalone / modal usage leaves both visible.
 }) {
   const { user } = useAuth()
 
@@ -286,7 +289,9 @@ export default function MoveDetail({
         transition: 'background 0.2s ease',
       }}>
 
-        {/* Top row: chip + close button */}
+        {/* Top row: chip + close button.
+            Close button is suppressed in inline mode — ExplorePage owns
+            open/close state and provides its own affordance to collapse. */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -295,24 +300,26 @@ export default function MoveDetail({
         }}>
           <Chip type="move">move</Chip>
 
-          <button
-            onClick={onBack}
-            style={{
-              background: 'var(--bg-subtle)',
-              border: '0.5px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '6px 12px',
-              fontSize: 12,
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              // Larger tap area on mobile
-              minHeight: '2.25rem',
-              touchAction: 'manipulation',
-            }}
-          >
-            ✕ close
-          </button>
+          {!inline && (
+            <button
+              onClick={onBack}
+              style={{
+                background: 'var(--bg-subtle)',
+                border: '0.5px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '6px 12px',
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                // Larger tap area on mobile
+                minHeight: '2.25rem',
+                touchAction: 'manipulation',
+              }}
+            >
+              ✕ close
+            </button>
+          )}
         </div>
 
         {/* Move name */}
@@ -450,23 +457,33 @@ export default function MoveDetail({
           </span>
         </StatItem>
 
+        {/* To stat: navigation link in standalone mode.
+            Suppressed in inline mode — ExplorePage renders its own
+            "Go to [destination]" button directly on the move row,
+            which is the canonical navigation action in that context. */}
         <StatItem label="To">
-          <button
-            onClick={() => onNavigate(move.to_position)}
-            style={{
-              fontSize: 12, fontWeight: 500,
-              color: 'var(--accent)',
-              background: 'none', border: 'none',
-              cursor: 'pointer', padding: 0,
-              fontFamily: 'var(--font-body)',
-              textDecoration: 'underline',
-              textDecorationStyle: 'dotted',
-              textUnderlineOffset: 3,
-              touchAction: 'manipulation',
-            }}
-          >
-            {move.to_position?.name ?? '—'} →
-          </button>
+          {inline ? (
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+              {move.to_position?.name ?? '—'}
+            </span>
+          ) : (
+            <button
+              onClick={() => onNavigate(move.to_position)}
+              style={{
+                fontSize: 12, fontWeight: 500,
+                color: 'var(--accent)',
+                background: 'none', border: 'none',
+                cursor: 'pointer', padding: 0,
+                fontFamily: 'var(--font-body)',
+                textDecoration: 'underline',
+                textDecorationStyle: 'dotted',
+                textUnderlineOffset: 3,
+                touchAction: 'manipulation',
+              }}
+            >
+              {move.to_position?.name ?? '—'} →
+            </button>
+          )}
         </StatItem>
       </div>
 
