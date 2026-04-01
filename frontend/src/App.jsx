@@ -132,7 +132,7 @@ function AppShell({ theme, onToggleTheme }) {
       onSignOut={signOut}
     >
       <Routes>
-        <Route path="/"                     element={<Navigate to="/explore" replace />} />
+        <Route path="/"                     element={<Navigate to="/home" replace />} />
         <Route path="/explore"              element={<ExplorePage />} />
         <Route path="/graph"                element={<GraphPage />} />
         <Route path="/progress"             element={<ProgressPage />} />

@@ -1,533 +1,265 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
-  useNodesState,
-  useEdgesState,
-  Handle,
-  Position,
-  BaseEdge,
-  getBezierPath,
-  useReactFlow,
-  ReactFlowProvider,
-} from '@xyflow/react'
-import dagre from 'dagre'
-import '@xyflow/react/dist/style.css'
-import { getGraph, getMyBoard, getMyProgress, getMove, createChain, setChainMoves } from '../api'
-import { confidenceColor } from '../components/MoveCard'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { getMovesFromPosition, getMove, getMyBoard, getMyProgress, getGraph, createChain, setChainMoves } from '../api'
 import MoveDetail from '../components/MoveDetail'
+import { confidenceColor } from '../components/MoveCard'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const NODE_W         = 148
-const NODE_H         = 40
-const POSITION_COLOR = '#DC2626'
-const MOVE_COLOR     = '#3B82F6'
-const UNDISCOVERED   = '#A1A1AA'
+const DEFAULT_POSITION = 'neutral'
 
-// ── Style label display map ───────────────────────────────────────────────────
 const STYLE_LABELS = {
   folkstyle: 'Folkstyle',
   freestyle: 'Freestyle',
   greco:     'Greco-Roman',
 }
 
-// ── Dagre layout ──────────────────────────────────────────────────────────────
-// Map view only. Focus drill-down no longer uses dagre.
-function buildDagreLayout(positions, moves) {
-  const g = new dagre.graphlib.Graph()
-  g.setDefaultEdgeLabel(() => ({}))
-  g.setGraph({
-    rankdir: 'TB',
-    ranksep: 80,
-    nodesep: 40,
-    marginx: 60,
-    marginy: 60,
-  })
+const CONF_LABEL = (c) =>
+  c >= 4 ? 'Strong' : c >= 3 ? 'Developing' : 'Needs work'
 
-  positions.forEach(p => {
-    g.setNode(p.id, { width: NODE_W, height: NODE_H })
-  })
-
-  const posIds = new Set(positions.map(p => p.id))
-  moves.forEach(m => {
-    if (posIds.has(m.from_position_id) && posIds.has(m.to_position_id)) {
-      g.setEdge(m.from_position_id, m.to_position_id)
-    }
-  })
-
-  dagre.layout(g)
-
-  const posXY = {}
-  positions.forEach(p => {
-    const node = g.node(p.id)
-    posXY[p.id] = {
-      x: node.x - NODE_W / 2,
-      y: node.y - NODE_H / 2,
-    }
-  })
-  return posXY
-}
-
-// ── Map: Position node ────────────────────────────────────────────────────────
-function MapPositionNode({ data }) {
+// ── Skeleton loader ───────────────────────────────────────────────────────────
+function Skeleton({ height = 68, style = {} }) {
   return (
-    <>
-      <Handle type="target" position={Position.Top}  style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
-      <div
-        onClick={data.onFocus}
-        style={{
-          width: NODE_W, height: NODE_H,
-          background: data.isActive ? 'rgba(220,38,38,0.18)' : 'rgba(220,38,38,0.07)',
-          border: data.isActive
-            ? '1.5px solid rgba(220,38,38,0.85)'
-            : '1px solid rgba(220,38,38,0.45)',
-          borderRadius: 20,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '0 14px', cursor: 'pointer',
-          transition: 'all 0.15s',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.background = 'rgba(220,38,38,0.14)'
-          e.currentTarget.style.borderColor = 'rgba(220,38,38,0.75)'
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.background = data.isActive
-            ? 'rgba(220,38,38,0.18)' : 'rgba(220,38,38,0.07)'
-          e.currentTarget.style.borderColor = data.isActive
-            ? 'rgba(220,38,38,0.85)' : 'rgba(220,38,38,0.45)'
-        }}
-      >
-        <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700,
-          color: data.isActive ? '#DC2626' : 'var(--text-primary)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          pointerEvents: 'none', letterSpacing: '0.01em',
-        }}>
-          {data.name}
-        </span>
-      </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Right}  style={{ opacity: 0 }} />
-    </>
-  )
-}
-
-// ── Map: Aggregate edge ───────────────────────────────────────────────────────
-function AggregateEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
-  const [edgePath] = getBezierPath({
-    sourceX, sourceY, targetX, targetY, curvature: data.curvature ?? 0.25,
-  })
-  const onBoard = data.onBoardCount ?? 0
-  const color   = data.avgConfidence
-    ? confidenceColor(data.avgConfidence)
-    : onBoard > 0 ? '#7C3AED' : 'rgba(255,255,255,0.12)'
-  return (
-    <BaseEdge id={id} path={edgePath} style={{
-      stroke: color, strokeWidth: onBoard > 0 ? 2 : 1,
-      opacity: onBoard > 0 ? 0.7 : 0.4,
+    <div style={{
+      height,
+      background: 'var(--bg-subtle)',
+      borderRadius: 10,
+      animation: 'pulse 1.4s ease infinite',
+      ...style,
     }} />
   )
 }
 
-const nodeTypes = { mapPosition: MapPositionNode }
-const edgeTypes = { aggregate: AggregateEdge }
+// ── Breadcrumb ────────────────────────────────────────────────────────────────
+function Breadcrumb({ trail, onNavigateTo }) {
+  if (!trail.length) return null
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 4,
+      fontSize: 12, color: 'var(--text-muted)',
+      flexWrap: 'wrap', marginBottom: 20,
+    }}>
+      {trail.map((crumb, i) => (
+        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {i > 0 && (
+            <span style={{ color: 'var(--border-strong)', fontSize: 10 }}>›</span>
+          )}
+          {i < trail.length - 1 ? (
+            <button
+              onClick={() => onNavigateTo(i)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 12, color: 'var(--text-muted)', padding: 0,
+                fontFamily: 'var(--font-body)',
+                textDecoration: 'underline',
+                textDecorationColor: 'var(--border-strong)',
+              }}
+            >
+              {crumb.name}
+            </button>
+          ) : (
+            <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
+              {crumb.name}
+            </span>
+          )}
+        </span>
+      ))}
+    </div>
+  )
+}
 
-// ── Cascade: Move row item ────────────────────────────────────────────────────
-function CascadeMoveItem({ move, isSelected, isOnBoard, confidence, onSelect, onDetail }) {
+// ── Position header ───────────────────────────────────────────────────────────
+function PositionHeader({ position, moves, boardMoveIds, progressMap }) {
+  const onBoard  = moves.filter(m => boardMoveIds.has(m.id)).length
+  const confs    = moves.map(m => progressMap[m.id]?.confidence).filter(Boolean)
+  const avgConf  = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length : null
+  const confColor = avgConf ? confidenceColor(avgConf) : null
+
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      border: '0.5px solid var(--border)',
+      borderLeft: '3px solid #DC2626',
+      borderRadius: 12,
+      padding: '20px 22px',
+      marginBottom: 20,
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6,
+      }}>
+        Position
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700,
+        letterSpacing: '-0.5px', color: 'var(--text-primary)', marginBottom: 14,
+      }}>
+        {position.name}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <StatPill label="Moves" value={moves.length} />
+        {onBoard > 0 && <StatPill label="On board" value={onBoard} />}
+        {avgConf && (
+          <StatPill
+            label="Avg confidence"
+            value={CONF_LABEL(avgConf)}
+            valueColor={confColor}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Stat pill ─────────────────────────────────────────────────────────────────
+function StatPill({ label, value, valueColor }) {
+  return (
+    <div style={{
+      background: 'var(--bg-subtle)',
+      border: '0.5px solid var(--border)',
+      borderRadius: 8, padding: '7px 12px',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700,
+        color: valueColor ?? 'var(--text-primary)', lineHeight: 1,
+      }}>
+        {value}
+      </div>
+      <div style={{
+        fontSize: 9, fontWeight: 600, letterSpacing: '0.1em',
+        textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 3,
+      }}>
+        {label}
+      </div>
+    </div>
+  )
+}
+
+// ── Move row ──────────────────────────────────────────────────────────────────
+function MoveRow({ move, isExpanded, isOnBoard, confidence, onClick }) {
   const dotColor = confidence
     ? confidenceColor(confidence)
     : isOnBoard ? '#7C3AED' : 'var(--border-strong)'
 
   return (
     <div
-      onClick={onSelect}
+      onClick={onClick}
       style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '10px 12px',
-        background: isSelected
-          ? isOnBoard ? 'rgba(59,130,246,0.08)' : 'rgba(161,161,170,0.06)'
-          : 'transparent',
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '12px 14px',
+        background: isExpanded ? 'var(--bg-surface)' : 'var(--bg-surface)',
         border: '0.5px solid',
-        borderColor: isSelected
-          ? isOnBoard ? 'rgba(59,130,246,0.35)' : 'rgba(161,161,170,0.3)'
-          : 'var(--border)',
-        borderRadius: 10,
+        borderColor: isExpanded ? 'rgba(220,38,38,0.4)' : 'var(--border)',
+        borderRadius: isExpanded ? '10px 10px 0 0' : 10,
         cursor: 'pointer',
         transition: 'all 0.12s',
+        borderBottom: isExpanded ? '0.5px solid var(--border)' : undefined,
       }}
       onMouseEnter={e => {
-        if (!isSelected) e.currentTarget.style.borderColor = 'var(--border-strong)'
+        if (!isExpanded) e.currentTarget.style.borderColor = 'var(--border-strong)'
       }}
       onMouseLeave={e => {
-        if (!isSelected) e.currentTarget.style.borderColor = 'var(--border)'
+        if (!isExpanded) e.currentTarget.style.borderColor = 'var(--border)'
       }}
     >
-      {/* Confidence dot */}
+      {/* Confidence indicator */}
       <div style={{
-        width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+        width: 28, height: 28, borderRadius: 7, flexShrink: 0,
         background: isOnBoard ? 'rgba(59,130,246,0.08)' : 'var(--bg-subtle)',
         border: `1px solid ${isOnBoard ? 'rgba(59,130,246,0.2)' : 'var(--border)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{
-          width: 7, height: 7, borderRadius: '50%', background: dotColor,
+          width: 8, height: 8, borderRadius: '50%', background: dotColor,
         }} />
       </div>
 
       {/* Move name */}
       <span style={{
-        flex: 1, fontSize: 13, fontWeight: isSelected ? 600 : 500,
-        color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+        flex: 1, fontSize: 14, fontWeight: isExpanded ? 600 : 500,
+        color: isExpanded ? 'var(--text-primary)' : 'var(--text-secondary)',
         fontFamily: 'var(--font-body)',
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {move.name}
       </span>
 
-      {/* Selected indicator */}
-      {isSelected && (
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-          ↓
-        </span>
-      )}
-
-      {/* Detail button */}
-      <div
-        onClick={e => { e.stopPropagation(); onDetail() }}
-        title="View detail"
-        style={{
-          width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-          background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer',
-        }}
-      >
-        ↗
-      </div>
-    </div>
-  )
-}
-
-// ── Cascade: Position header ──────────────────────────────────────────────────
-function CascadePositionHeader({ name, isFirst }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: isFirst ? '0 0 10px 0' : '16px 0 10px 0',
-    }}>
-      {!isFirst && (
-        <div style={{
-          width: 1, height: 16, background: 'rgba(220,38,38,0.3)',
-          marginLeft: 4, flexShrink: 0,
-        }} />
-      )}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        <div style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: 'rgba(220,38,38,0.7)', flexShrink: 0,
-        }} />
+      {/* Confidence badge */}
+      {confidence && (
         <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
-          color: '#DC2626', letterSpacing: '0.01em',
+          fontSize: 11, fontWeight: 600,
+          color: confidenceColor(confidence),
+          background: 'var(--bg-subtle)',
+          border: `0.5px solid ${confidenceColor(confidence)}44`,
+          borderRadius: 6, padding: '2px 7px', flexShrink: 0,
         }}>
-          {name}
+          {confidence}/5
         </span>
-      </div>
+      )}
+
+      {/* Expand indicator */}
+      <span style={{
+        fontSize: 12, color: 'var(--text-muted)', flexShrink: 0,
+        transform: isExpanded ? 'rotate(180deg)' : 'none',
+        transition: 'transform 0.15s',
+      }}>
+        ›
+      </span>
     </div>
   )
 }
 
-// ── Cascade panel ─────────────────────────────────────────────────────────────
-// Replaces the ReactFlow focus drill-down on both mobile and desktop.
-// Vertical scroll, one level at a time cascades below the previous.
-function CascadePanel({
-  chainLevels, boardMoveIds, progressMap,
-  onSelectMove, onDetail, onBack,
-  chainMoves, onSaveChain, savedChain,
-  isMobile,
-}) {
-  const bottomRef = useRef(null)
-
-  // Scroll to bottom when a new level appears
-  useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }
-  }, [chainLevels.length])
+// ── Chain bar ─────────────────────────────────────────────────────────────────
+function ChainBar({ trail, onSave }) {
+  const [showModal, setShowModal] = useState(false)
+  // Trail has at least 2 entries to show (start position + at least one move navigated)
+  if (trail.length < 2) return null
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column',
-      height: '100%',
-      background: 'var(--bg-page)',
-    }}>
-      {/* Header */}
+    <>
       <div style={{
-        padding: '12px 16px',
-        borderBottom: '0.5px solid var(--border)',
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        zIndex: 40,
         background: 'var(--bg-surface)',
-        display: 'flex', alignItems: 'center', gap: 10,
-        flexShrink: 0,
+        borderTop: '0.5px solid var(--border)',
+        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', gap: 12,
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
       }}>
+        <div style={{
+          flex: 1,
+          fontSize: 11, color: 'var(--text-muted)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {trail.map(t => t.name).join(' → ')}
+        </div>
         <button
-          onClick={onBack}
+          onClick={() => setShowModal(true)}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-muted)', fontSize: 13, fontWeight: 600,
-            fontFamily: 'var(--font-body)', padding: '0 4px',
+            flexShrink: 0,
+            background: 'var(--accent)', border: 'none',
+            borderRadius: 8, padding: '8px 16px',
+            fontSize: 12, fontWeight: 600, color: '#fff',
+            cursor: 'pointer', fontFamily: 'var(--font-body)',
+            boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
           }}
         >
-          ← {isMobile ? 'Positions' : 'Map'}
+          Save chain
         </button>
-        <div style={{ width: '0.5px', height: 14, background: 'var(--border)' }} />
-        <span style={{
-          fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-body)',
-        }}>
-          {chainLevels[0]?.position?.name ?? ''}
-        </span>
       </div>
 
-      {/* Cascade levels — scrollable */}
-      <div style={{
-        flex: 1, overflowY: 'auto',
-        padding: '16px 16px 120px',
-      }}>
-        {chainLevels.map((level, li) => {
-          const { position, moves, selectedMoveId } = level
-          const isFirst = li === 0
-          return (
-            <div key={`${position.id}-${li}`}>
-              <CascadePositionHeader name={position.name} isFirst={isFirst} />
-
-              {moves.length === 0 && (
-                <div style={{
-                  fontSize: 12, color: 'var(--text-muted)',
-                  padding: '8px 0 4px', fontStyle: 'italic',
-                }}>
-                  No moves from this position
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {moves.map(m => (
-                  <CascadeMoveItem
-                    key={m.id}
-                    move={m}
-                    isSelected={m.id === selectedMoveId}
-                    isOnBoard={boardMoveIds.has(m.id)}
-                    confidence={progressMap[m.id]?.confidence ?? null}
-                    onSelect={() => onSelectMove(li, m)}
-                    onDetail={() => onDetail(m)}
-                  />
-                ))}
-              </div>
-            </div>
-          )
-        })}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Save chain — fixed at bottom of panel */}
-      {chainMoves.length >= 1 && (
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          padding: '12px 16px',
-          background: 'var(--bg-surface)',
-          borderTop: '0.5px solid var(--border)',
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          {/* Chain summary */}
-          <div style={{
-            fontSize: 11, color: 'var(--text-muted)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {chainMoves.map(m => m.name).join(' → ')}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {savedChain && (
-              <div style={{
-                fontSize: 11, color: 'var(--success)', fontWeight: 600,
-                background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
-                borderRadius: 'var(--radius-sm)', padding: '5px 10px', whiteSpace: 'nowrap',
-              }}>
-                ✓ "{savedChain.name}"
-              </div>
-            )}
-            <button
-              onClick={onSaveChain}
-              style={{
-                flex: 1, padding: '9px 16px',
-                background: 'var(--accent)', border: 'none',
-                borderRadius: 'var(--radius-md)', fontSize: 13,
-                fontWeight: 600, color: '#fff',
-                cursor: 'pointer', fontFamily: 'var(--font-body)',
-                boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
-              }}
-            >
-              Save chain ({chainMoves.length} move{chainMoves.length !== 1 ? 's' : ''})
-            </button>
-          </div>
-        </div>
+      {showModal && (
+        <SaveChainModal
+          trail={trail}
+          onSave={(chain) => { onSave(chain); setShowModal(false) }}
+          onClose={() => setShowModal(false)}
+        />
       )}
-    </div>
-  )
-}
-
-
-// ── Mobile: Position list ─────────────────────────────────────────────────────
-function MobilePositionList({ positions, moves, activeStyle, setActiveStyle, styles, onSelect }) {
-  const [search, setSearch] = useState('')
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return positions
-    const q = search.toLowerCase()
-    return positions.filter(p => p.name.toLowerCase().includes(q))
-  }, [positions, search])
-
-  const moveCount = useMemo(() => {
-    const map = {}
-    moves.forEach(m => {
-      map[m.from_position_id] = (map[m.from_position_id] ?? 0) + 1
-    })
-    return map
-  }, [moves])
-
-  return (
-    <div style={{
-      height: '100dvh', display: 'flex', flexDirection: 'column',
-      background: 'var(--bg-page)',
-    }}>
-      {/* Header */}
-      <div style={{
-        padding: '16px 16px 12px',
-        borderBottom: '0.5px solid var(--border)',
-        background: 'var(--bg-surface)',
-        flexShrink: 0,
-      }}>
-        <div style={{
-          fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700,
-          color: 'var(--text-primary)', marginBottom: 12,
-        }}>
-          Positions
-        </div>
-
-        {/* Style toggle */}
-        {styles.length > 0 && (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-            {['all', ...styles].map(s => (
-              <button
-                key={s}
-                onClick={() => setActiveStyle(s)}
-                style={{
-                  padding: '5px 12px',
-                  background: activeStyle === s ? 'var(--accent)' : 'var(--bg-subtle)',
-                  border: activeStyle === s ? 'none' : '0.5px solid var(--border)',
-                  borderRadius: 20,
-                  fontSize: 12, fontWeight: 600,
-                  color: activeStyle === s ? '#fff' : 'var(--text-muted)',
-                  cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Search */}
-        <div style={{ position: 'relative' }}>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search positions..."
-            style={{
-              width: '100%', padding: '9px 12px 9px 34px',
-              background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-              borderRadius: 10, fontSize: 14,
-              color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
-              outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-          <span style={{
-            position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
-            fontSize: 14, color: 'var(--text-muted)', pointerEvents: 'none',
-          }}>
-            ⌕
-          </span>
-        </div>
-      </div>
-
-      {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 32px' }}>
-        {filtered.map(p => {
-          const count = moveCount[p.id] ?? 0
-          return (
-            <button
-              key={p.id}
-              onClick={() => onSelect(p)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '13px 14px',
-                background: 'var(--bg-surface)',
-                border: '0.5px solid var(--border)',
-                borderRadius: 12, marginBottom: 8,
-                cursor: 'pointer', textAlign: 'left',
-                fontFamily: 'var(--font-body)',
-                transition: 'border-color 0.15s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%',
-                  background: 'rgba(220,38,38,0.6)', flexShrink: 0,
-                }} />
-                <span style={{
-                  fontSize: 14, fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-display)',
-                }}>
-                  {p.name}
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {count > 0 && (
-                  <span style={{
-                    fontSize: 11, color: 'var(--text-muted)',
-                    background: 'var(--bg-subtle)',
-                    border: '0.5px solid var(--border)',
-                    borderRadius: 6, padding: '2px 7px',
-                  }}>
-                    {count} move{count !== 1 ? 's' : ''}
-                  </span>
-                )}
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>›</span>
-              </div>
-            </button>
-          )
-        })}
-        {filtered.length === 0 && (
-          <div style={{
-            textAlign: 'center', color: 'var(--text-muted)',
-            fontSize: 13, marginTop: 40,
-          }}>
-            No positions match "{search}"
-          </div>
-        )}
-      </div>
-    </div>
+    </>
   )
 }
 
 // ── Save chain modal ──────────────────────────────────────────────────────────
-function SaveChainModal({ moves, onSave, onClose }) {
+function SaveChainModal({ trail, onSave, onClose }) {
   const [name, setName]     = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
@@ -537,11 +269,12 @@ function SaveChainModal({ moves, onSave, onClose }) {
     setSaving(true)
     setError(null)
     try {
+      const moveIds = trail.flatMap(t => t.moveId ? [t.moveId] : [])
       const chain = await createChain(name.trim())
-      await setChainMoves(chain.id, moves.map(m => m.id))
+      await setChainMoves(chain.id, moveIds)
       onSave(chain)
     } catch {
-      setError('Failed to save chain. Try again.')
+      setError('Failed to save. Try again.')
     } finally {
       setSaving(false)
     }
@@ -558,7 +291,7 @@ function SaveChainModal({ moves, onSave, onClose }) {
     >
       <div style={{
         background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-xl)', padding: '1.75rem',
+        borderRadius: 14, padding: '1.75rem',
         width: 'min(380px, calc(100vw - 2rem))',
         margin: '0 1rem', boxSizing: 'border-box',
       }}>
@@ -568,8 +301,11 @@ function SaveChainModal({ moves, onSave, onClose }) {
         }}>
           Save as chain
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>
-          {moves.length} move{moves.length !== 1 ? 's' : ''}: {moves.map(m => m.name).join(' → ')}
+        <div style={{
+          fontSize: 12, color: 'var(--text-muted)', marginBottom: 20,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {trail.map(t => t.name).join(' → ')}
         </div>
         <label style={{
           fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)',
@@ -587,7 +323,7 @@ function SaveChainModal({ moves, onSave, onClose }) {
           style={{
             width: '100%', padding: '9px 12px',
             background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-            borderRadius: 'var(--radius-md)', fontSize: 13,
+            borderRadius: 8, fontSize: 13,
             color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
             outline: 'none', marginBottom: 16, boxSizing: 'border-box',
           }}
@@ -595,23 +331,19 @@ function SaveChainModal({ moves, onSave, onClose }) {
         {error && (
           <div style={{
             background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
-            borderRadius: 'var(--radius-sm)', padding: '8px 12px',
+            borderRadius: 8, padding: '8px 12px',
             fontSize: 12, color: 'var(--accent)', marginBottom: 12,
           }}>
             {error}
           </div>
         )}
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={onClose}
-            style={{
-              flex: 1, padding: '9px 16px',
-              background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-              borderRadius: 'var(--radius-md)', fontSize: 13,
-              color: 'var(--text-secondary)', cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
+          <button onClick={onClose} style={{
+            flex: 1, padding: '9px 16px',
+            background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+            borderRadius: 8, fontSize: 13, color: 'var(--text-secondary)',
+            cursor: 'pointer', fontFamily: 'var(--font-body)',
+          }}>
             Cancel
           </button>
           <button
@@ -620,8 +352,7 @@ function SaveChainModal({ moves, onSave, onClose }) {
             style={{
               flex: 2, padding: '9px 16px',
               background: name.trim() && !saving ? 'var(--accent)' : 'var(--bg-subtle)',
-              border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13,
-              fontWeight: 600,
+              border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600,
               color: name.trim() && !saving ? '#fff' : 'var(--text-muted)',
               cursor: name.trim() && !saving ? 'pointer' : 'not-allowed',
               fontFamily: 'var(--font-body)', transition: 'all 0.15s',
@@ -635,109 +366,178 @@ function SaveChainModal({ moves, onSave, onClose }) {
   )
 }
 
-function ExploreInner({
-  rawPositions, rawMoves,
-  boardMoveIds, setBoardMoveIds,
-  progressMap, setProgressMap,
-  activeStyle, setActiveStyle, styles,
-  panelMove, setPanelMove,
-}) {
-  const isMobile = useRef(window.innerWidth < 768).current
+// ── Style toggle ──────────────────────────────────────────────────────────────
+function StyleToggle({ styles, activeStyle, onChange }) {
+  if (!styles.length) return null
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+      {['all', ...styles].map(s => (
+        <button
+          key={s}
+          onClick={() => onChange(s)}
+          style={{
+            padding: '5px 12px',
+            background: activeStyle === s ? 'var(--accent)' : 'var(--bg-subtle)',
+            border: activeStyle === s ? 'none' : '0.5px solid var(--border)',
+            borderRadius: 20, fontSize: 12, fontWeight: 600,
+            color: activeStyle === s ? '#fff' : 'var(--text-muted)',
+            cursor: 'pointer', fontFamily: 'var(--font-body)',
+            transition: 'all 0.15s',
+          }}
+        >
+          {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
+        </button>
+      ))}
+    </div>
+  )
+}
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+// ── Main page ─────────────────────────────────────────────────────────────────
+export default function ExplorePage() {
+  const [searchParams]                    = useSearchParams()
+  const navigate                          = useNavigate()
 
-  const [focusTrail, setFocusTrail]       = useState([])
-  const [chainLevels, setChainLevels]     = useState([])
-  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [position, setPosition]           = useState(null)
+  const [moves, setMoves]                 = useState([])
+  const [expandedMoveId, setExpandedMoveId] = useState(null)
+  const [expandedMoveFull, setExpandedMoveFull] = useState(null)
+  const [loadingMove, setLoadingMove]     = useState(false)
+
+  // Trail — each entry: { name, slug, moveId? }
+  // moveId is the move that was used to navigate TO this position
+  const [trail, setTrail]                 = useState([])
+  // Chain trail — flat list of moves navigated through
+  const [chainTrail, setChainTrail]       = useState([])
   const [savedChain, setSavedChain]       = useState(null)
 
-  const { fitView } = useReactFlow()
-  const fitQueued   = useRef(false)
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
 
-  // ── Style filtering ─────────────────────────────────────────────────────────
-  const filteredMoves = useMemo(() => {
-    if (activeStyle === 'all') return rawMoves
-    return rawMoves.filter(m => Array.isArray(m.styles) && m.styles.includes(activeStyle))
-  }, [rawMoves, activeStyle])
+  const [boardMoveIds, setBoardMoveIds]   = useState(new Set())
+  const [progressMap, setProgressMap]     = useState({})
+  const [boardReady, setBoardReady]       = useState(false)
 
-  const filteredPositions = useMemo(() => {
-    if (activeStyle === 'all') return rawPositions
-    const ids = new Set(filteredMoves.flatMap(m => [m.from_position_id, m.to_position_id]))
-    return rawPositions.filter(p => ids.has(p.id))
-  }, [rawPositions, filteredMoves, activeStyle])
+  // Style filter
+  const [activeStyle, setActiveStyle]     = useState('folkstyle')
+  const [allMoves, setAllMoves]           = useState([])
+  const [styles, setStyles]               = useState([])
 
-  const focusPosition = focusTrail.length > 0 ? focusTrail[focusTrail.length - 1] : null
+  // Scroll ref for expanded move
+  const expandedRef = useRef(null)
 
-  // ── Reset focus when style changes ──────────────────────────────────────────
+  // ── Load board + progress ───────────────────────────────────────────────────
   useEffect(() => {
-    setFocusTrail([])
-    setChainLevels([])
-  }, [activeStyle])
+    Promise.all([
+      import('../api').then(m => m.getMyBoard()),
+      import('../api').then(m => m.getMyProgress()),
+      getGraph(),
+    ])
+      .then(([boardData, progressData, graphData]) => {
+        setBoardMoveIds(new Set(boardData.map(i => i.move.id)))
+        const pm = {}
+        progressData.forEach(p => { pm[p.move_id] = p })
+        setProgressMap(pm)
 
-  // ── Enter focus ─────────────────────────────────────────────────────────────
-  const enterFocus = useCallback((position) => {
-    const moves = filteredMoves.filter(m => m.from_position_id === position.id)
-    setFocusTrail([position])
-    setChainLevels([{ position, moves, selectedMoveId: null }])
-  }, [filteredMoves])
-
-  const exitFocus = useCallback(() => {
-    setFocusTrail([])
-    setChainLevels([])
+        // Derive styles
+        const set = new Set()
+        graphData.moves.forEach(m => {
+          if (Array.isArray(m.styles)) m.styles.forEach(s => set.add(s))
+        })
+        setAllMoves(graphData.moves)
+        setStyles(set.size > 1 ? Array.from(set).sort() : [])
+      })
+      .catch(() => {})
+      .finally(() => setBoardReady(true))
   }, [])
 
-  // ── Select a move in the cascade ────────────────────────────────────────────
-  const onSelectMove = useCallback((levelIndex, move) => {
-    // If tapping an already-selected move, deselect and trim levels below
-    const currentLevel = chainLevels[levelIndex]
-    if (currentLevel?.selectedMoveId === move.id) {
-      setChainLevels(prev => prev.slice(0, levelIndex + 1).map((l, i) =>
-        i === levelIndex ? { ...l, selectedMoveId: null } : l
-      ))
-      setFocusTrail(prev => prev.slice(0, levelIndex + 1))
+  // ── Load position ───────────────────────────────────────────────────────────
+  const loadPosition = useCallback(async (slug, newTrail, newChainTrail) => {
+    setLoading(true)
+    setExpandedMoveId(null)
+    setExpandedMoveFull(null)
+    setError(null)
+    try {
+      const data = await getMovesFromPosition(slug)
+      setPosition(data.position)
+      setMoves(data.moves)
+      setTrail(newTrail ?? [{ name: data.position.name, slug }])
+      setChainTrail(newChainTrail ?? [])
+    } catch {
+      setError('Could not load position.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // ── Initial load from ?position param ──────────────────────────────────────
+  useEffect(() => {
+    const slug = searchParams.get('position') || DEFAULT_POSITION
+    loadPosition(slug)
+  }, []) // intentionally only on mount
+
+  // ── Filter moves by active style ────────────────────────────────────────────
+  const filteredMoves = useMemo(() => {
+    if (activeStyle === 'all') return moves
+    return moves.filter(m => Array.isArray(m.styles) && m.styles.includes(activeStyle))
+  }, [moves, activeStyle])
+
+  // ── Click a move row ─────────────────────────────────────────────────────────
+  const handleMoveClick = useCallback(async (move) => {
+    // Collapse if already expanded
+    if (expandedMoveId === move.id) {
+      setExpandedMoveId(null)
+      setExpandedMoveFull(null)
       return
     }
 
-    const destPosition = rawPositions.find(p => p.id === move.to_position_id)
-    if (!destPosition) return
-    const destMoves = filteredMoves.filter(m => m.from_position_id === destPosition.id)
+    setExpandedMoveId(move.id)
+    setExpandedMoveFull(null)
+    setLoadingMove(true)
 
-    setChainLevels(prev => {
-      const updated = prev.slice(0, levelIndex + 1).map((l, i) =>
-        i === levelIndex ? { ...l, selectedMoveId: move.id } : l
-      )
-      return [...updated, { position: destPosition, moves: destMoves, selectedMoveId: null }]
-    })
-    setFocusTrail(prev => [...prev.slice(0, levelIndex + 1), destPosition])
-  }, [rawPositions, filteredMoves, chainLevels])
-
-  // ── Move detail ─────────────────────────────────────────────────────────────
-  const handleMoveClick = useCallback(async (move) => {
     try {
       const full = await getMove(move.slug)
-      setPanelMove(full)
+      setExpandedMoveFull(full)
     } catch {
-      setPanelMove(move)
+      setExpandedMoveFull(move)
+    } finally {
+      setLoadingMove(false)
     }
-  }, [setPanelMove])
 
-  // ── Chain moves for saving ──────────────────────────────────────────────────
-  const chainMoves = useMemo(() => {
-    return chainLevels
-      .filter(l => l.selectedMoveId)
-      .map(l => l.moves.find(m => m.id === l.selectedMoveId))
-      .filter(Boolean)
-  }, [chainLevels])
+    // Scroll to expanded move after render
+    setTimeout(() => {
+      expandedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 80)
+  }, [expandedMoveId])
 
-  // ── Board / progress callbacks ───────────────────────────────────────────────
+  // ── Navigate to destination position ────────────────────────────────────────
+  const handleNavigate = useCallback((destPos, viaMove) => {
+    if (!destPos?.slug) return
+    const newTrail = [
+      ...trail,
+      { name: destPos.name, slug: destPos.slug },
+    ]
+    // Chain trail stores move names for the save chain bar
+    const newChainTrail = [
+      ...chainTrail,
+      { name: viaMove?.name ?? destPos.name, moveId: viaMove?.id },
+    ]
+    loadPosition(destPos.slug, newTrail, newChainTrail)
+  }, [trail, chainTrail, loadPosition])
+
+  // ── Breadcrumb nav ───────────────────────────────────────────────────────────
+  const handleBreadcrumbNav = useCallback((index) => {
+    const crumb = trail[index]
+    loadPosition(crumb.slug, trail.slice(0, index + 1), chainTrail.slice(0, index))
+  }, [trail, chainTrail, loadPosition])
+
+  // ── Board/progress callbacks ─────────────────────────────────────────────────
   const handleBoardChange = useCallback((moveId, added) => {
     setBoardMoveIds(prev => {
       const n = new Set(prev)
       added ? n.add(moveId) : n.delete(moveId)
       return n
     })
-  }, [setBoardMoveIds])
+  }, [])
 
   const handleProgressChange = useCallback((moveId, data) => {
     setProgressMap(prev => {
@@ -745,393 +545,192 @@ function ExploreInner({
       data === null ? delete n[moveId] : n[moveId] = data
       return n
     })
-  }, [setProgressMap])
-
-  // ── Build map graph ──────────────────────────────────────────────────────────
-  // Always builds — map stays visible on desktop even when cascade is open.
-  // On mobile we skip it entirely since map is never shown.
-  useEffect(() => {
-    if (isMobile) return
-    if (!filteredPositions.length) return
-
-    const posXY = buildDagreLayout(filteredPositions, filteredMoves)
-    const newNodes = []
-    const newEdges = []
-
-    filteredPositions.forEach(p => {
-      newNodes.push({
-        id:       `pos-${p.id}`,
-        type:     'mapPosition',
-        position: posXY[p.id] ?? { x: 0, y: 0 },
-        data:     {
-          name: p.name,
-          slug: p.slug,
-          isActive: focusPosition?.id === p.id,
-          onFocus: () => enterFocus(p),
-        },
-        draggable: false,
-      })
-    })
-
-    const pairMoves = {}
-    filteredMoves.forEach(m => {
-      const key = `${m.from_position_id}__${m.to_position_id}`
-      if (!pairMoves[key]) pairMoves[key] = []
-      pairMoves[key].push(m)
-    })
-
-    Object.entries(pairMoves).forEach(([key, ms]) => {
-      const [fromId, toId] = key.split('__')
-      const hasReverse     = !!pairMoves[`${toId}__${fromId}`]
-      const onBoardCount   = ms.filter(m => boardMoveIds.has(m.id)).length
-      const confs          = ms.map(m => progressMap[m.id]?.confidence).filter(Boolean)
-      const avgConf        = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length : null
-      newEdges.push({
-        id:     `agg-${key}`,
-        source: `pos-${fromId}`,
-        target: `pos-${toId}`,
-        type:   'aggregate',
-        data:   {
-          count: ms.length, onBoardCount,
-          avgConfidence: avgConf,
-          curvature: hasReverse ? 0.35 : 0.2,
-        },
-      })
-    })
-
-    setNodes(newNodes)
-    setEdges(newEdges)
-    fitQueued.current = true
-  }, [isMobile, filteredPositions, filteredMoves, boardMoveIds, progressMap,
-      focusPosition, enterFocus])
-
-  useEffect(() => {
-    if (!fitQueued.current) return
-    const t = setTimeout(() => {
-      fitView({ padding: 0.3, duration: 400 })
-      fitQueued.current = false
-    }, 50)
-    return () => clearTimeout(t)
-  }, [nodes, fitView])
-
-  // ── Mobile: position list ────────────────────────────────────────────────────
-  if (isMobile && !focusPosition) {
-    return (
-      <>
-        <MobilePositionList
-          positions={filteredPositions}
-          moves={filteredMoves}
-          activeStyle={activeStyle}
-          setActiveStyle={setActiveStyle}
-          styles={styles}
-          onSelect={enterFocus}
-        />
-        {panelMove && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 50,
-            background: 'var(--bg-page)', overflowY: 'auto',
-          }}>
-            <MoveDetail
-              move={panelMove}
-              onNavigate={() => setPanelMove(null)}
-              onBack={() => setPanelMove(null)}
-              isOnBoard={boardMoveIds.has(panelMove.id)}
-              progress={progressMap[panelMove.id] ?? null}
-              onBoardChange={handleBoardChange}
-              onProgressChange={handleProgressChange}
-            />
-          </div>
-        )}
-      </>
-    )
-  }
-
-  // ── Mobile: cascade ──────────────────────────────────────────────────────────
-  if (isMobile && focusPosition) {
-    return (
-      <div style={{ height: '100dvh', position: 'relative' }}>
-        <CascadePanel
-          chainLevels={chainLevels}
-          boardMoveIds={boardMoveIds}
-          progressMap={progressMap}
-          onSelectMove={onSelectMove}
-          onDetail={handleMoveClick}
-          onBack={exitFocus}
-          chainMoves={chainMoves}
-          onSaveChain={() => { setSavedChain(null); setShowSaveModal(true) }}
-          savedChain={savedChain}
-          isMobile={true}
-        />
-        {panelMove && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 50,
-            background: 'var(--bg-page)', overflowY: 'auto',
-          }}>
-            <MoveDetail
-              move={panelMove}
-              onNavigate={() => setPanelMove(null)}
-              onBack={() => setPanelMove(null)}
-              isOnBoard={boardMoveIds.has(panelMove.id)}
-              progress={progressMap[panelMove.id] ?? null}
-              onBoardChange={handleBoardChange}
-              onProgressChange={handleProgressChange}
-            />
-          </div>
-        )}
-        {showSaveModal && (
-          <SaveChainModal
-            moves={chainMoves}
-            onSave={chain => { setSavedChain(chain); setShowSaveModal(false) }}
-            onClose={() => setShowSaveModal(false)}
-          />
-        )}
-      </div>
-    )
-  }
-
-  // ── Desktop: map + cascade panel side by side ────────────────────────────────
-  // Cascade panel slides in from the right when a position is selected.
-  // Map stays visible and dimmed behind it. Clicking map exits the panel.
-  const cascadeWidth = 360
-
-  return (
-    <div style={{ height: '100dvh', position: 'relative', display: 'flex' }}>
-
-      {/* ReactFlow map — full width, shrinks when panel is open */}
-      <div style={{
-        flex: 1, position: 'relative',
-        transition: 'all 0.25s ease',
-      }}>
-
-        {/* Style toggle + breadcrumb — top centre of map */}
-        <div style={{
-          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 10, display: 'flex', alignItems: 'center', gap: 0,
-          background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-          borderRadius: 'var(--radius-lg)', pointerEvents: 'all',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          overflow: 'hidden',
-        }}>
-          {styles.length > 0 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 2,
-              padding: '4px 6px',
-              borderRight: '0.5px solid var(--border)',
-            }}>
-              {['all', ...styles].map(s => (
-                <button
-                  key={s}
-                  onClick={() => setActiveStyle(s)}
-                  style={{
-                    background: activeStyle === s ? 'var(--accent)' : 'none',
-                    border: 'none', borderRadius: 8,
-                    padding: '4px 9px', fontSize: 11, fontWeight: 600,
-                    color: activeStyle === s ? '#fff' : 'var(--text-muted)',
-                    cursor: 'pointer', fontFamily: 'var(--font-body)',
-                    transition: 'all 0.15s', whiteSpace: 'nowrap',
-                  }}
-                >
-                  {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
-                </button>
-              ))}
-            </div>
-          )}
-          <div style={{
-            padding: '6px 10px',
-            fontSize: 11, fontWeight: 600,
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--font-body)',
-          }}>
-            {focusPosition
-              ? <span style={{ color: 'var(--text-muted)' }}>{focusPosition.name}</span>
-              : 'Click a position to explore'
-            }
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div style={{
-          position: 'absolute', bottom: 80, left: 16, zIndex: 10,
-          background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-          borderRadius: 'var(--radius-md)', padding: '10px 14px',
-          display: 'flex', flexDirection: 'column', gap: 6,
-          fontSize: 11, color: 'var(--text-secondary)', pointerEvents: 'none',
-        }}>
-          <LegendItem square color={POSITION_COLOR} label="Position" />
-          <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
-            Edge = avg confidence
-          </div>
-          <LegendItem dot color="#22C55E"            label="Strong (4–5)" />
-          <LegendItem dot color="var(--comp-ready)"  label="Developing (3)" />
-          <LegendItem dot color="#EF4444"            label="Weak (1–2)" />
-          <LegendItem dot color="#7C3AED"            label="On board, unrated" />
-          <LegendItem dot color="var(--border-strong)" label="Not explored" />
-        </div>
-
-        <ReactFlow
-          nodes={nodes} edges={edges}
-          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-          fitView fitViewOptions={{ padding: 0.3 }}
-          minZoom={0.08} maxZoom={2.5}
-          style={{ background: 'var(--bg-page)' }}
-          proOptions={{ hideAttribution: true }}
-          nodesFocusable={false}
-          nodesConnectable={false}
-          onNodeClick={(_, node) => {
-            if (node.data?.onFocus) node.data.onFocus()
-          }}
-        >
-          <Background color="var(--border)" gap={32} size={0.75} />
-          <Controls showInteractive={false} />
-          <MiniMap
-            nodeColor={n => {
-              if (n.type === 'mapPosition') return POSITION_COLOR
-              return n.data?.isOnBoard ? MOVE_COLOR : UNDISCOVERED
-            }}
-            maskColor="rgba(0,0,0,0.05)"
-            style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border)' }}
-          />
-        </ReactFlow>
-      </div>
-
-      {/* Cascade panel — slides in from right when position selected */}
-      {focusPosition && (
-        <div style={{
-          width: cascadeWidth, flexShrink: 0,
-          borderLeft: '0.5px solid var(--border)',
-          position: 'relative',
-          background: 'var(--bg-page)',
-          display: 'flex', flexDirection: 'column',
-        }}>
-          <CascadePanel
-            chainLevels={chainLevels}
-            boardMoveIds={boardMoveIds}
-            progressMap={progressMap}
-            onSelectMove={onSelectMove}
-            onDetail={handleMoveClick}
-            onBack={exitFocus}
-            chainMoves={chainMoves}
-            onSaveChain={() => { setSavedChain(null); setShowSaveModal(true) }}
-            savedChain={savedChain}
-            isMobile={false}
-          />
-        </div>
-      )}
-
-      {/* MoveDetail — overlays on top of cascade panel */}
-      {panelMove && (
-        <div style={{
-          position: 'absolute', top: 0, right: 0,
-          width: focusPosition ? cascadeWidth : 400,
-          height: '100%',
-          overflowY: 'auto', zIndex: 20,
-          background: 'var(--bg-page)',
-          borderLeft: '0.5px solid var(--border)',
-        }}>
-          <MoveDetail
-            move={panelMove}
-            onNavigate={() => setPanelMove(null)}
-            onBack={() => setPanelMove(null)}
-            isOnBoard={boardMoveIds.has(panelMove.id)}
-            progress={progressMap[panelMove.id] ?? null}
-            onBoardChange={handleBoardChange}
-            onProgressChange={handleProgressChange}
-          />
-        </div>
-      )}
-
-      {/* Save chain modal */}
-      {showSaveModal && (
-        <SaveChainModal
-          moves={chainMoves}
-          onSave={chain => { setSavedChain(chain); setShowSaveModal(false) }}
-          onClose={() => setShowSaveModal(false)}
-        />
-      )}
-    </div>
-  )
-}
-// ── Page wrapper ──────────────────────────────────────────────────────────────
-export default function ExplorePage() {
-  const [rawPositions, setRawPositions] = useState([])
-  const [rawMoves, setRawMoves]         = useState([])
-  const [boardMoveIds, setBoardMoveIds] = useState(new Set())
-  const [progressMap, setProgressMap]   = useState({})
-  const [activeStyle, setActiveStyle]   = useState('folkstyle')
-  const [panelMove, setPanelMove]       = useState(null)
-  const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState(null)
-
-  useEffect(() => {
-    Promise.all([getGraph(), getMyBoard(), getMyProgress()])
-      .then(([graphData, boardData, progressData]) => {
-        const boardIds = new Set(boardData.map(i => i.move.id))
-        const pm = {}
-        progressData.forEach(p => { pm[p.move_id] = p })
-        setRawPositions(graphData.positions)
-        setRawMoves(graphData.moves)
-        setBoardMoveIds(boardIds)
-        setProgressMap(pm)
-      })
-      .catch(() => setError('Could not load graph.'))
-      .finally(() => setLoading(false))
   }, [])
 
-  // Derive unique styles — toggle only appears when more than one style present.
-  // Greco will appear automatically once seeded.
-  const styles = useMemo(() => {
-    const set = new Set()
-    rawMoves.forEach(m => {
-      if (Array.isArray(m.styles)) m.styles.forEach(s => set.add(s))
-    })
-    return set.size > 1 ? Array.from(set).sort() : []
-  }, [rawMoves])
-
-  if (loading) return (
-    <div style={{
-      height: '100%', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
-      color: 'var(--text-muted)', fontSize: 13,
-    }}>
-      Loading graph...
-    </div>
-  )
-
-  if (error) return (
-    <div style={{
-      height: '100%', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
-      color: 'var(--accent)', fontSize: 13,
-    }}>
-      {error}
-    </div>
-  )
+  // ── Style change — reset to current position ────────────────────────────────
+  const handleStyleChange = useCallback((s) => {
+    setActiveStyle(s)
+    setExpandedMoveId(null)
+    setExpandedMoveFull(null)
+  }, [])
 
   return (
-    <ReactFlowProvider>
-      <ExploreInner
-        rawPositions={rawPositions} rawMoves={rawMoves}
-        boardMoveIds={boardMoveIds} setBoardMoveIds={setBoardMoveIds}
-        progressMap={progressMap}   setProgressMap={setProgressMap}
-        activeStyle={activeStyle}   setActiveStyle={setActiveStyle}
+    <div style={{
+      maxWidth: 680,
+      margin: '0 auto',
+      padding: 'clamp(16px, 3vw, 28px) clamp(12px, 4vw, 20px)',
+      paddingBottom: chainTrail.length >= 1 ? 80 : 'clamp(16px, 3vw, 28px)',
+    }}>
+
+      {/* Page header */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{
+          fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+          textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4,
+        }}>
+          Technique Graph
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{
+            fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700,
+            letterSpacing: '-0.5px', color: 'var(--text-primary)', margin: 0,
+          }}>
+            Explore
+          </h1>
+          <button
+            onClick={() => navigate('/graph')}
+            style={{
+              background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
+              borderRadius: 8, padding: '6px 12px',
+              fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
+              cursor: 'pointer', fontFamily: 'var(--font-body)',
+            }}
+          >
+            Graph view →
+          </button>
+        </div>
+      </div>
+
+      {/* Style toggle */}
+      <StyleToggle
         styles={styles}
-        panelMove={panelMove}       setPanelMove={setPanelMove}
+        activeStyle={activeStyle}
+        onChange={handleStyleChange}
       />
-    </ReactFlowProvider>
-  )
-}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function LegendItem({ color, label, square }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      {square
-        ? <div style={{ width: 12, height: 12, borderRadius: 3, border: `1.5px solid ${color}`, flexShrink: 0 }} />
-        : <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
-      }
-      <span>{label}</span>
+      {/* Breadcrumb */}
+      <Breadcrumb trail={trail} onNavigateTo={handleBreadcrumbNav} />
+
+      {/* Error */}
+      {error && (
+        <div style={{
+          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
+          borderRadius: 10, padding: '12px 16px',
+          fontSize: 13, color: 'var(--accent)', marginBottom: 16,
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Position header */}
+      {!loading && position && (
+        <PositionHeader
+          position={position}
+          moves={filteredMoves}
+          boardMoveIds={boardMoveIds}
+          progressMap={progressMap}
+        />
+      )}
+
+      {loading && (
+        <div style={{ marginBottom: 20 }}>
+          <Skeleton height={120} />
+        </div>
+      )}
+
+      {/* Moves section label */}
+      <div style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: 'var(--text-muted)',
+        marginBottom: 10,
+      }}>
+        {loading
+          ? 'Loading...'
+          : filteredMoves.length === 0
+          ? 'No moves mapped for this style'
+          : `${filteredMoves.length} move${filteredMoves.length !== 1 ? 's' : ''} from here`
+        }
+      </div>
+
+      {/* Move list */}
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} height={52} style={{ animationDelay: `${i * 0.1}s` }} />
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {filteredMoves.map(move => {
+            const isExpanded  = expandedMoveId === move.id
+            const isOnBoard   = boardMoveIds.has(move.id)
+            const confidence  = progressMap[move.id]?.confidence ?? null
+
+            return (
+              <div key={move.id} ref={isExpanded ? expandedRef : null}>
+                <MoveRow
+                  move={move}
+                  isExpanded={isExpanded}
+                  isOnBoard={isOnBoard}
+                  confidence={confidence}
+                  onClick={() => handleMoveClick(move)}
+                />
+
+                {/* Inline MoveDetail */}
+                {isExpanded && (
+                  <div style={{
+                    border: '0.5px solid rgba(220,38,38,0.4)',
+                    borderTop: 'none',
+                    borderRadius: '0 0 10px 10px',
+                    overflow: 'hidden',
+                  }}>
+                    {loadingMove ? (
+                      <div style={{ padding: 20 }}>
+                        <Skeleton height={200} />
+                      </div>
+                    ) : expandedMoveFull ? (
+                      <MoveDetail
+                        move={expandedMoveFull}
+                        onNavigate={(destPos) => handleNavigate(destPos, expandedMoveFull)}
+                        onBack={() => {
+                          setExpandedMoveId(null)
+                          setExpandedMoveFull(null)
+                        }}
+                        isOnBoard={boardMoveIds.has(expandedMoveFull.id)}
+                        progress={progressMap[expandedMoveFull.id] ?? null}
+                        onBoardChange={handleBoardChange}
+                        onProgressChange={handleProgressChange}
+                        inline
+                      />
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {filteredMoves.length === 0 && !loading && (
+            <div style={{
+              textAlign: 'center', color: 'var(--text-muted)',
+              fontSize: 13, padding: '32px 0',
+            }}>
+              No moves mapped from this position yet.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Saved chain confirmation */}
+      {savedChain && (
+        <div style={{
+          marginTop: 16,
+          background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
+          borderRadius: 8, padding: '10px 14px',
+          fontSize: 12, color: 'var(--success)', fontWeight: 600,
+        }}>
+          ✓ Chain saved as "{savedChain.name}"
+        </div>
+      )}
+
+      {/* Chain bar */}
+      <ChainBar
+        trail={chainTrail}
+        onSave={(chain) => setSavedChain(chain)}
+      />
+
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+      `}</style>
     </div>
   )
 }
