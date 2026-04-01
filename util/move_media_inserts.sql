@@ -3,23 +3,802 @@
 -- content_type on 'drill' rows from 'Drills, Activities and Games'
 -- section may need manual correction to 'game' where appropriate
 
+-- ⚠ LOW CONFIDENCE (0.49) — verify this match
+-- 2-on-1 Duck Under ← Level 1 - Olympic Styles - 2 on 1 Duck Under
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000015', 'https://www.youtube.com/watch?v=cVjTySx1uZ4', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- 2-on-1 Hi-Dive ← Level 1 - Olympic Styles - 2 on 1 Hi Dive
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000014', 'https://www.youtube.com/watch?v=O66IwqnOByE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- 2-on-1 to Single Leg ← Level 1 - Folkstyle Core Curriculum - Single Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000016', 'https://www.youtube.com/watch?v=0BPnLWYBY1I', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- 2-on-1 to Single Leg ← Level 1 - Olympic Styles - Ankle Lace
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000016', 'https://www.youtube.com/watch?v=g9nMnsCRPgg', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- 2-on-1 to Single Leg ← Level 2 - Folkstyle Core Curriculum - Closing the Gap
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000016', 'https://www.youtube.com/watch?v=UoEY_WpKKaU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- 2-on-1 to Single Leg ← Level 1 - Folkstyle Core Curriculum - Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000016', 'https://www.youtube.com/watch?v=8FyeXO4rviw', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.43) — verify this match
+-- Ankle Lace ← Level 1 - Olympic Styles - Ankle Lace
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000039', 'https://www.youtube.com/watch?v=g9nMnsCRPgg', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Ankle Lace ← Level 1 - Olympic Styles - Ankle Lace Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000039', 'https://www.youtube.com/watch?v=lBWYC3NLm64', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 1 - Olympic Styles - Ankle Lace Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=lBWYC3NLm64', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 1 - Olympic Styles - Snatch Single
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=wGwm0qVbu4M', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 1 - Olympic Styles - Headlock Defense Part I   Throw Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=iAT0HViIXK8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Par Terre Defense - Straight Lift Defens
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=Cq305NopNbY', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Par Terre Defense - Mid Gutwrench Defens
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=Be1_d5RSjzQ', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Par Terre Defense - High Gutwrench Defen
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=hVbQgR6lt98', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 1 - Olympic Styles - Gut Wrench Defense   Hips and Shoulders Square and He
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=_ZVeAIMLWr8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Par Terre Defense - Combo Gutwrench Dril
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=oIzDokeG0g4', 'youtube', 'drill') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Defense   Defending the Hiplock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=kfmLTZ_A00M', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Offense - Sag Headlock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=v7gcjEDsg4c', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Par Terre Defense - Mid Gutwrench Drill
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=gCRAe-0IdCw', 'youtube', 'drill') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Par Terre Defense - High Gutwrench Drill
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=NEqCzPXxw1M', 'youtube', 'drill') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 1 - Olympic Styles - Par Terre Defense   Fighting Lock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=ZpMGBQNmspo', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Par Terre Offense - Reverse Lift from th
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=gqrR2PNObOo', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 1 - Olympic Styles - Par Terre Defense   Movement
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=p-MqkxGuSPg', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Freestyle Core Curriculum - Par Terre Defense   Defending the Gut Wren
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=WJBYTtVPC0w', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
 -- ⚠ LOW CONFIDENCE (0.37) — verify this match
 -- Ankle Lace Defense — Catch the Ankle ← Level 3 - Folkstyle Core Curriculum - Counter Offense - Front Headlock Clearing 
 INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=SsswVZr11pU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 1 - Olympic Styles - Headlock Defense Part II
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=gLEabYdy_Tk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 3 - Folkstyle Core Curriculum - Counter Offense   Front Headlock Whipovers
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=fyOVe7kFvBw', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Par Terre Offense - Reverse Lift from th
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=9zdHPqmT9ZU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Folkstyle Core Curriculum - Closing the Gap
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=UoEY_WpKKaU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Folkstyle Core Curriculum - High Crotch Change Off to Double
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=ehtf3Y5g6BI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Offense - Arm Throw
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=-nJFuk4jl0w', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Defense - Defending Double Underhooks
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=SFl-pYct0ck', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Greco-Roman Core Curriculum - Offense - Reverse Headlock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=ol2Bq1w2geA', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Folkstyle Core Curriculum - Sweep Single   Run the Pipe Finish Head In
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=0732LbzcXGc', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Ankle Lace Defense — Catch the Ankle ← Level 2 - Freestyle Core Curriculum - Counter Offense   Foot to Mat with Moving 
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000045', 'https://www.youtube.com/watch?v=67ngjK3cYkQ', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Arm Drag / Arm Chop ← Level 1 - Olympic Styles - Armdrags & Chops
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000003', 'https://www.youtube.com/watch?v=_h258-ed-no', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Arm Spin / Arm Throw ← Level 1 - Olympic Styles - Arm Throw Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000055', 'https://www.youtube.com/watch?v=p7ynIYBBXIM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Arm Spin / Arm Throw ← Level 2 - Greco-Roman Core Curriculum - Offense - Arm Throw
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000055', 'https://www.youtube.com/watch?v=-nJFuk4jl0w', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Blast Double Leg ← Level 1 - Folkstyle Core Curriculum - Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000005', 'https://www.youtube.com/watch?v=8FyeXO4rviw', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Blast Double Leg ← Level 1 - Olympic Styles - Blast Double
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000005', 'https://www.youtube.com/watch?v=4A2OiHUSbsA', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Blast Double Leg ← Level 1 - Folkstyle Core Curriculum - Single Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000005', 'https://www.youtube.com/watch?v=0BPnLWYBY1I', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Blast Double Leg ← Level 2 - Folkstyle Core Curriculum - Double Leg Inside Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000005', 'https://www.youtube.com/watch?v=SfmLZMiUEUM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Blast Double Leg ← Level 2 - Folkstyle Core Curriculum - Double Leg Outside Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000005', 'https://www.youtube.com/watch?v=OcOK0qaEF98', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Bodylock Takedown ← Level 2 - Freestyle Core Curriculum - Scoring Takedowns
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000021', 'https://www.youtube.com/watch?v=SD0R-1RO7II', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.47) — verify this match
+-- Double to High Crotch Conversion ← Level 2 - Folkstyle Core Curriculum - High Crotch Outside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000027', 'https://www.youtube.com/watch?v=XgvA-g8CFVk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.47) — verify this match
+-- Double to High Crotch Conversion ← Level 2 - Folkstyle Core Curriculum - High Crotch Counter   Stuff Head
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000027', 'https://www.youtube.com/watch?v=RWqifP1lYSw', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.46) — verify this match
+-- Double to High Crotch Conversion ← Level 2 - Folkstyle Core Curriculum - High Crotch Inside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000027', 'https://www.youtube.com/watch?v=witUsu1OzX8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.45) — verify this match
+-- Double to High Crotch Conversion ← Level 2 - Folkstyle Core Curriculum - High Crotch   Pop Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000027', 'https://www.youtube.com/watch?v=GwRZj65x2xE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Double to High Crotch Conversion ← Level 2 - Folkstyle Core Curriculum - High Crotch Change Off to Double
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000027', 'https://www.youtube.com/watch?v=ehtf3Y5g6BI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Double to High Crotch Conversion ← Level 1 - Olympic Styles - Snatch Single
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000027', 'https://www.youtube.com/watch?v=wGwm0qVbu4M', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Double to High Crotch Conversion ← Level 2 - Folkstyle Core Curriculum - Closing the Gap
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000027', 'https://www.youtube.com/watch?v=UoEY_WpKKaU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Double to High Crotch Conversion ← Level 2 - Freestyle Core Curriculum - Counter Offense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000027', 'https://www.youtube.com/watch?v=HxO6fdoqSgM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Double to Outside Single ← Level 1 - Olympic Styles - Snatch Single
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=wGwm0qVbu4M', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Double to Outside Single ← Level 2 - Folkstyle Core Curriculum - Double Leg Outside Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=OcOK0qaEF98', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Double to Outside Single ← Level 1 - Folkstyle Core Curriculum - Single Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=0BPnLWYBY1I', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Double to Outside Single ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Single Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=-dAxI4JIV6E', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Double to Outside Single ← Level 1 - Olympic Styles - Inside Tie & Elbow Tie
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=iAgE1NmnGU0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Double to Outside Single ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=kC_nvoN1mg8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Double to Outside Single ← Level 2 - Folkstyle Core Curriculum - Sweep Single   Head Inside
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=1XeFyfGLsY0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Double to Outside Single ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Snatch Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=pc1li8p3UcI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Double to Outside Single ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=2Aezjaiy2Gs', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Double to Outside Single ← Level 1 - Olympic Styles - Arm Spin Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=aLO14jvmEF0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Double to Outside Single ← Level 2 - Folkstyle Core Curriculum - Double Leg Inside Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=SfmLZMiUEUM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Double to Outside Single ← Level 1 - Olympic Styles - Stance
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=mM_WEslbOWE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Double to Outside Single ← Level 1 - Olympic Styles - 2 on 1
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000028', 'https://www.youtube.com/watch?v=ytGfsnQmGgM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Duck Under ← Level 1 - Olympic Styles - 2 on 1 Duck Under
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000008', 'https://www.youtube.com/watch?v=cVjTySx1uZ4', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Finish Double — Covering Hips ← Level 1 - Olympic Styles - Finishes Covering Hips
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000026', 'https://www.youtube.com/watch?v=-0MbKdOH12s', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.48) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 2 - Folkstyle Core Curriculum - Fireman's Carry Kelly Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=-X-AyCR4zC0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.47) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 2 - Folkstyle Core Curriculum - Fireman's Carry Inline Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=BReKpgsEOaM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 1 - Olympic Styles - Headlock Defense Part I   Throw Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=iAT0HViIXK8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.43) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 1 - Olympic Styles - Arm Throw Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=p7ynIYBBXIM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 2 - Freestyle Core Curriculum - Finishes
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=Ha3Bv9bQQF0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 2 - Folkstyle Core Curriculum - High Crotch   Pop Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=GwRZj65x2xE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 2 - Freestyle Core Curriculum - Crowding
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=zBm0sFhrZlg', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 2 - Folkstyle Core Curriculum - Sweep Single   Tree Top Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=pG5WynBZRhU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 2 - Freestyle Core Curriculum - Counter Offense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=HxO6fdoqSgM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Fireman's Carry — Throw Finish ← Level 2 - Freestyle Core Curriculum - Scoring Takedowns
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000037', 'https://www.youtube.com/watch?v=SD0R-1RO7II', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.45) — verify this match
+-- Front Headlock Chop / Finish ← Level 1 - Olympic Styles - Headlock Defense Part I   Throw Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000023', 'https://www.youtube.com/watch?v=iAT0HViIXK8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Front Headlock Chop / Finish ← Level 2 - Freestyle Core Curriculum - Finishes
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000023', 'https://www.youtube.com/watch?v=Ha3Bv9bQQF0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Front Headlock Chop / Finish ← Level 1 - Olympic Styles - Headlock Defense Part II
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000023', 'https://www.youtube.com/watch?v=gLEabYdy_Tk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- Front Headlock Chop / Finish ← Level 2 - Folkstyle Core Curriculum - Front Headlock Go Behind
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000023', 'https://www.youtube.com/watch?v=jIUdo33o3ew', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Front Headlock Chop / Finish ← Level 2 - Folkstyle Core Curriculum - Front Headlock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000023', 'https://www.youtube.com/watch?v=x-PIwrkcuIo', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Front Headlock Reset to Neutral ← Level 1 - Olympic Styles - Headlock Defense Part I   Throw Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000025', 'https://www.youtube.com/watch?v=iAT0HViIXK8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Front Headlock Reset to Neutral ← Level 1 - Olympic Styles - Headlock Defense Part II
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000025', 'https://www.youtube.com/watch?v=gLEabYdy_Tk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Front Headlock Reset to Neutral ← Level 2 - Folkstyle Core Curriculum - Front Headlock Go Behind
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000025', 'https://www.youtube.com/watch?v=jIUdo33o3ew', 'youtube', 'technique') ON CONFLICT DO NOTHING;
 
 -- ⚠ LOW CONFIDENCE (0.36) — verify this match
 -- Front Headlock Reset to Neutral ← Level 3 - Folkstyle Core Curriculum - Counter Offense   Front Headlock Knee Tap
 INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000025', 'https://www.youtube.com/watch?v=slEA1uxj_WE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
 
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- Front Headlock Shuck By ← Level 2 - Folkstyle Core Curriculum - Front Headlock Go Behind
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000024', 'https://www.youtube.com/watch?v=jIUdo33o3ew', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Front Headlock Shuck By ← Level 1 - Olympic Styles - Headlock Defense Part II
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000024', 'https://www.youtube.com/watch?v=gLEabYdy_Tk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Front Headlock Shuck By ← Level 2 - Folkstyle Core Curriculum - Front Headlock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000024', 'https://www.youtube.com/watch?v=x-PIwrkcuIo', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Front Headlock Shuck By ← Level 1 - Olympic Styles - Snap Down to a Front Headlock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000024', 'https://www.youtube.com/watch?v=0bkIMmQf7TE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.43) — verify this match
+-- Gut Wrench ← Level 1 - Olympic Styles - Gut Wrench
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000038', 'https://www.youtube.com/watch?v=f1fJcbiSlcY', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Gut Wrench Defense — Hips and Shoulders Square ← Level 1 - Olympic Styles - Gut Wrench Defense   Hips and Shoulders Square and He
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000042', 'https://www.youtube.com/watch?v=_ZVeAIMLWr8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Gut Wrench Defense — Hips and Shoulders Square ← Level 2 - Greco-Roman Core Curriculum - Defense - Defending Double Underhooks
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000042', 'https://www.youtube.com/watch?v=SFl-pYct0ck', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Gut Wrench Defense — Hips and Shoulders Square ← Level 2 - Freestyle  -Par Terre Defense   Catching Opponent's Ankle to Defend th
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000042', 'https://www.youtube.com/watch?v=30MU31MpFl8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Gut Wrench Defense — Hips and Shoulders Square ← Level 2 - Greco-Roman Core Curriculum - Defense Defending the Hiplock with Count
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000042', 'https://www.youtube.com/watch?v=53rY69QW6qU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Gut Wrench Defense — Hips and Shoulders Square ← Level 2 - Greco-Roman Core Curriculum - Defense Defending Single Underhooks
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000042', 'https://www.youtube.com/watch?v=rTJdmrQF9VI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Head and Arm Throw ← Level 1 - Olympic Styles - Arm Throw Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000054', 'https://www.youtube.com/watch?v=p7ynIYBBXIM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Head and Arm Throw ← Level 2 - Greco-Roman Core Curriculum - Offense - Arm Throw
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000054', 'https://www.youtube.com/watch?v=-nJFuk4jl0w', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Head and Arm Throw ← Level 1 - Olympic Styles - Headlock Defense Part I   Throw Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000054', 'https://www.youtube.com/watch?v=iAT0HViIXK8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Hi-C to Double Leg ← Level 1 - Folkstyle Core Curriculum - Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000030', 'https://www.youtube.com/watch?v=8FyeXO4rviw', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Hi-C to Double Leg ← Level 1 - Olympic Styles - Blast Double
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000030', 'https://www.youtube.com/watch?v=4A2OiHUSbsA', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Hi-C to Double Leg ← Level 1 - Olympic Styles - Ankle Lace
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000030', 'https://www.youtube.com/watch?v=g9nMnsCRPgg', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Hi-C to Outside Finish ← Level 1 - Olympic Styles - Arm Spin Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000031', 'https://www.youtube.com/watch?v=aLO14jvmEF0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- Hi-C to Single Leg ← Level 1 - Olympic Styles - Ankle Lace
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000032', 'https://www.youtube.com/watch?v=g9nMnsCRPgg', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Hi-C to Single Leg ← Level 1 - Folkstyle Core Curriculum - Single Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000032', 'https://www.youtube.com/watch?v=0BPnLWYBY1I', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Hi-C to Single Leg ← Level 1 - Olympic Styles - Snatch Single
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000032', 'https://www.youtube.com/watch?v=wGwm0qVbu4M', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Inline Fireman's Carry ← Level 2 - Folkstyle Core Curriculum - Fireman's Carry Kelly Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000020', 'https://www.youtube.com/watch?v=-X-AyCR4zC0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Inline Fireman's Carry ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration   Inline Fireman's
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000020', 'https://www.youtube.com/watch?v=Lyb0jpOo8z8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- Inline Fireman's Carry ← Level 2 - Folkstyle Core Curriculum - Fireman's Carry Inline Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000020', 'https://www.youtube.com/watch?v=BReKpgsEOaM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration   Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=8z9GBIE9ASE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=2Aezjaiy2Gs', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Single Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=-dAxI4JIV6E', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Snatch Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=pc1li8p3UcI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration   Hi C
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=b1DwJIJgCIQ', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.49) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Duck Under
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=gNYHFRj_tYA', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.48) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration   Inline Fireman's
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=Lyb0jpOo8z8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.47) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=eECVpvj_Ezo', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.45) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 1 - Folkstyle Core Curriculum - Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=8FyeXO4rviw', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.45) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=kC_nvoN1mg8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 2 - Folkstyle Core Curriculum - High Crotch Inside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=witUsu1OzX8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 2 - Greco-Roman Core Curriculum - Neutral Position   Double Underhooks
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=XruSdq4967U', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 1 - Folkstyle Core Curriculum - Penetration Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=3fAryvfNF8U', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 2 - Folkstyle Core Curriculum - High Crotch Outside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=XgvA-g8CFVk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 2 - Folkstyle Core Curriculum - Double Leg Outside Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=OcOK0qaEF98', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
 -- ⚠ LOW CONFIDENCE (0.38) — verify this match
 -- Inside Step Penetration — Double Leg ← Level 3 - Folkstyle Core Curriculum - Neutral Position Offense - Single Leg Feet
 INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=aMXRZM4f6Es', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 1 - Olympic Styles - Blast Double
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=4A2OiHUSbsA', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 3 - Folkstyle Core Curriculum - Neutral Position - Opponent Posting
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=M-kPdDLuT2E', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Inside Step Penetration — Double Leg ← Level 3 - Folkstyle Core Curriculum - Neutral Position Offense - Single Leg Back
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000009', 'https://www.youtube.com/watch?v=Zg6tF5pvu_Q', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration   Hi C
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=b1DwJIJgCIQ', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=eECVpvj_Ezo', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.48) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration   Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=8z9GBIE9ASE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.48) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=kC_nvoN1mg8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.48) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Snatch Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=pc1li8p3UcI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.48) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Single Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=-dAxI4JIV6E', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.48) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Duck Under
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=gNYHFRj_tYA', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.47) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration   Inline Fireman's
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=Lyb0jpOo8z8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.46) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Double Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=2Aezjaiy2Gs', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.45) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Folkstyle Core Curriculum - High Crotch Inside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=witUsu1OzX8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 2 - Folkstyle Core Curriculum - High Crotch Outside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=XgvA-g8CFVk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.40) — verify this match
+-- Inside Step Penetration — Hi-C ← Level 1 - Folkstyle Core Curriculum - Penetration Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000010', 'https://www.youtube.com/watch?v=3fAryvfNF8U', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Inside Tie to Underhook ← Level 1 - Olympic Styles - Inside Tie & Elbow Tie
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000012', 'https://www.youtube.com/watch?v=iAgE1NmnGU0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Inside Tie to Underhook ← Level 2 - Greco-Roman Core Curriculum - Neutral Position   Set ups to a Single U
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000012', 'https://www.youtube.com/watch?v=fIa9GQrjBBk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Stance
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=mM_WEslbOWE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Snatch Single
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=wGwm0qVbu4M', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Ankle Lace
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=g9nMnsCRPgg', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.39) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Greco Stance
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=YcC4_soKqbs', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Turks
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=i9gzCppt79Y', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Arm Spin Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=aLO14jvmEF0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Level Change ← Level 1 - Folkstyle Core Curriculum - Half Nelson
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=5DFJOOs-eVQ', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Level Change ← Level 1 - Folkstyle Core Curriculum - Stance
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=crvfcKsaN0g', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Arm Throw Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=p7ynIYBBXIM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - 2 on 1
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=ytGfsnQmGgM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Blast Double
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=4A2OiHUSbsA', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Level Change ← Level 1 - Olympic Styles - Ankle Lace Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000013', 'https://www.youtube.com/watch?v=lBWYC3NLm64', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.47) — verify this match
+-- Reverse Lift ← Level 1 - Olympic Styles - Reverse Lift
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000040', 'https://www.youtube.com/watch?v=1gjhBXu4oUM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.43) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 1 - Olympic Styles - Headlock Defense Part I   Throw Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=iAT0HViIXK8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - Fireman's Carry Kelly Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=-X-AyCR4zC0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 1 - Olympic Styles - Headlock Defense Part II
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=gLEabYdy_Tk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Freestyle Core Curriculum - Finishes
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=Ha3Bv9bQQF0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - High Crotch   Pop Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=GwRZj65x2xE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - Sweep Single   Tree Top Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=pG5WynBZRhU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 1 - Folkstyle Core Curriculum - Back Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=kTIvGbkaw_8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - Short Sit to a Switch
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=xKvMJ4PWSTI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - Pop & Chop to Bar Arms
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=xah_aUIsuQg', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 1 - Olympic Styles - Arm Throw Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=p7ynIYBBXIM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 1 - Olympic Styles - 2 on 1 Duck Under
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=cVjTySx1uZ4', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - Short Sit to a Stand Up
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=hDrypwAVVaE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - Pop & Chop to a Far Side Tilt
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=kkhxdmy8nic', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - Fireman's Carry Inline Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=BReKpgsEOaM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 2 - Folkstyle Core Curriculum - Short Sit to a Head Post
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=s4Stwx0hP8s', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Single Leg — Chest to Back Finish ← Level 1 - Olympic Styles - Stuff Head to a Crossface
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000033', 'https://www.youtube.com/watch?v=QvPv-uvoXoI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.41) — verify this match
+-- Single Leg — Outside Finish ← Level 2 - Folkstyle Core Curriculum - Double Leg Outside Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=OcOK0qaEF98', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Single Leg — Outside Finish ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=kC_nvoN1mg8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Single Leg — Outside Finish ← Level 2 - Freestyle Core Curriculum - Outside Step Penetration   Snatch Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=pc1li8p3UcI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Single Leg — Outside Finish ← Level 1 - Olympic Styles - Headlock Defense Part I   Throw Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=iAT0HViIXK8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Single Leg — Outside Finish ← Level 1 - Olympic Styles - Arm Throw Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=p7ynIYBBXIM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Outside Finish ← Level 2 - Folkstyle Core Curriculum - Fireman's Carry Inline Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=BReKpgsEOaM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Outside Finish ← Level 1 - Olympic Styles - Ankle Lace Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=lBWYC3NLm64', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Outside Finish ← Level 2 - Folkstyle Core Curriculum - High Crotch   Pop Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=GwRZj65x2xE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Outside Finish ← Level 2 - Folkstyle Core Curriculum - Sweep Single   Tree Top Finish
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=pG5WynBZRhU', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Outside Finish ← Level 2 - Folkstyle Core Curriculum - High Crotch Outside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=XgvA-g8CFVk', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.36) — verify this match
+-- Single Leg — Outside Finish ← Level 2 - Freestyle Core Curriculum - Finishes
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000034', 'https://www.youtube.com/watch?v=Ha3Bv9bQQF0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Single to Back Exposure ← Level 1 - Folkstyle Core Curriculum - Back Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000035', 'https://www.youtube.com/watch?v=kTIvGbkaw_8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
 
 -- ⚠ LOW CONFIDENCE (0.39) — verify this match
 -- Snap Down from Inside Tie ← Level 3 - Folkstyle Core Curriculum - Neutral Position - Inside Ties
 INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000011', 'https://www.youtube.com/watch?v=HhIuDiqhgW8', 'youtube', 'technique') ON CONFLICT DO NOTHING;
 
 -- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Snap Down from Inside Tie ← Level 2 - Freestyle Core Curriculum - Inside Step Penetration
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000011', 'https://www.youtube.com/watch?v=eECVpvj_Ezo', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Snap Down from Inside Tie ← Level 1 - Olympic Styles - Snap Down to a Front Headlock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000011', 'https://www.youtube.com/watch?v=0bkIMmQf7TE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Snap Down from Inside Tie ← Level 2 - Folkstyle Core Curriculum - Double Leg Inside Step
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000011', 'https://www.youtube.com/watch?v=SfmLZMiUEUM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Snap Down from Inside Tie ← Level 1 - Olympic Styles - Inside Tie & Elbow Tie
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000011', 'https://www.youtube.com/watch?v=iAgE1NmnGU0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.46) — verify this match
+-- Snatch Single Leg ← Level 1 - Olympic Styles - Snatch Single
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000006', 'https://www.youtube.com/watch?v=wGwm0qVbu4M', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.43) — verify this match
+-- Snatch Single Leg ← Level 1 - Folkstyle Core Curriculum - Single Leg
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000006', 'https://www.youtube.com/watch?v=0BPnLWYBY1I', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Sprawl Defense ← Level 1 - Olympic Styles - Arm Throw Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000029', 'https://www.youtube.com/watch?v=p7ynIYBBXIM', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Sprawl Defense ← Level 1 - Olympic Styles - Ankle Lace Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000029', 'https://www.youtube.com/watch?v=lBWYC3NLm64', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.35) — verify this match
+-- Sprawl Defense ← Level 1 - Olympic Styles - Arm Spin Defense
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000029', 'https://www.youtube.com/watch?v=aLO14jvmEF0', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Sprawl to Front Headlock ← Level 1 - Olympic Styles - Snap Down to a Front Headlock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000051', 'https://www.youtube.com/watch?v=0bkIMmQf7TE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Sprawl to Front Headlock ← Level 2 - Folkstyle Core Curriculum - Front Headlock
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000051', 'https://www.youtube.com/watch?v=x-PIwrkcuIo', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.44) — verify this match
+-- Sprawl to Front Headlock ← Level 2 - Folkstyle Core Curriculum - Front Headlock Go Behind
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000051', 'https://www.youtube.com/watch?v=jIUdo33o3ew', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
 -- Sprawl to Front Headlock ← Level 3 - Folkstyle Core Curriculum - Counter Offense   Front Headlock Knee Tap
 INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000051', 'https://www.youtube.com/watch?v=slEA1uxj_WE', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.37) — verify this match
+-- Sprawl to Front Headlock ← Level 3 - Folkstyle Core Curriculum - Counter Offense   Front Headlock Whipovers
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000051', 'https://www.youtube.com/watch?v=fyOVe7kFvBw', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Stuff Head to Cheap Tilt ← Level 1 - Olympic Styles - Stuff Head to a Cheap Tilt
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000052', 'https://www.youtube.com/watch?v=-Qdlgniej_I', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Stuff Head to Cheap Tilt ← Level 1 - Olympic Styles - Stuff Head to a Crossface
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000052', 'https://www.youtube.com/watch?v=QvPv-uvoXoI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.38) — verify this match
+-- Stuff Head to Cheap Tilt ← Level 2 - Folkstyle Core Curriculum - Pop & Chop to a Near Wrist Cheap Tilt
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000052', 'https://www.youtube.com/watch?v=jelOYSlTKtI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- Stuff Head to Crossface ← Level 1 - Olympic Styles - Stuff Head to a Crossface
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000053', 'https://www.youtube.com/watch?v=QvPv-uvoXoI', 'youtube', 'technique') ON CONFLICT DO NOTHING;
+
+-- ⚠ LOW CONFIDENCE (0.42) — verify this match
+-- Stuff Head to Crossface ← Level 1 - Olympic Styles - Stuff Head to a Cheap Tilt
+INSERT INTO move_media (move_id, url, media_type, content_type) VALUES ('00000000-0000-0000-0002-000000000053', 'https://www.youtube.com/watch?v=-Qdlgniej_I', 'youtube', 'technique') ON CONFLICT DO NOTHING;
 
