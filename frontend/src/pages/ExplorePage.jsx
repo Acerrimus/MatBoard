@@ -22,8 +22,6 @@ import MoveDetail from '../components/MoveDetail'
 // ── Constants ─────────────────────────────────────────────────────────────────
 const NODE_W         = 148
 const NODE_H         = 40
-const H_GAP          = 60
-const LEVEL_GAP      = 140
 const POSITION_COLOR = '#DC2626'
 const MOVE_COLOR     = '#3B82F6'
 const UNDISCOVERED   = '#A1A1AA'
@@ -36,6 +34,7 @@ const STYLE_LABELS = {
 }
 
 // ── Dagre layout ──────────────────────────────────────────────────────────────
+// Map view only. Focus drill-down no longer uses dagre.
 function buildDagreLayout(positions, moves) {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
@@ -71,82 +70,6 @@ function buildDagreLayout(positions, moves) {
   return posXY
 }
 
-// ── Focus layout ──────────────────────────────────────────────────────────────
-function buildFocusLayout(levels, allMoves, allPositions, boardMoveIds, progressMap, callbacks) {
-  const nodes = []
-  const edges = []
-
-  levels.forEach((level, li) => {
-    const posY   = li * (NODE_H + LEVEL_GAP) * 2
-    const movesY = posY + NODE_H + LEVEL_GAP * 0.8
-    const { position, moves, selectedMoveId } = level
-
-    const isTop = li === 0
-    nodes.push({
-      id:        `pos-${li}-${position.id}`,
-      type:      isTop ? 'focusCenter' : 'focusDest',
-      position:  { x: -((NODE_W + 40) / 2), y: posY },
-      data:      { name: position.name, isTop },
-      draggable:  false,
-      selectable: false,
-    })
-
-    const totalW = moves.length * NODE_W + (moves.length - 1) * H_GAP
-    const startX = -totalW / 2
-
-    moves.forEach((m, mi) => {
-      const x          = startX + mi * (NODE_W + H_GAP)
-      const isSelected = m.id === selectedMoveId
-      const isOnBoard  = boardMoveIds.has(m.id)
-      const confidence = progressMap[m.id]?.confidence ?? null
-
-      nodes.push({
-        id:       `move-${li}-${m.id}`,
-        type:     'focusMove',
-        position: { x, y: movesY },
-        data:     {
-          name: m.name,
-          isOnBoard,
-          confidence,
-          isSelected,
-          onSelect: () => callbacks.onSelectMove(li, m),
-          onDetail: () => callbacks.onDetail(m),
-        },
-        draggable: false,
-      })
-
-      edges.push({
-        id:     `e-pm-${li}-${m.id}`,
-        source: `pos-${li}-${position.id}`,
-        target: `move-${li}-${m.id}`,
-        type:   'straight',
-        style:  {
-          stroke:      isSelected ? (isOnBoard ? MOVE_COLOR : UNDISCOVERED) : 'var(--border)',
-          strokeWidth: isSelected ? 2 : 1,
-          opacity:     isSelected ? 0.9 : 0.3,
-        },
-      })
-    })
-  })
-
-  levels.forEach((level, li) => {
-    if (li >= levels.length - 1) return
-    const nextLevel = levels[li + 1]
-    const selMove   = level.moves.find(m => m.id === level.selectedMoveId)
-    if (!selMove) return
-    edges.push({
-      id:     `e-mp-${li}`,
-      source: `move-${li}-${selMove.id}`,
-      target: `pos-${li + 1}-${nextLevel.position.id}`,
-      type:   'straight',
-      style:  { stroke: MOVE_COLOR, strokeWidth: 2, opacity: 0.7 },
-      markerEnd: { type: 'ArrowClosed', width: 10, height: 10, color: MOVE_COLOR },
-    })
-  })
-
-  return { nodes, edges }
-}
-
 // ── Map: Position node ────────────────────────────────────────────────────────
 function MapPositionNode({ data }) {
   return (
@@ -157,8 +80,10 @@ function MapPositionNode({ data }) {
         onClick={data.onFocus}
         style={{
           width: NODE_W, height: NODE_H,
-          background: 'rgba(220,38,38,0.07)',
-          border: '1px solid rgba(220,38,38,0.45)',
+          background: data.isActive ? 'rgba(220,38,38,0.18)' : 'rgba(220,38,38,0.07)',
+          border: data.isActive
+            ? '1.5px solid rgba(220,38,38,0.85)'
+            : '1px solid rgba(220,38,38,0.45)',
           borderRadius: 20,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '0 14px', cursor: 'pointer',
@@ -169,13 +94,15 @@ function MapPositionNode({ data }) {
           e.currentTarget.style.borderColor = 'rgba(220,38,38,0.75)'
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.background = 'rgba(220,38,38,0.07)'
-          e.currentTarget.style.borderColor = 'rgba(220,38,38,0.45)'
+          e.currentTarget.style.background = data.isActive
+            ? 'rgba(220,38,38,0.18)' : 'rgba(220,38,38,0.07)'
+          e.currentTarget.style.borderColor = data.isActive
+            ? 'rgba(220,38,38,0.85)' : 'rgba(220,38,38,0.45)'
         }}
       >
         <span style={{
           fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700,
-          color: 'var(--text-primary)',
+          color: data.isActive ? '#DC2626' : 'var(--text-primary)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           pointerEvents: 'none', letterSpacing: '0.01em',
         }}>
@@ -205,132 +132,253 @@ function AggregateEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
   )
 }
 
-// ── Focus: Centre position node ───────────────────────────────────────────────
-function FocusCenterNode({ data }) {
-  return (
-    <>
-      <div style={{
-        width: NODE_W + 40, height: NODE_H + 8,
-        background: 'rgba(220,38,38,0.12)',
-        border: '1.5px solid rgba(220,38,38,0.6)',
-        borderRadius: 24,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 16px', userSelect: 'none',
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
-          color: '#DC2626',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {data.name}
-        </span>
-      </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-    </>
-  )
-}
+const nodeTypes = { mapPosition: MapPositionNode }
+const edgeTypes = { aggregate: AggregateEdge }
 
-// ── Focus: Destination position node ─────────────────────────────────────────
-function FocusDestNode({ data }) {
-  return (
-    <>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <div style={{
-        width: NODE_W + 40, height: NODE_H + 8,
-        background: 'rgba(220,38,38,0.08)',
-        border: '1px solid rgba(220,38,38,0.4)',
-        borderRadius: 24,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 16px', userSelect: 'none',
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
-          color: 'var(--text-primary)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {data.name}
-        </span>
-      </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-    </>
-  )
-}
-
-// ── Focus: Move node ──────────────────────────────────────────────────────────
-function FocusMoveNode({ data }) {
-  const { isOnBoard, isSelected, confidence, name, onSelect, onDetail } = data
-  const border   = isSelected
-    ? (isOnBoard ? 'rgba(59,130,246,0.7)' : 'rgba(161,161,170,0.5)')
-    : 'var(--border)'
-  const bg = isSelected && isOnBoard
-    ? 'rgba(59,130,246,0.09)'
-    : isSelected
-    ? 'rgba(161,161,170,0.06)'
-    : 'var(--bg-surface)'
+// ── Cascade: Move row item ────────────────────────────────────────────────────
+function CascadeMoveItem({ move, isSelected, isOnBoard, confidence, onSelect, onDetail }) {
   const dotColor = confidence
     ? confidenceColor(confidence)
-    : isOnBoard ? '#7C3AED' : 'var(--border)'
-  const textColor = isSelected ? 'var(--text-primary)' : 'var(--text-muted)'
+    : isOnBoard ? '#7C3AED' : 'var(--border-strong)'
 
   return (
-    <>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <div
-        style={{
-          width: NODE_W, height: NODE_H,
-          background: bg,
-          border: `1px solid ${border}`,
-          borderRadius: 10,
-          display: 'flex', alignItems: 'center',
-          padding: '0 10px', gap: 8,
-          cursor: 'pointer',
-          opacity: isSelected ? 1 : 0.5,
-          transition: 'all 0.15s',
-        }}
-        onClick={onSelect}
-        onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = isSelected ? '1' : '0.5' }}
-      >
+    <div
+      onClick={onSelect}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 12px',
+        background: isSelected
+          ? isOnBoard ? 'rgba(59,130,246,0.08)' : 'rgba(161,161,170,0.06)'
+          : 'transparent',
+        border: '0.5px solid',
+        borderColor: isSelected
+          ? isOnBoard ? 'rgba(59,130,246,0.35)' : 'rgba(161,161,170,0.3)'
+          : 'var(--border)',
+        borderRadius: 10,
+        cursor: 'pointer',
+        transition: 'all 0.12s',
+      }}
+      onMouseEnter={e => {
+        if (!isSelected) e.currentTarget.style.borderColor = 'var(--border-strong)'
+      }}
+      onMouseLeave={e => {
+        if (!isSelected) e.currentTarget.style.borderColor = 'var(--border)'
+      }}
+    >
+      {/* Confidence dot */}
+      <div style={{
+        width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+        background: isOnBoard ? 'rgba(59,130,246,0.08)' : 'var(--bg-subtle)',
+        border: `1px solid ${isOnBoard ? 'rgba(59,130,246,0.2)' : 'var(--border)'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
         <div style={{
+          width: 7, height: 7, borderRadius: '50%', background: dotColor,
+        }} />
+      </div>
+
+      {/* Move name */}
+      <span style={{
+        flex: 1, fontSize: 13, fontWeight: isSelected ? 600 : 500,
+        color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+        fontFamily: 'var(--font-body)',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {move.name}
+      </span>
+
+      {/* Selected indicator */}
+      {isSelected && (
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
+          ↓
+        </span>
+      )}
+
+      {/* Detail button */}
+      <div
+        onClick={e => { e.stopPropagation(); onDetail() }}
+        title="View detail"
+        style={{
           width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-          background: isOnBoard ? 'rgba(59,130,246,0.1)' : 'var(--bg-subtle)',
-          border: `1px solid ${isOnBoard ? 'rgba(59,130,246,0.2)' : 'var(--border)'}`,
+          background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor }} />
-        </div>
+          fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer',
+        }}
+      >
+        ↗
+      </div>
+    </div>
+  )
+}
+
+// ── Cascade: Position header ──────────────────────────────────────────────────
+function CascadePositionHeader({ name, isFirst }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: isFirst ? '0 0 10px 0' : '16px 0 10px 0',
+    }}>
+      {!isFirst && (
+        <div style={{
+          width: 1, height: 16, background: 'rgba(220,38,38,0.3)',
+          marginLeft: 4, flexShrink: 0,
+        }} />
+      )}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: 'rgba(220,38,38,0.7)', flexShrink: 0,
+        }} />
         <span style={{
-          fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: isSelected ? 600 : 500,
-          color: textColor,
-          flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+          color: '#DC2626', letterSpacing: '0.01em',
         }}>
           {name}
         </span>
-        <div
-          onClick={e => { e.stopPropagation(); onDetail() }}
-          title="View detail"
-          style={{
-            width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-            background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 9, color: 'var(--text-muted)', cursor: 'pointer',
-          }}
-        >
-          ↗
-        </div>
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-    </>
+    </div>
   )
 }
 
-const nodeTypes = {
-  mapPosition: MapPositionNode,
-  focusCenter: FocusCenterNode,
-  focusDest:   FocusDestNode,
-  focusMove:   FocusMoveNode,
+// ── Cascade panel ─────────────────────────────────────────────────────────────
+// Replaces the ReactFlow focus drill-down on both mobile and desktop.
+// Vertical scroll, one level at a time cascades below the previous.
+function CascadePanel({
+  chainLevels, boardMoveIds, progressMap,
+  onSelectMove, onDetail, onBack,
+  chainMoves, onSaveChain, savedChain,
+  isMobile,
+}) {
+  const bottomRef = useRef(null)
+
+  // Scroll to bottom when a new level appears
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [chainLevels.length])
+
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      height: '100%',
+      background: 'var(--bg-page)',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '12px 16px',
+        borderBottom: '0.5px solid var(--border)',
+        background: 'var(--bg-surface)',
+        display: 'flex', alignItems: 'center', gap: 10,
+        flexShrink: 0,
+      }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-muted)', fontSize: 13, fontWeight: 600,
+            fontFamily: 'var(--font-body)', padding: '0 4px',
+          }}
+        >
+          ← {isMobile ? 'Positions' : 'Map'}
+        </button>
+        <div style={{ width: '0.5px', height: 14, background: 'var(--border)' }} />
+        <span style={{
+          fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-body)',
+        }}>
+          {chainLevels[0]?.position?.name ?? ''}
+        </span>
+      </div>
+
+      {/* Cascade levels — scrollable */}
+      <div style={{
+        flex: 1, overflowY: 'auto',
+        padding: '16px 16px 120px',
+      }}>
+        {chainLevels.map((level, li) => {
+          const { position, moves, selectedMoveId } = level
+          const isFirst = li === 0
+          return (
+            <div key={`${position.id}-${li}`}>
+              <CascadePositionHeader name={position.name} isFirst={isFirst} />
+
+              {moves.length === 0 && (
+                <div style={{
+                  fontSize: 12, color: 'var(--text-muted)',
+                  padding: '8px 0 4px', fontStyle: 'italic',
+                }}>
+                  No moves from this position
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {moves.map(m => (
+                  <CascadeMoveItem
+                    key={m.id}
+                    move={m}
+                    isSelected={m.id === selectedMoveId}
+                    isOnBoard={boardMoveIds.has(m.id)}
+                    confidence={progressMap[m.id]?.confidence ?? null}
+                    onSelect={() => onSelectMove(li, m)}
+                    onDetail={() => onDetail(m)}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Save chain — fixed at bottom of panel */}
+      {chainMoves.length >= 1 && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          padding: '12px 16px',
+          background: 'var(--bg-surface)',
+          borderTop: '0.5px solid var(--border)',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          {/* Chain summary */}
+          <div style={{
+            fontSize: 11, color: 'var(--text-muted)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {chainMoves.map(m => m.name).join(' → ')}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {savedChain && (
+              <div style={{
+                fontSize: 11, color: 'var(--success)', fontWeight: 600,
+                background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
+                borderRadius: 'var(--radius-sm)', padding: '5px 10px', whiteSpace: 'nowrap',
+              }}>
+                ✓ "{savedChain.name}"
+              </div>
+            )}
+            <button
+              onClick={onSaveChain}
+              style={{
+                flex: 1, padding: '9px 16px',
+                background: 'var(--accent)', border: 'none',
+                borderRadius: 'var(--radius-md)', fontSize: 13,
+                fontWeight: 600, color: '#fff',
+                cursor: 'pointer', fontFamily: 'var(--font-body)',
+                boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
+              }}
+            >
+              Save chain ({chainMoves.length} move{chainMoves.length !== 1 ? 's' : ''})
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
-const edgeTypes = { aggregate: AggregateEdge }
+
 
 // ── Mobile: Position list ─────────────────────────────────────────────────────
 function MobilePositionList({ positions, moves, activeStyle, setActiveStyle, styles, onSelect }) {
@@ -587,7 +635,6 @@ function SaveChainModal({ moves, onSave, onClose }) {
   )
 }
 
-// ── Inner (needs ReactFlow context) ──────────────────────────────────────────
 function ExploreInner({
   rawPositions, rawMoves,
   boardMoveIds, setBoardMoveIds,
@@ -595,7 +642,6 @@ function ExploreInner({
   activeStyle, setActiveStyle, styles,
   panelMove, setPanelMove,
 }) {
-  // ── isMobile declared first — used throughout this component ────────────────
   const isMobile = useRef(window.innerWidth < 768).current
 
   const [nodes, setNodes, onNodesChange] = useNodesState([])
@@ -636,21 +682,27 @@ function ExploreInner({
     setChainLevels([{ position, moves, selectedMoveId: null }])
   }, [filteredMoves])
 
-  const exitFocus = useCallback((index) => {
-    if (index === 0) {
-      setFocusTrail([])
-      setChainLevels([])
-    } else {
-      setFocusTrail(prev => prev.slice(0, index))
-      setChainLevels(prev => prev.slice(0, index))
-    }
+  const exitFocus = useCallback(() => {
+    setFocusTrail([])
+    setChainLevels([])
   }, [])
 
-  // ── Select a move at a level ────────────────────────────────────────────────
+  // ── Select a move in the cascade ────────────────────────────────────────────
   const onSelectMove = useCallback((levelIndex, move) => {
+    // If tapping an already-selected move, deselect and trim levels below
+    const currentLevel = chainLevels[levelIndex]
+    if (currentLevel?.selectedMoveId === move.id) {
+      setChainLevels(prev => prev.slice(0, levelIndex + 1).map((l, i) =>
+        i === levelIndex ? { ...l, selectedMoveId: null } : l
+      ))
+      setFocusTrail(prev => prev.slice(0, levelIndex + 1))
+      return
+    }
+
     const destPosition = rawPositions.find(p => p.id === move.to_position_id)
     if (!destPosition) return
     const destMoves = filteredMoves.filter(m => m.from_position_id === destPosition.id)
+
     setChainLevels(prev => {
       const updated = prev.slice(0, levelIndex + 1).map((l, i) =>
         i === levelIndex ? { ...l, selectedMoveId: move.id } : l
@@ -658,7 +710,7 @@ function ExploreInner({
       return [...updated, { position: destPosition, moves: destMoves, selectedMoveId: null }]
     })
     setFocusTrail(prev => [...prev.slice(0, levelIndex + 1), destPosition])
-  }, [rawPositions, filteredMoves])
+  }, [rawPositions, filteredMoves, chainLevels])
 
   // ── Move detail ─────────────────────────────────────────────────────────────
   const handleMoveClick = useCallback(async (move) => {
@@ -678,77 +730,7 @@ function ExploreInner({
       .filter(Boolean)
   }, [chainLevels])
 
-  // ── Build graph (desktop only) ───────────────────────────────────────────────
-  useEffect(() => {
-    if (isMobile && !focusPosition) return 
-    if (!filteredPositions.length) return
-
-    let newNodes = []
-    let newEdges = []
-
-    if (focusPosition && chainLevels.length) {
-      const { nodes: fn, edges: fe } = buildFocusLayout(
-        chainLevels, filteredMoves, filteredPositions,
-        boardMoveIds, progressMap,
-        { onSelectMove, onDetail: handleMoveClick }
-      )
-      newNodes = fn
-      newEdges = fe
-    } else {
-      const posXY = buildDagreLayout(filteredPositions, filteredMoves)
-
-      filteredPositions.forEach(p => {
-        newNodes.push({
-          id:       `pos-${p.id}`,
-          type:     'mapPosition',
-          position: posXY[p.id] ?? { x: 0, y: 0 },
-          data:     { name: p.name, slug: p.slug, onFocus: () => enterFocus(p) },
-          draggable: false,
-        })
-      })
-
-      const pairMoves = {}
-      filteredMoves.forEach(m => {
-        const key = `${m.from_position_id}__${m.to_position_id}`
-        if (!pairMoves[key]) pairMoves[key] = []
-        pairMoves[key].push(m)
-      })
-
-      Object.entries(pairMoves).forEach(([key, ms]) => {
-        const [fromId, toId] = key.split('__')
-        const hasReverse     = !!pairMoves[`${toId}__${fromId}`]
-        const onBoardCount   = ms.filter(m => boardMoveIds.has(m.id)).length
-        const confs          = ms.map(m => progressMap[m.id]?.confidence).filter(Boolean)
-        const avgConf        = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length : null
-        newEdges.push({
-          id:     `agg-${key}`,
-          source: `pos-${fromId}`,
-          target: `pos-${toId}`,
-          type:   'aggregate',
-          data:   {
-            count: ms.length, onBoardCount,
-            avgConfidence: avgConf,
-            curvature: hasReverse ? 0.35 : 0.2,
-          },
-        })
-      })
-    }
-
-    setNodes(newNodes)
-    setEdges(newEdges)
-    fitQueued.current = true
-  }, [isMobile, filteredPositions, filteredMoves, chainLevels, boardMoveIds, progressMap,
-      focusPosition, enterFocus, onSelectMove, handleMoveClick])
-
-  useEffect(() => {
-    if (!fitQueued.current) return
-    const t = setTimeout(() => {
-      fitView({ padding: 0.3, duration: 400 })
-      fitQueued.current = false
-    }, 50)
-    return () => clearTimeout(t)
-  }, [nodes, fitView])
-
+  // ── Board / progress callbacks ───────────────────────────────────────────────
   const handleBoardChange = useCallback((moveId, added) => {
     setBoardMoveIds(prev => {
       const n = new Set(prev)
@@ -765,7 +747,74 @@ function ExploreInner({
     })
   }, [setProgressMap])
 
-  // ── Mobile: position list → focus drill-down ─────────────────────────────────
+  // ── Build map graph ──────────────────────────────────────────────────────────
+  // Always builds — map stays visible on desktop even when cascade is open.
+  // On mobile we skip it entirely since map is never shown.
+  useEffect(() => {
+    if (isMobile) return
+    if (!filteredPositions.length) return
+
+    const posXY = buildDagreLayout(filteredPositions, filteredMoves)
+    const newNodes = []
+    const newEdges = []
+
+    filteredPositions.forEach(p => {
+      newNodes.push({
+        id:       `pos-${p.id}`,
+        type:     'mapPosition',
+        position: posXY[p.id] ?? { x: 0, y: 0 },
+        data:     {
+          name: p.name,
+          slug: p.slug,
+          isActive: focusPosition?.id === p.id,
+          onFocus: () => enterFocus(p),
+        },
+        draggable: false,
+      })
+    })
+
+    const pairMoves = {}
+    filteredMoves.forEach(m => {
+      const key = `${m.from_position_id}__${m.to_position_id}`
+      if (!pairMoves[key]) pairMoves[key] = []
+      pairMoves[key].push(m)
+    })
+
+    Object.entries(pairMoves).forEach(([key, ms]) => {
+      const [fromId, toId] = key.split('__')
+      const hasReverse     = !!pairMoves[`${toId}__${fromId}`]
+      const onBoardCount   = ms.filter(m => boardMoveIds.has(m.id)).length
+      const confs          = ms.map(m => progressMap[m.id]?.confidence).filter(Boolean)
+      const avgConf        = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length : null
+      newEdges.push({
+        id:     `agg-${key}`,
+        source: `pos-${fromId}`,
+        target: `pos-${toId}`,
+        type:   'aggregate',
+        data:   {
+          count: ms.length, onBoardCount,
+          avgConfidence: avgConf,
+          curvature: hasReverse ? 0.35 : 0.2,
+        },
+      })
+    })
+
+    setNodes(newNodes)
+    setEdges(newEdges)
+    fitQueued.current = true
+  }, [isMobile, filteredPositions, filteredMoves, boardMoveIds, progressMap,
+      focusPosition, enterFocus])
+
+  useEffect(() => {
+    if (!fitQueued.current) return
+    const t = setTimeout(() => {
+      fitView({ padding: 0.3, duration: 400 })
+      fitQueued.current = false
+    }, 50)
+    return () => clearTimeout(t)
+  }, [nodes, fitView])
+
+  // ── Mobile: position list ────────────────────────────────────────────────────
   if (isMobile && !focusPosition) {
     return (
       <>
@@ -797,152 +846,110 @@ function ExploreInner({
     )
   }
 
-  // ── Desktop (and mobile in focus mode) ───────────────────────────────────────
-  return (
-    <div style={{ height: '100dvh', position: 'relative' }}>
-
-      {/* Top bar — unified strip: style toggle left, breadcrumb centre */}
-      <div style={{
-        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 10, display: 'flex', alignItems: 'center', gap: 0,
-        background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-        borderRadius: 'var(--radius-lg)', pointerEvents: 'all',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        overflow: 'hidden',
-        maxWidth: 'calc(100vw - 200px)',
-      }}>
-        {/* Style pills — only rendered when multiple styles present */}
-        {styles.length > 0 && (
+  // ── Mobile: cascade ──────────────────────────────────────────────────────────
+  if (isMobile && focusPosition) {
+    return (
+      <div style={{ height: '100dvh', position: 'relative' }}>
+        <CascadePanel
+          chainLevels={chainLevels}
+          boardMoveIds={boardMoveIds}
+          progressMap={progressMap}
+          onSelectMove={onSelectMove}
+          onDetail={handleMoveClick}
+          onBack={exitFocus}
+          chainMoves={chainMoves}
+          onSaveChain={() => { setSavedChain(null); setShowSaveModal(true) }}
+          savedChain={savedChain}
+          isMobile={true}
+        />
+        {panelMove && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 2,
-            padding: '4px 6px',
-            borderRight: '0.5px solid var(--border)',
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'var(--bg-page)', overflowY: 'auto',
           }}>
-            {['all', ...styles].map(s => (
-              <button
-                key={s}
-                onClick={() => setActiveStyle(s)}
-                style={{
-                  background: activeStyle === s ? 'var(--accent)' : 'none',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '4px 9px',
-                  fontSize: 11, fontWeight: 600,
-                  color: activeStyle === s ? '#fff' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                  transition: 'all 0.15s',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
-              </button>
-            ))}
+            <MoveDetail
+              move={panelMove}
+              onNavigate={() => setPanelMove(null)}
+              onBack={() => setPanelMove(null)}
+              isOnBoard={boardMoveIds.has(panelMove.id)}
+              progress={progressMap[panelMove.id] ?? null}
+              onBoardChange={handleBoardChange}
+              onProgressChange={handleProgressChange}
+            />
           </div>
         )}
-
-        {/* Breadcrumb */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 4,
-          padding: '6px 10px', flexWrap: 'wrap',
-        }}>
-          <button
-            onClick={() => exitFocus(0)}
-            style={crumbStyle(focusTrail.length === 0)}
-          >
-            {isMobile ? '← Positions' : 'All Positions'}
-          </button>
-          {focusTrail.map((pos, i) => (
-            <span key={`${pos.id}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: 'var(--border-strong)', fontSize: 10 }}>›</span>
-              <button onClick={() => exitFocus(i + 1)} style={crumbStyle(i === focusTrail.length - 1)}>
-                {pos.name}
-              </button>
-            </span>
-          ))}
-        </div>
+        {showSaveModal && (
+          <SaveChainModal
+            moves={chainMoves}
+            onSave={chain => { setSavedChain(chain); setShowSaveModal(false) }}
+            onClose={() => setShowSaveModal(false)}
+          />
+        )}
       </div>
+    )
+  }
 
-      {/* Save chain button */}
-      {chainMoves.length >= 1 && (
-        <>
-          {!isMobile && (
-            <div style={{
-              position: 'absolute', top: 12, right: panelMove ? 432 : 16,
-              zIndex: 10, pointerEvents: 'all',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              {savedChain && (
-                <div style={{
-                  fontSize: 11, color: 'var(--success)', fontWeight: 600,
-                  background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
-                  borderRadius: 'var(--radius-sm)', padding: '5px 10px',
-                }}>
-                  ✓ Saved as "{savedChain.name}"
-                </div>
-              )}
-              <button
-                onClick={() => { setSavedChain(null); setShowSaveModal(true) }}
-                style={{
-                  background: 'var(--accent)', border: 'none',
-                  borderRadius: 'var(--radius-md)', padding: '7px 16px',
-                  fontSize: 12, fontWeight: 600, color: '#fff',
-                  cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
-                }}
-              >
-                Save chain ({chainMoves.length} move{chainMoves.length !== 1 ? 's' : ''})
-              </button>
-            </div>
-          )}
-          {isMobile && (
-            <div style={{
-              position: 'absolute', bottom: 24,
-              left: '50%', transform: 'translateX(-50%)',
-              zIndex: 10, pointerEvents: 'all',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            }}>
-              {savedChain && (
-                <div style={{
-                  fontSize: '0.6875rem', fontWeight: 600, color: 'var(--success)',
-                  background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
-                  borderRadius: 'var(--radius-sm)', padding: '5px 10px', whiteSpace: 'nowrap',
-                }}>
-                  ✓ Saved as "{savedChain.name}"
-                </div>
-              )}
-              <button
-                onClick={() => { setSavedChain(null); setShowSaveModal(true) }}
-                style={{
-                  background: 'var(--accent)', border: 'none',
-                  borderRadius: 'var(--radius-md)', padding: '0.75rem 1.5rem',
-                  fontSize: '0.875rem', fontWeight: 600, color: '#fff',
-                  cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  boxShadow: '0 4px 12px rgba(220,38,38,0.35)',
-                  minHeight: '2.75rem', whiteSpace: 'nowrap',
-                }}
-              >
-                Save chain ({chainMoves.length} move{chainMoves.length !== 1 ? 's' : ''})
-              </button>
-            </div>
-          )}
-        </>
-      )}
+  // ── Desktop: map + cascade panel side by side ────────────────────────────────
+  // Cascade panel slides in from the right when a position is selected.
+  // Map stays visible and dimmed behind it. Clicking map exits the panel.
+  const cascadeWidth = 360
 
-      {/* Hint — desktop map only */}
-      {!isMobile && !focusPosition && (
+  return (
+    <div style={{ height: '100dvh', position: 'relative', display: 'flex' }}>
+
+      {/* ReactFlow map — full width, shrinks when panel is open */}
+      <div style={{
+        flex: 1, position: 'relative',
+        transition: 'all 0.25s ease',
+      }}>
+
+        {/* Style toggle + breadcrumb — top centre of map */}
         <div style={{
-          position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 10, fontSize: 11, color: 'var(--text-muted)', pointerEvents: 'none',
+          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 10, display: 'flex', alignItems: 'center', gap: 0,
           background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-          borderRadius: 'var(--radius-md)', padding: '4px 12px', whiteSpace: 'nowrap',
+          borderRadius: 'var(--radius-lg)', pointerEvents: 'all',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          overflow: 'hidden',
         }}>
-          Click a position to explore its moves
+          {styles.length > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 2,
+              padding: '4px 6px',
+              borderRight: '0.5px solid var(--border)',
+            }}>
+              {['all', ...styles].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setActiveStyle(s)}
+                  style={{
+                    background: activeStyle === s ? 'var(--accent)' : 'none',
+                    border: 'none', borderRadius: 8,
+                    padding: '4px 9px', fontSize: 11, fontWeight: 600,
+                    color: activeStyle === s ? '#fff' : 'var(--text-muted)',
+                    cursor: 'pointer', fontFamily: 'var(--font-body)',
+                    transition: 'all 0.15s', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{
+            padding: '6px 10px',
+            fontSize: 11, fontWeight: 600,
+            color: 'var(--text-muted)',
+            fontFamily: 'var(--font-body)',
+          }}>
+            {focusPosition
+              ? <span style={{ color: 'var(--text-muted)' }}>{focusPosition.name}</span>
+              : 'Click a position to explore'
+            }
+          </div>
         </div>
-      )}
 
-      {/* Legend — desktop only */}
-      {!isMobile && (
+        {/* Legend */}
         <div style={{
           position: 'absolute', bottom: 80, left: 16, zIndex: 10,
           background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
@@ -950,45 +957,78 @@ function ExploreInner({
           display: 'flex', flexDirection: 'column', gap: 6,
           fontSize: 11, color: 'var(--text-secondary)', pointerEvents: 'none',
         }}>
-          {focusPosition ? (
-            <>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
-                Click a move to trace a chain
-              </div>
-              <LegendItem square color={MOVE_COLOR}   label="Move (on board)" />
-              <LegendItem square color={UNDISCOVERED} label="Move (undiscovered)" />
-              <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
-              <LegendItem dot color="#22C55E" label="Confidence 4–5" />
-              <LegendItem dot color="var(--comp-ready)" label="Confidence 3" />
-              <LegendItem dot color="#EF4444" label="Confidence 1–2" />
-              <LegendItem dot color="#7C3AED" label="On board, unrated" />
-            </>
-          ) : (
-            <>
-              <LegendItem square color={POSITION_COLOR} label="Position (click to explore)" />
-              <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
-                Edge = avg confidence
-              </div>
-              <LegendItem dot color="#22C55E" label="Strong (4–5)" />
-              <LegendItem dot color="var(--comp-ready)" label="Developing (3)" />
-              <LegendItem dot color="#EF4444" label="Weak (1–2)" />
-              <LegendItem dot color="#7C3AED" label="On board, unrated" />
-              <LegendItem dot color="var(--border-strong)" label="Not explored" />
-            </>
-          )}
+          <LegendItem square color={POSITION_COLOR} label="Position" />
+          <div style={{ height: '0.5px', background: 'var(--border)', margin: '2px 0' }} />
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>
+            Edge = avg confidence
+          </div>
+          <LegendItem dot color="#22C55E"            label="Strong (4–5)" />
+          <LegendItem dot color="var(--comp-ready)"  label="Developing (3)" />
+          <LegendItem dot color="#EF4444"            label="Weak (1–2)" />
+          <LegendItem dot color="#7C3AED"            label="On board, unrated" />
+          <LegendItem dot color="var(--border-strong)" label="Not explored" />
+        </div>
+
+        <ReactFlow
+          nodes={nodes} edges={edges}
+          onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+          fitView fitViewOptions={{ padding: 0.3 }}
+          minZoom={0.08} maxZoom={2.5}
+          style={{ background: 'var(--bg-page)' }}
+          proOptions={{ hideAttribution: true }}
+          nodesFocusable={false}
+          nodesConnectable={false}
+          onNodeClick={(_, node) => {
+            if (node.data?.onFocus) node.data.onFocus()
+          }}
+        >
+          <Background color="var(--border)" gap={32} size={0.75} />
+          <Controls showInteractive={false} />
+          <MiniMap
+            nodeColor={n => {
+              if (n.type === 'mapPosition') return POSITION_COLOR
+              return n.data?.isOnBoard ? MOVE_COLOR : UNDISCOVERED
+            }}
+            maskColor="rgba(0,0,0,0.05)"
+            style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border)' }}
+          />
+        </ReactFlow>
+      </div>
+
+      {/* Cascade panel — slides in from right when position selected */}
+      {focusPosition && (
+        <div style={{
+          width: cascadeWidth, flexShrink: 0,
+          borderLeft: '0.5px solid var(--border)',
+          position: 'relative',
+          background: 'var(--bg-page)',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <CascadePanel
+            chainLevels={chainLevels}
+            boardMoveIds={boardMoveIds}
+            progressMap={progressMap}
+            onSelectMove={onSelectMove}
+            onDetail={handleMoveClick}
+            onBack={exitFocus}
+            chainMoves={chainMoves}
+            onSaveChain={() => { setSavedChain(null); setShowSaveModal(true) }}
+            savedChain={savedChain}
+            isMobile={false}
+          />
         </div>
       )}
 
-      {/* MoveDetail panel — desktop side panel, mobile full screen */}
+      {/* MoveDetail — overlays on top of cascade panel */}
       {panelMove && (
-        <div style={isMobile ? {
-          position: 'fixed', inset: 0, zIndex: 50,
-          background: 'var(--bg-page)', overflowY: 'auto',
-        } : {
-          position: 'absolute', top: 16, right: 16,
-          width: 400, maxHeight: 'calc(100% - 32px)',
-          overflowY: 'auto', zIndex: 10,
+        <div style={{
+          position: 'absolute', top: 0, right: 0,
+          width: focusPosition ? cascadeWidth : 400,
+          height: '100%',
+          overflowY: 'auto', zIndex: 20,
+          background: 'var(--bg-page)',
+          borderLeft: '0.5px solid var(--border)',
         }}>
           <MoveDetail
             move={panelMove}
@@ -1010,39 +1050,9 @@ function ExploreInner({
           onClose={() => setShowSaveModal(false)}
         />
       )}
-
-      <ReactFlow
-        nodes={nodes} edges={edges}
-        onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-        fitView fitViewOptions={{ padding: 0.3 }}
-        minZoom={0.08} maxZoom={2.5}
-        style={{ background: 'var(--bg-page)' }}
-        proOptions={{ hideAttribution: true }}
-        nodesFocusable={false}
-        nodesConnectable={false}
-        onNodeClick={(_, node) => {
-          if (node.data?.onSelect) node.data.onSelect()
-          else if (node.data?.onFocus) node.data.onFocus()
-        }}
-      >
-        <Background color="var(--border)" gap={32} size={0.75} />
-        {!isMobile && <Controls showInteractive={false} />}
-        {!isMobile && (
-          <MiniMap
-            nodeColor={n => {
-              if (['mapPosition', 'focusCenter', 'focusDest'].includes(n.type)) return POSITION_COLOR
-              return n.data?.isOnBoard ? MOVE_COLOR : UNDISCOVERED
-            }}
-            maskColor="rgba(0,0,0,0.05)"
-            style={{ background: 'var(--bg-surface)', border: '0.5px solid var(--border)' }}
-          />
-        )}
-      </ReactFlow>
     </div>
   )
 }
-
 // ── Page wrapper ──────────────────────────────────────────────────────────────
 export default function ExplorePage() {
   const [rawPositions, setRawPositions] = useState([])
@@ -1088,6 +1098,7 @@ export default function ExplorePage() {
       Loading graph...
     </div>
   )
+
   if (error) return (
     <div style={{
       height: '100%', display: 'flex',
@@ -1113,13 +1124,6 @@ export default function ExplorePage() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const crumbStyle = (isActive) => ({
-  background: 'none', border: 'none', cursor: 'pointer',
-  fontSize: 11, fontWeight: 600,
-  color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-  fontFamily: 'var(--font-body)', padding: '0 2px',
-})
-
 function LegendItem({ color, label, square }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
