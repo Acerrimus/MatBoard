@@ -8,7 +8,16 @@ const BASE_URL = import.meta.env.DEV
 
 // ── Base fetch helpers ────────────────────────────────────────────────────────
 async function buildHeaders() {
-  const { data: { session } } = await supabase.auth.getSession()
+  let { data: { session } } = await supabase.auth.getSession()
+
+  // If session is null, wait briefly and retry once — this can happen
+  // in the narrow window immediately after a token refresh completes.
+  if (!session) {
+    await new Promise(r => setTimeout(r, 200))
+    const retry = await supabase.auth.getSession()
+    session = retry.data.session
+  }
+
   const headers = { 'Content-Type': 'application/json' }
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`

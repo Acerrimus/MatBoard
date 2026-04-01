@@ -93,26 +93,27 @@ export function AuthProvider({ children }) {
       async (event, session) => {
         if (!initialised.current) return
 
-        setSession(session)
-        setUser(session?.user ?? null)
+        if (event === 'TOKEN_REFRESHED') {
+          // Token refreshed silently — Supabase client already has the new token
+          // internally. buildHeaders() calls getSession() fresh each time so it
+          // will pick it up automatically. No state update needed — pushing new
+          // object references into React state causes re-renders that fire data
+          // fetches during the refresh window, which return 401s.
+          return
+        }
 
         if (event === 'SIGNED_OUT') {
-          // Explicit sign-out — clear everything
+          setSession(null)
+          setUser(null)
           setProfile(null)
           setProfileError(false)
           return
         }
 
-        if (event === 'TOKEN_REFRESHED') {
-          // Token refresh on tab focus — user is still the same person,
-          // profile hasn't changed. Do nothing.
-          return
-        }
-
+        // SIGNED_IN, USER_UPDATED, etc.
+        setSession(session)
+        setUser(session?.user ?? null)
         if (session?.user) {
-          // SIGNED_IN or USER_UPDATED — fetch profile.
-          // silent = true because the user may already be on a page
-          // (e.g. navigating between tabs in the same session).
           await fetchProfile(session.user.id, { silent: true })
         } else {
           setProfile(null)
