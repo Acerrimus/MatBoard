@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { getMovesFromPosition, getMove, getMyBoard, getMyProgress, getGraph, createChain, setChainMoves } from '../api'
+import {
+  getMovesFromPosition,
+  getMove,
+  getMyBoard,
+  getMyProgress,
+  getGraph,
+  createChain,
+  setChainMoves,
+  addToBoard,
+} from '../api'
 import MoveDetail from '../components/MoveDetail'
-import { confidenceColor } from '../components/MoveCard'
+import { confidenceColor, confidenceBg, confidenceLabel } from '../components/MoveCard'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DEFAULT_POSITION = 'neutral'
@@ -13,237 +22,572 @@ const STYLE_LABELS = {
   greco:     'Greco-Roman',
 }
 
-const CONF_LABEL = (c) =>
-  c >= 4 ? 'Strong' : c >= 3 ? 'Developing' : 'Needs work'
-
-// ── Skeleton loader ───────────────────────────────────────────────────────────
-function Skeleton({ height = 68, style = {} }) {
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+function Skeleton({ height = 52, style = {} }) {
   return (
     <div style={{
       height,
-      background: 'var(--bg-subtle)',
-      borderRadius: 10,
-      animation: 'pulse 1.4s ease infinite',
+      background:    'var(--bg-subtle)',
+      borderRadius:  'var(--radius-md)',
+      animation:     'exploreP 1.4s ease infinite',
       ...style,
     }} />
   )
 }
 
 // ── Breadcrumb ────────────────────────────────────────────────────────────────
+// Sticky on scroll. Each crumb is a real 44px tap target.
+// Active crumb is accent-coloured. Previous crumbs are muted + underlined.
 function Breadcrumb({ trail, onNavigateTo }) {
   if (!trail.length) return null
+
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 4,
-      fontSize: 12, color: 'var(--text-muted)',
-      flexWrap: 'wrap', marginBottom: 20,
+      position:        'sticky',
+      top:             0,
+      zIndex:          20,
+      background:      'var(--bg-page)',
+      borderBottom:    '0.5px solid var(--border)',
+      padding:         '0 clamp(12px, 4vw, 20px)',
+      marginLeft:      'calc(-1 * clamp(12px, 4vw, 20px))',
+      marginRight:     'calc(-1 * clamp(12px, 4vw, 20px))',
+      marginBottom:    16,
+      display:         'flex',
+      alignItems:      'center',
+      gap:             2,
+      overflowX:       'auto',
+      WebkitOverflowScrolling: 'touch',
+      // Hide scrollbar but keep scroll
+      scrollbarWidth:  'none',
+      msOverflowStyle: 'none',
     }}>
-      {trail.map((crumb, i) => (
-        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {i > 0 && (
-            <span style={{ color: 'var(--border-strong)', fontSize: 10 }}>›</span>
-          )}
-          {i < trail.length - 1 ? (
-            <button
-              onClick={() => onNavigateTo(i)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 12, color: 'var(--text-muted)', padding: 0,
-                fontFamily: 'var(--font-body)',
-                textDecoration: 'underline',
-                textDecorationColor: 'var(--border-strong)',
-              }}
-            >
-              {crumb.name}
-            </button>
-          ) : (
-            <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
-              {crumb.name}
-            </span>
-          )}
-        </span>
-      ))}
+      {trail.map((crumb, i) => {
+        const isLast = i === trail.length - 1
+        return (
+          <span key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            {i > 0 && (
+              <span style={{
+                color:    'var(--border-strong)',
+                fontSize: 11,
+                padding:  '0 4px',
+                userSelect: 'none',
+              }}>
+                /
+              </span>
+            )}
+            {isLast ? (
+              <span style={{
+                fontSize:   12,
+                fontWeight: 700,
+                color:      'var(--accent)',
+                padding:    '14px 4px 14px 0',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}>
+                {crumb.name}
+              </span>
+            ) : (
+              <button
+                onClick={() => onNavigateTo(i)}
+                style={{
+                  background:  'none',
+                  border:      'none',
+                  cursor:      'pointer',
+                  fontSize:    12,
+                  fontWeight:  500,
+                  color:       'var(--text-muted)',
+                  padding:     '14px 4px 14px 0',
+                  fontFamily:  'var(--font-body)',
+                  lineHeight:  1,
+                  whiteSpace:  'nowrap',
+                  minHeight:   '44px',
+                  touchAction: 'manipulation',
+                  textDecoration:      'underline',
+                  textDecorationColor: 'var(--border)',
+                  textUnderlineOffset: 3,
+                  transition:  'color 0.12s ease',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
+                {crumb.name}
+              </button>
+            )}
+          </span>
+        )
+      })}
+      {/* Fade on right edge to indicate scroll */}
+      <style>{`
+        div::-webkit-scrollbar { display: none; }
+      `}</style>
+    </div>
+  )
+}
+
+// ── Style toggle ──────────────────────────────────────────────────────────────
+// Segmented control aesthetic — one container, active option slides inside it.
+function StyleToggle({ styles, activeStyle, onChange }) {
+  if (!styles.length) return null
+
+  const options = ['all', ...styles]
+
+  return (
+    <div style={{
+      display:        'inline-flex',
+      background:     'var(--bg-subtle)',
+      border:         '0.5px solid var(--border)',
+      borderRadius:   'var(--radius-lg)',
+      padding:        3,
+      gap:            2,
+      marginBottom:   20,
+    }}>
+      {options.map(s => {
+        const active = activeStyle === s
+        return (
+          <button
+            key={s}
+            onClick={() => onChange(s)}
+            style={{
+              padding:      '6px 14px',
+              background:   active ? 'var(--bg-surface)' : 'transparent',
+              border:       active ? '0.5px solid var(--border)' : 'none',
+              borderRadius: 'var(--radius-md)',
+              fontSize:     12,
+              fontWeight:   active ? 700 : 500,
+              color:        active ? 'var(--text-primary)' : 'var(--text-muted)',
+              cursor:       'pointer',
+              fontFamily:   'var(--font-body)',
+              transition:   'all 0.12s ease',
+              whiteSpace:   'nowrap',
+              touchAction:  'manipulation',
+              boxShadow:    active ? 'var(--shadow-sm)' : 'none',
+            }}
+          >
+            {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
+          </button>
+        )
+      })}
     </div>
   )
 }
 
 // ── Position header ───────────────────────────────────────────────────────────
+// The identity block for the current position.
+// Phase badge, confidence summary, move/board counts.
 function PositionHeader({ position, moves, boardMoveIds, progressMap }) {
-  const onBoard  = moves.filter(m => boardMoveIds.has(m.id)).length
-  const confs    = moves.map(m => progressMap[m.id]?.confidence).filter(Boolean)
-  const avgConf  = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length : null
-  const confColor = avgConf ? confidenceColor(avgConf) : null
+  const onBoardMoves = moves.filter(m => boardMoveIds.has(m.id))
+  const confs        = onBoardMoves
+    .map(m => progressMap[m.id]?.confidence)
+    .filter(Boolean)
+  const avgConf      = confs.length
+    ? confs.reduce((a, b) => a + b, 0) / confs.length
+    : null
+  const confColor    = avgConf ? confidenceColor(avgConf) : null
+  const confBg       = avgConf ? confidenceBg(avgConf)    : null
+
+  // Confidence arc — segmented into 5 slots, filled up to avgConf
+  const arcSlots = [1, 2, 3, 4, 5]
 
   return (
     <div style={{
-      background: 'var(--bg-surface)',
-      border: '0.5px solid var(--border)',
-      borderLeft: '3px solid #DC2626',
-      borderRadius: 12,
-      padding: '20px 22px',
+      background:   'var(--bg-surface)',
+      border:       '0.5px solid var(--border)',
+      borderLeft:   `3px solid var(--accent)`,
+      borderRadius: 'var(--radius-lg)',
+      overflow:     'hidden',
       marginBottom: 20,
     }}>
-      <div style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
-        textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6,
-      }}>
-        Position
-      </div>
-      <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700,
-        letterSpacing: '-0.5px', color: 'var(--text-primary)', marginBottom: 14,
-      }}>
-        {position.name}
-      </div>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <StatPill label="Moves" value={moves.length} />
-        {onBoard > 0 && <StatPill label="On board" value={onBoard} />}
-        {avgConf && (
-          <StatPill
-            label="Avg confidence"
-            value={CONF_LABEL(avgConf)}
-            valueColor={confColor}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
+      {/* Confidence tint top strip */}
+      {avgConf && (
+        <div style={{
+          height:     3,
+          background: confColor,
+          opacity:    0.7,
+        }} />
+      )}
 
-// ── Stat pill ─────────────────────────────────────────────────────────────────
-function StatPill({ label, value, valueColor }) {
-  return (
-    <div style={{
-      background: 'var(--bg-subtle)',
-      border: '0.5px solid var(--border)',
-      borderRadius: 8, padding: '7px 12px',
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700,
-        color: valueColor ?? 'var(--text-primary)', lineHeight: 1,
-      }}>
-        {value}
-      </div>
-      <div style={{
-        fontSize: 9, fontWeight: 600, letterSpacing: '0.1em',
-        textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 3,
-      }}>
-        {label}
+      <div style={{ padding: '18px 20px 16px' }}>
+
+        {/* Label */}
+        <div style={{
+          fontSize:      9,
+          fontWeight:    700,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color:         'var(--text-muted)',
+          marginBottom:  6,
+        }}>
+          Position
+        </div>
+
+        {/* Name */}
+        <div style={{
+          fontFamily:    'var(--font-display)',
+          fontSize:      26,
+          fontWeight:    700,
+          letterSpacing: '-0.5px',
+          color:         'var(--text-primary)',
+          lineHeight:    1.15,
+          marginBottom:  14,
+        }}>
+          {position.name}
+        </div>
+
+        {/* Stats row */}
+        <div style={{
+          display:  'flex',
+          gap:      8,
+          flexWrap: 'wrap',
+        }}>
+
+          {/* Move count */}
+          <div style={{
+            background:   'var(--bg-subtle)',
+            border:       '0.5px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            padding:      '8px 12px',
+            minWidth:     60,
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize:   20,
+              fontWeight: 700,
+              color:      'var(--text-primary)',
+              lineHeight: 1,
+            }}>
+              {moves.length}
+            </div>
+            <div style={{
+              fontSize:      9,
+              fontWeight:    700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color:         'var(--text-muted)',
+              marginTop:     4,
+            }}>
+              {moves.length === 1 ? 'move' : 'moves'}
+            </div>
+          </div>
+
+          {/* On board count — only shown if > 0 */}
+          {onBoardMoves.length > 0 && (
+            <div style={{
+              background:   'var(--bg-subtle)',
+              border:       '0.5px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              padding:      '8px 12px',
+              minWidth:     60,
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-display)',
+                fontSize:   20,
+                fontWeight: 700,
+                color:      'var(--text-primary)',
+                lineHeight: 1,
+              }}>
+                {onBoardMoves.length}
+              </div>
+              <div style={{
+                fontSize:      9,
+                fontWeight:    700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color:         'var(--text-muted)',
+                marginTop:     4,
+              }}>
+                in my kit
+              </div>
+            </div>
+          )}
+
+          {/* Avg confidence — only shown if any rated */}
+          {avgConf && (
+            <div style={{
+              background:   confBg,
+              border:       `0.5px solid ${confColor}44`,
+              borderRadius: 'var(--radius-sm)',
+              padding:      '8px 12px',
+              minWidth:     60,
+              display:      'flex',
+              flexDirection:'column',
+              gap:          4,
+            }}>
+              {/* Segmented confidence arc */}
+              <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                {arcSlots.map(s => (
+                  <div
+                    key={s}
+                    style={{
+                      height:       4,
+                      flex:         1,
+                      borderRadius: 2,
+                      background:   s <= Math.round(avgConf)
+                        ? confColor
+                        : 'var(--border)',
+                      transition:   'background 0.2s ease',
+                    }}
+                  />
+                ))}
+              </div>
+              <div style={{
+                fontSize:      9,
+                fontWeight:    700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color:         confColor,
+              }}>
+                {confidenceLabel(Math.round(avgConf))}
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   )
 }
 
 // ── Move row ──────────────────────────────────────────────────────────────────
+// The core list item in ExplorePage.
+// Left border = confidence colour (or muted if unrated).
+// Expanded: bottom border dissolves, MoveDetail flows below with a connected
+// left accent spine creating visual continuity.
 function MoveRow({ move, isExpanded, isOnBoard, confidence, onClick }) {
-  const dotColor = confidence
+  const borderColor = isOnBoard
     ? confidenceColor(confidence)
-    : isOnBoard ? '#7C3AED' : 'var(--border-strong)'
+    : 'var(--border)'
+
+  const bg = isExpanded
+    ? 'var(--bg-surface)'
+    : 'var(--bg-surface)'
 
   return (
     <div
       onClick={onClick}
       style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '12px 14px',
-        background: isExpanded ? 'var(--bg-surface)' : 'var(--bg-surface)',
-        border: '0.5px solid',
-        borderColor: isExpanded ? 'rgba(220,38,38,0.4)' : 'var(--border)',
-        borderRadius: isExpanded ? '10px 10px 0 0' : 10,
-        cursor: 'pointer',
-        transition: 'all 0.12s',
-        borderBottom: isExpanded ? '0.5px solid var(--border)' : undefined,
+        display:          'flex',
+        alignItems:       'center',
+        gap:              12,
+        padding:          '13px 16px',
+        background:       bg,
+        border:           '0.5px solid var(--border)',
+        borderLeft:       `3px solid ${borderColor}`,
+        // When expanded, remove bottom border so MoveDetail connects flush
+        borderBottom:     isExpanded
+          ? '0.5px solid transparent'
+          : '0.5px solid var(--border)',
+        borderRadius:     isExpanded
+          ? 'var(--radius-md) var(--radius-md) 0 0'
+          : 'var(--radius-md)',
+        cursor:           'pointer',
+        transition:       'background 0.12s ease, border-color 0.12s ease',
+        userSelect:       'none',
+        WebkitTapHighlightColor: 'transparent',
       }}
       onMouseEnter={e => {
-        if (!isExpanded) e.currentTarget.style.borderColor = 'var(--border-strong)'
+        if (!isExpanded) {
+          e.currentTarget.style.background = 'var(--bg-subtle)'
+        }
       }}
       onMouseLeave={e => {
-        if (!isExpanded) e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.background = 'var(--bg-surface)'
       }}
     >
-      {/* Confidence indicator */}
+      {/* Confidence dot */}
       <div style={{
-        width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-        background: isOnBoard ? 'rgba(59,130,246,0.08)' : 'var(--bg-subtle)',
-        border: `1px solid ${isOnBoard ? 'rgba(59,130,246,0.2)' : 'var(--border)'}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
+        width:        10,
+        height:       10,
+        borderRadius: '50%',
+        flexShrink:   0,
+        background:   isOnBoard
+          ? confidenceColor(confidence)
+          : 'var(--border)',
+        boxShadow:    isOnBoard && confidence
+          ? `0 0 0 3px ${confidenceBg(confidence)}`
+          : 'none',
+        transition:   'background 0.15s ease, box-shadow 0.15s ease',
+      }} />
+
+      {/* Move name + destination */}
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          width: 8, height: 8, borderRadius: '50%', background: dotColor,
-        }} />
+          fontSize:     14,
+          fontWeight:   isExpanded ? 700 : 500,
+          color:        isExpanded
+            ? 'var(--text-primary)'
+            : 'var(--text-secondary)',
+          fontFamily:   'var(--font-body)',
+          whiteSpace:   'nowrap',
+          overflow:     'hidden',
+          textOverflow: 'ellipsis',
+          lineHeight:   1.3,
+          marginBottom: 2,
+          transition:   'color 0.12s ease, font-weight 0.12s ease',
+        }}>
+          {move.name}
+        </div>
+        <div style={{
+          fontSize:   11,
+          color:      'var(--text-muted)',
+          lineHeight: 1,
+          display:    'flex',
+          alignItems: 'center',
+          gap:        4,
+        }}>
+          <span style={{ fontSize: 9, opacity: 0.7 }}>→</span>
+          <span>{move.to_position?.name ?? '—'}</span>
+          {move.scoring_value > 0 && (
+            <>
+              <span style={{ color: 'var(--border-strong)' }}>·</span>
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                {move.scoring_value}pts
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Move name */}
-      <span style={{
-        flex: 1, fontSize: 14, fontWeight: isExpanded ? 600 : 500,
-        color: isExpanded ? 'var(--text-primary)' : 'var(--text-secondary)',
-        fontFamily: 'var(--font-body)',
+      {/* Right side: confidence badge or rate nudge + chevron */}
+      <div style={{
+        display:    'flex',
+        alignItems: 'center',
+        gap:        8,
+        flexShrink: 0,
       }}>
-        {move.name}
-      </span>
+        {isOnBoard && confidence ? (
+          <div style={{
+            fontSize:     11,
+            fontWeight:   700,
+            color:        confidenceColor(confidence),
+            background:   confidenceBg(confidence),
+            border:       `0.5px solid ${confidenceColor(confidence)}44`,
+            borderRadius: 6,
+            padding:      '3px 8px',
+            lineHeight:   1,
+          }}>
+            {confidence}/5
+          </div>
+        ) : isOnBoard ? (
+          <div style={{
+            fontSize:     10,
+            fontWeight:   600,
+            color:        'var(--text-muted)',
+            background:   'var(--bg-subtle)',
+            border:       '0.5px solid var(--border)',
+            borderRadius: 6,
+            padding:      '3px 8px',
+            lineHeight:   1,
+          }}>
+            Rate it
+          </div>
+        ) : null}
 
-      {/* Confidence badge */}
-      {confidence && (
         <span style={{
-          fontSize: 11, fontWeight: 600,
-          color: confidenceColor(confidence),
-          background: 'var(--bg-subtle)',
-          border: `0.5px solid ${confidenceColor(confidence)}44`,
-          borderRadius: 6, padding: '2px 7px', flexShrink: 0,
+          fontSize:   13,
+          color:      'var(--border-strong)',
+          transform:  isExpanded ? 'rotate(90deg)' : 'none',
+          transition: 'transform 0.15s ease',
+          lineHeight: 1,
         }}>
-          {confidence}/5
+          ›
         </span>
-      )}
-
-      {/* Expand indicator */}
-      <span style={{
-        fontSize: 12, color: 'var(--text-muted)', flexShrink: 0,
-        transform: isExpanded ? 'rotate(180deg)' : 'none',
-        transition: 'transform 0.15s',
-      }}>
-        ›
-      </span>
+      </div>
     </div>
   )
 }
 
 // ── Chain bar ─────────────────────────────────────────────────────────────────
+// Floating island above the bottom of the viewport.
+// Shows once the athlete has navigated at least one move.
+// The trail renders as connected node chips, not a text string.
 function ChainBar({ trail, onSave }) {
   const [showModal, setShowModal] = useState(false)
-  // Trail has at least 2 entries to show (start position + at least one move navigated)
+
+  // Trail must have at least 2 entries (start position + 1 navigated move)
   if (trail.length < 2) return null
 
   return (
     <>
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        zIndex: 40,
-        background: 'var(--bg-surface)',
-        borderTop: '0.5px solid var(--border)',
-        padding: '10px 16px',
-        display: 'flex', alignItems: 'center', gap: 12,
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
+        position:       'fixed',
+        bottom:         16,
+        left:           '50%',
+        transform:      'translateX(-50%)',
+        zIndex:         40,
+        background:     'var(--bg-surface)',
+        border:         '0.5px solid var(--border-strong)',
+        borderRadius:   'var(--radius-xl)',
+        padding:        '10px 14px',
+        display:        'flex',
+        alignItems:     'center',
+        gap:            12,
+        boxShadow:      '0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2)',
+        maxWidth:       'calc(100vw - 32px)',
+        animation:      'chainBarIn 0.2s ease',
       }}>
+
+        {/* Trail chips */}
         <div style={{
-          flex: 1,
-          fontSize: 11, color: 'var(--text-muted)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          display:        'flex',
+          alignItems:     'center',
+          gap:            0,
+          overflowX:      'auto',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+          flex:           1,
+          minWidth:       0,
         }}>
-          {trail.map(t => t.name).join(' → ')}
+          {trail.map((t, i) => (
+            <span key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              {i > 0 && (
+                <span style={{
+                  fontSize: 10,
+                  color:    'var(--border-strong)',
+                  padding:  '0 4px',
+                }}>
+                  →
+                </span>
+              )}
+              <span style={{
+                fontSize:     11,
+                fontWeight:   600,
+                color:        'var(--text-secondary)',
+                background:   'var(--bg-subtle)',
+                border:       '0.5px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                padding:      '3px 8px',
+                whiteSpace:   'nowrap',
+              }}>
+                {t.name}
+              </span>
+            </span>
+          ))}
         </div>
+
+        {/* Save button */}
         <button
           onClick={() => setShowModal(true)}
           style={{
-            flexShrink: 0,
-            background: 'var(--accent)', border: 'none',
-            borderRadius: 8, padding: '8px 16px',
-            fontSize: 12, fontWeight: 600, color: '#fff',
-            cursor: 'pointer', fontFamily: 'var(--font-body)',
-            boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
+            flexShrink:   0,
+            background:   'var(--accent)',
+            border:       'none',
+            borderRadius: 'var(--radius-md)',
+            padding:      '8px 16px',
+            fontSize:     12,
+            fontWeight:   700,
+            color:        '#fff',
+            cursor:       'pointer',
+            fontFamily:   'var(--font-body)',
+            boxShadow:    '0 2px 8px rgba(220,38,38,0.35)',
+            touchAction:  'manipulation',
+            transition:   'opacity 0.12s ease',
+            whiteSpace:   'nowrap',
           }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
         >
-          Save chain
+          Save sequence
         </button>
       </div>
 
@@ -265,12 +609,12 @@ function SaveChainModal({ trail, onSave, onClose }) {
   const [error, setError]   = useState(null)
 
   const handleSave = async () => {
-    if (!name.trim()) return
+    if (!name.trim() || saving) return
     setSaving(true)
     setError(null)
     try {
       const moveIds = trail.flatMap(t => t.moveId ? [t.moveId] : [])
-      const chain = await createChain(name.trim())
+      const chain   = await createChain(name.trim())
       await setChainMoves(chain.id, moveIds)
       onSave(chain)
     } catch {
@@ -283,82 +627,146 @@ function SaveChainModal({ trail, onSave, onClose }) {
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(0,0,0,0.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position:       'fixed',
+        inset:          0,
+        zIndex:         100,
+        background:     'rgba(0,0,0,0.6)',
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'center',
+        padding:        '0 16px',
+        backdropFilter: 'blur(2px)',
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div style={{
-        background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-        borderRadius: 14, padding: '1.75rem',
-        width: 'min(380px, calc(100vw - 2rem))',
-        margin: '0 1rem', boxSizing: 'border-box',
+        background:   'var(--bg-surface)',
+        border:       '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-xl)',
+        padding:      '24px',
+        width:        'min(400px, 100%)',
+        boxShadow:    '0 16px 48px rgba(0,0,0,0.4)',
+        animation:    'modalIn 0.15s ease',
       }}>
+
+        {/* Title */}
         <div style={{
-          fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700,
-          color: 'var(--text-primary)', marginBottom: 6,
+          fontFamily:    'var(--font-display)',
+          fontSize:      17,
+          fontWeight:    700,
+          color:         'var(--text-primary)',
+          marginBottom:  4,
+          letterSpacing: '-0.2px',
         }}>
-          Save as chain
+          Save sequence
         </div>
+
+        {/* Trail preview */}
         <div style={{
-          fontSize: 12, color: 'var(--text-muted)', marginBottom: 20,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontSize:     11,
+          color:        'var(--text-muted)',
+          marginBottom: 20,
+          lineHeight:   1.5,
+          overflow:     'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace:   'nowrap',
         }}>
           {trail.map(t => t.name).join(' → ')}
         </div>
+
+        {/* Name input */}
         <label style={{
-          fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)',
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-          display: 'block', marginBottom: 6,
+          display:       'block',
+          fontSize:      10,
+          fontWeight:    700,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color:         'var(--text-muted)',
+          marginBottom:  6,
         }}>
-          Chain name
+          Sequence name
         </label>
         <input
           autoFocus
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSave()}
-          placeholder="e.g. Tie-Up to Back Control"
+          placeholder="e.g. Tie-up to Back Control"
           style={{
-            width: '100%', padding: '9px 12px',
-            background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-            borderRadius: 8, fontSize: 13,
-            color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
-            outline: 'none', marginBottom: 16, boxSizing: 'border-box',
+            width:        '100%',
+            padding:      '10px 14px',
+            background:   'var(--bg-subtle)',
+            border:       '0.5px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            fontSize:     14,
+            color:        'var(--text-primary)',
+            fontFamily:   'var(--font-body)',
+            outline:      'none',
+            marginBottom: 16,
+            boxSizing:    'border-box',
+            transition:   'border-color 0.12s ease',
           }}
+          onFocus={e  => e.currentTarget.style.borderColor = 'var(--accent)'}
+          onBlur={e   => e.currentTarget.style.borderColor = 'var(--border)'}
         />
+
         {error && (
           <div style={{
-            background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
-            borderRadius: 8, padding: '8px 12px',
-            fontSize: 12, color: 'var(--accent)', marginBottom: 12,
+            background:   'var(--accent-soft)',
+            border:       '0.5px solid var(--border-accent)',
+            borderRadius: 'var(--radius-sm)',
+            padding:      '8px 12px',
+            fontSize:     12,
+            color:        'var(--accent)',
+            marginBottom: 12,
           }}>
             {error}
           </div>
         )}
+
+        {/* Actions */}
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onClose} style={{
-            flex: 1, padding: '9px 16px',
-            background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-            borderRadius: 8, fontSize: 13, color: 'var(--text-secondary)',
-            cursor: 'pointer', fontFamily: 'var(--font-body)',
-          }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex:         1,
+              padding:      '10px 16px',
+              background:   'var(--bg-subtle)',
+              border:       '0.5px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              fontSize:     13,
+              color:        'var(--text-secondary)',
+              cursor:       'pointer',
+              fontFamily:   'var(--font-body)',
+              transition:   'all 0.12s ease',
+            }}
+          >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !name.trim()}
+            disabled={!name.trim() || saving}
             style={{
-              flex: 2, padding: '9px 16px',
-              background: name.trim() && !saving ? 'var(--accent)' : 'var(--bg-subtle)',
-              border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600,
-              color: name.trim() && !saving ? '#fff' : 'var(--text-muted)',
-              cursor: name.trim() && !saving ? 'pointer' : 'not-allowed',
-              fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+              flex:         2,
+              padding:      '10px 16px',
+              background:   name.trim() && !saving
+                ? 'var(--accent)'
+                : 'var(--bg-subtle)',
+              border:       'none',
+              borderRadius: 'var(--radius-md)',
+              fontSize:     13,
+              fontWeight:   700,
+              color:        name.trim() && !saving
+                ? '#fff'
+                : 'var(--text-muted)',
+              cursor:       name.trim() && !saving
+                ? 'pointer'
+                : 'not-allowed',
+              fontFamily:   'var(--font-body)',
+              transition:   'all 0.15s ease',
             }}
           >
-            {saving ? 'Saving...' : 'Save chain'}
+            {saving ? 'Saving...' : 'Save sequence'}
           </button>
         </div>
       </div>
@@ -366,70 +774,78 @@ function SaveChainModal({ trail, onSave, onClose }) {
   )
 }
 
-// ── Style toggle ──────────────────────────────────────────────────────────────
-function StyleToggle({ styles, activeStyle, onChange }) {
-  if (!styles.length) return null
+// ── Empty state ───────────────────────────────────────────────────────────────
+// Tells the athlete exactly what to do next — not just that it's empty.
+function EmptyMoves({ positionName }) {
   return (
-    <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-      {['all', ...styles].map(s => (
-        <button
-          key={s}
-          onClick={() => onChange(s)}
-          style={{
-            padding: '5px 12px',
-            background: activeStyle === s ? 'var(--accent)' : 'var(--bg-subtle)',
-            border: activeStyle === s ? 'none' : '0.5px solid var(--border)',
-            borderRadius: 20, fontSize: 12, fontWeight: 600,
-            color: activeStyle === s ? '#fff' : 'var(--text-muted)',
-            cursor: 'pointer', fontFamily: 'var(--font-body)',
-            transition: 'all 0.15s',
-          }}
-        >
-          {s === 'all' ? 'All' : STYLE_LABELS[s] ?? s}
-        </button>
-      ))}
+    <div style={{
+      background:   'var(--bg-surface)',
+      border:       '0.5px solid var(--border)',
+      borderRadius: 'var(--radius-lg)',
+      padding:      '32px 24px',
+      textAlign:    'center',
+    }}>
+      <div style={{ fontSize: 28, marginBottom: 12 }}>🤼</div>
+      <div style={{
+        fontFamily:   'var(--font-display)',
+        fontSize:     15,
+        fontWeight:   700,
+        color:        'var(--text-primary)',
+        marginBottom: 6,
+      }}>
+        No moves mapped here yet
+      </div>
+      <div style={{
+        fontSize:   13,
+        color:      'var(--text-muted)',
+        lineHeight: 1.6,
+      }}>
+        No techniques are mapped from {positionName} for this style.
+        Try switching styles above, or go back and explore a different position.
+      </div>
     </div>
   )
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function ExplorePage() {
-  const [searchParams]                    = useSearchParams()
-  const navigate                          = useNavigate()
+  const [searchParams]                        = useSearchParams()
+  const navigate                              = useNavigate()
 
-  const [position, setPosition]           = useState(null)
-  const [moves, setMoves]                 = useState([])
-  const [expandedMoveId, setExpandedMoveId] = useState(null)
+  // Position + moves
+  const [position, setPosition]               = useState(null)
+  const [moves, setMoves]                     = useState([])
+  const [loading, setLoading]                 = useState(true)
+  const [error, setError]                     = useState(null)
+
+  // Expanded move
+  const [expandedMoveId, setExpandedMoveId]   = useState(null)
   const [expandedMoveFull, setExpandedMoveFull] = useState(null)
-  const [loadingMove, setLoadingMove]     = useState(false)
+  const [loadingMove, setLoadingMove]         = useState(false)
 
-  // Trail — each entry: { name, slug, moveId? }
-  // moveId is the move that was used to navigate TO this position
-  const [trail, setTrail]                 = useState([])
-  // Chain trail — flat list of moves navigated through
-  const [chainTrail, setChainTrail]       = useState([])
-  const [savedChain, setSavedChain]       = useState(null)
+  // Navigation trail — each entry: { name, slug, moveId? }
+  // moveId = the move used to navigate TO this position
+  const [trail, setTrail]                     = useState([])
+  // Chain trail — flat list of { name, moveId } for the save-chain flow
+  const [chainTrail, setChainTrail]           = useState([])
+  const [savedChain, setSavedChain]           = useState(null)
 
-  const [loading, setLoading]             = useState(true)
-  const [error, setError]                 = useState(null)
-
-  const [boardMoveIds, setBoardMoveIds]   = useState(new Set())
-  const [progressMap, setProgressMap]     = useState({})
-  const [boardReady, setBoardReady]       = useState(false)
+  // Board + progress
+  const [boardMoveIds, setBoardMoveIds]       = useState(new Set())
+  const [progressMap, setProgressMap]         = useState({})
+  const [boardReady, setBoardReady]           = useState(false)
 
   // Style filter
-  const [activeStyle, setActiveStyle]     = useState('folkstyle')
-  const [allMoves, setAllMoves]           = useState([])
-  const [styles, setStyles]               = useState([])
+  const [activeStyle, setActiveStyle]         = useState('folkstyle')
+  const [styles, setStyles]                   = useState([])
 
-  // Scroll ref for expanded move
   const expandedRef = useRef(null)
 
-  // ── Load board + progress ───────────────────────────────────────────────────
+  // ── Load board + progress + derive styles ──────────────────────────────────
   useEffect(() => {
     Promise.all([
-      import('../api').then(m => m.getMyBoard()),
-      import('../api').then(m => m.getMyProgress()),
+      getMyBoard(),
+      getMyProgress(),
       getGraph(),
     ])
       .then(([boardData, progressData, graphData]) => {
@@ -438,19 +854,17 @@ export default function ExplorePage() {
         progressData.forEach(p => { pm[p.move_id] = p })
         setProgressMap(pm)
 
-        // Derive styles
-        const set = new Set()
+        const styleSet = new Set()
         graphData.moves.forEach(m => {
-          if (Array.isArray(m.styles)) m.styles.forEach(s => set.add(s))
+          if (Array.isArray(m.styles)) m.styles.forEach(s => styleSet.add(s))
         })
-        setAllMoves(graphData.moves)
-        setStyles(set.size > 1 ? Array.from(set).sort() : [])
+        setStyles(styleSet.size > 1 ? Array.from(styleSet).sort() : [])
       })
-      .catch(() => {})
+      .catch(console.error)
       .finally(() => setBoardReady(true))
   }, [])
 
-  // ── Load position ───────────────────────────────────────────────────────────
+  // ── Load a position by slug ────────────────────────────────────────────────
   const loadPosition = useCallback(async (slug, newTrail, newChainTrail) => {
     setLoading(true)
     setExpandedMoveId(null)
@@ -460,28 +874,30 @@ export default function ExplorePage() {
       const data = await getMovesFromPosition(slug)
       setPosition(data.position)
       setMoves(data.moves)
-      setTrail(newTrail ?? [{ name: data.position.name, slug }])
+      setTrail(newTrail      ?? [{ name: data.position.name, slug }])
       setChainTrail(newChainTrail ?? [])
     } catch {
-      setError('Could not load position.')
+      setError('Could not load position. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // ── Initial load from ?position param ──────────────────────────────────────
+  // ── Mount: read ?position param ────────────────────────────────────────────
   useEffect(() => {
     const slug = searchParams.get('position') || DEFAULT_POSITION
     loadPosition(slug)
-  }, []) // intentionally only on mount
+  }, []) // intentionally mount-only
 
-  // ── Filter moves by active style ────────────────────────────────────────────
+  // ── Style-filtered moves ───────────────────────────────────────────────────
   const filteredMoves = useMemo(() => {
     if (activeStyle === 'all') return moves
-    return moves.filter(m => Array.isArray(m.styles) && m.styles.includes(activeStyle))
+    return moves.filter(m =>
+      Array.isArray(m.styles) && m.styles.includes(activeStyle)
+    )
   }, [moves, activeStyle])
 
-  // ── Click a move row ─────────────────────────────────────────────────────────
+  // ── Click a move row ───────────────────────────────────────────────────────
   const handleMoveClick = useCallback(async (move) => {
     // Collapse if already expanded
     if (expandedMoveId === move.id) {
@@ -498,25 +914,22 @@ export default function ExplorePage() {
       const full = await getMove(move.slug)
       setExpandedMoveFull(full)
     } catch {
+      // Fall back to partial move object — better than nothing
       setExpandedMoveFull(move)
     } finally {
       setLoadingMove(false)
     }
 
-    // Scroll to expanded move after render
+    // Scroll expanded row into view
     setTimeout(() => {
       expandedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }, 80)
   }, [expandedMoveId])
 
-  // ── Navigate to destination position ────────────────────────────────────────
+  // ── Navigate to destination position ──────────────────────────────────────
   const handleNavigate = useCallback((destPos, viaMove) => {
     if (!destPos?.slug) return
-    const newTrail = [
-      ...trail,
-      { name: destPos.name, slug: destPos.slug },
-    ]
-    // Chain trail stores move names for the save chain bar
+    const newTrail = [...trail, { name: destPos.name, slug: destPos.slug }]
     const newChainTrail = [
       ...chainTrail,
       { name: viaMove?.name ?? destPos.name, moveId: viaMove?.id },
@@ -524,140 +937,195 @@ export default function ExplorePage() {
     loadPosition(destPos.slug, newTrail, newChainTrail)
   }, [trail, chainTrail, loadPosition])
 
-  // ── Breadcrumb nav ───────────────────────────────────────────────────────────
+  // ── Breadcrumb navigation ──────────────────────────────────────────────────
   const handleBreadcrumbNav = useCallback((index) => {
     const crumb = trail[index]
-    loadPosition(crumb.slug, trail.slice(0, index + 1), chainTrail.slice(0, index))
+    loadPosition(
+      crumb.slug,
+      trail.slice(0, index + 1),
+      chainTrail.slice(0, index),
+    )
   }, [trail, chainTrail, loadPosition])
 
-  // ── Board/progress callbacks ─────────────────────────────────────────────────
+  // ── Board + progress callbacks ─────────────────────────────────────────────
   const handleBoardChange = useCallback((moveId, added) => {
     setBoardMoveIds(prev => {
-      const n = new Set(prev)
-      added ? n.add(moveId) : n.delete(moveId)
-      return n
+      const next = new Set(prev)
+      added ? next.add(moveId) : next.delete(moveId)
+      return next
     })
   }, [])
 
   const handleProgressChange = useCallback((moveId, data) => {
     setProgressMap(prev => {
-      const n = { ...prev }
-      data === null ? delete n[moveId] : n[moveId] = data
-      return n
+      const next = { ...prev }
+      data === null ? delete next[moveId] : next[moveId] = data
+      return next
     })
   }, [])
 
-  // ── Style change — reset to current position ────────────────────────────────
+  // ── Style change — collapse any open move ──────────────────────────────────
   const handleStyleChange = useCallback((s) => {
     setActiveStyle(s)
     setExpandedMoveId(null)
     setExpandedMoveFull(null)
   }, [])
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+  const bottomPad = chainTrail.length >= 1
+    ? 96
+    : 'clamp(16px, 3vw, 28px)'
+
   return (
     <div style={{
-      maxWidth: 680,
-      margin: '0 auto',
-      padding: 'clamp(16px, 3vw, 28px) clamp(12px, 4vw, 20px)',
-      paddingBottom: chainTrail.length >= 1 ? 80 : 'clamp(16px, 3vw, 28px)',
+      maxWidth:     680,
+      margin:       '0 auto',
+      padding:      `clamp(16px, 3vw, 28px) clamp(12px, 4vw, 20px) ${bottomPad}`,
     }}>
 
-      {/* Page header */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{
-          fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
-          textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4,
-        }}>
-          Technique Graph
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* ── Page header ─────────────────────────────────────────────── */}
+      <div style={{
+        display:        'flex',
+        alignItems:     'flex-end',
+        justifyContent: 'space-between',
+        marginBottom:   20,
+        gap:            12,
+      }}>
+        <div>
+          <div style={{
+            fontSize:      9,
+            fontWeight:    700,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color:         'var(--text-muted)',
+            marginBottom:  4,
+          }}>
+            Technique Graph
+          </div>
           <h1 style={{
-            fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700,
-            letterSpacing: '-0.5px', color: 'var(--text-primary)', margin: 0,
+            fontFamily:    'var(--font-display)',
+            fontSize:      26,
+            fontWeight:    700,
+            letterSpacing: '-0.5px',
+            color:         'var(--text-primary)',
+            margin:        0,
+            lineHeight:    1.1,
           }}>
             Explore
           </h1>
-          <button
-            onClick={() => navigate('/graph')}
-            style={{
-              background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
-              borderRadius: 8, padding: '6px 12px',
-              fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
-              cursor: 'pointer', fontFamily: 'var(--font-body)',
-            }}
-          >
-            Graph view →
-          </button>
         </div>
+
+        <button
+          onClick={() => navigate('/graph')}
+          style={{
+            background:   'var(--bg-subtle)',
+            border:       '0.5px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            padding:      '7px 13px',
+            fontSize:     11,
+            fontWeight:   600,
+            color:        'var(--text-muted)',
+            cursor:       'pointer',
+            fontFamily:   'var(--font-body)',
+            whiteSpace:   'nowrap',
+            flexShrink:   0,
+            transition:   'all 0.12s ease',
+            touchAction:  'manipulation',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--border-strong)'
+            e.currentTarget.style.color       = 'var(--text-primary)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.color       = 'var(--text-muted)'
+          }}
+        >
+          Graph view →
+        </button>
       </div>
 
-      {/* Style toggle */}
+      {/* ── Style toggle ────────────────────────────────────────────── */}
       <StyleToggle
         styles={styles}
         activeStyle={activeStyle}
         onChange={handleStyleChange}
       />
 
-      {/* Breadcrumb */}
+      {/* ── Breadcrumb — sticky, shows once navigation starts ───────── */}
       <Breadcrumb trail={trail} onNavigateTo={handleBreadcrumbNav} />
 
-      {/* Error */}
+      {/* ── Error ───────────────────────────────────────────────────── */}
       {error && (
         <div style={{
-          background: 'var(--accent-soft)', border: '0.5px solid var(--border-accent)',
-          borderRadius: 10, padding: '12px 16px',
-          fontSize: 13, color: 'var(--accent)', marginBottom: 16,
+          background:   'var(--accent-soft)',
+          border:       '0.5px solid var(--border-accent)',
+          borderRadius: 'var(--radius-md)',
+          padding:      '12px 16px',
+          fontSize:     13,
+          color:        'var(--accent)',
+          marginBottom: 16,
+          lineHeight:   1.5,
         }}>
           {error}
         </div>
       )}
 
-      {/* Position header */}
-      {!loading && position && (
+      {/* ── Position header ─────────────────────────────────────────── */}
+      {loading ? (
+        <Skeleton height={140} style={{ marginBottom: 20 }} />
+      ) : position ? (
         <PositionHeader
           position={position}
           moves={filteredMoves}
           boardMoveIds={boardMoveIds}
           progressMap={progressMap}
         />
-      )}
+      ) : null}
 
-      {loading && (
-        <div style={{ marginBottom: 20 }}>
-          <Skeleton height={120} />
-        </div>
-      )}
-
-      {/* Moves section label */}
+      {/* ── Section label ───────────────────────────────────────────── */}
       <div style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
-        textTransform: 'uppercase', color: 'var(--text-muted)',
-        marginBottom: 10,
+        fontSize:      9,
+        fontWeight:    700,
+        letterSpacing: '0.14em',
+        textTransform: 'uppercase',
+        color:         'var(--text-muted)',
+        marginBottom:  10,
       }}>
         {loading
           ? 'Loading...'
           : filteredMoves.length === 0
-          ? 'No moves mapped for this style'
+          ? 'No moves for this style'
           : `${filteredMoves.length} move${filteredMoves.length !== 1 ? 's' : ''} from here`
         }
       </div>
 
-      {/* Move list */}
+      {/* ── Move list ───────────────────────────────────────────────── */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[1, 2, 3].map(i => (
-            <Skeleton key={i} height={52} style={{ animationDelay: `${i * 0.1}s` }} />
+            <Skeleton key={i} height={62} style={{ animationDelay: `${i * 0.08}s` }} />
           ))}
         </div>
+      ) : filteredMoves.length === 0 ? (
+        <EmptyMoves positionName={position?.name ?? 'this position'} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {filteredMoves.map(move => {
-            const isExpanded  = expandedMoveId === move.id
-            const isOnBoard   = boardMoveIds.has(move.id)
-            const confidence  = progressMap[move.id]?.confidence ?? null
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {filteredMoves.map((move, index) => {
+            const isExpanded = expandedMoveId === move.id
+            const isOnBoard  = boardMoveIds.has(move.id)
+            const confidence = progressMap[move.id]?.confidence ?? null
 
             return (
-              <div key={move.id} ref={isExpanded ? expandedRef : null}>
+              <div
+                key={move.id}
+                ref={isExpanded ? expandedRef : null}
+                style={{
+                  // Slight gap between rows except when expanded
+                  // (expanded row + detail form one connected unit)
+                  marginBottom: isExpanded ? 0 : 6,
+                }}
+              >
                 <MoveRow
                   move={move}
                   isExpanded={isExpanded}
@@ -666,22 +1134,30 @@ export default function ExplorePage() {
                   onClick={() => handleMoveClick(move)}
                 />
 
-                {/* Inline MoveDetail */}
+                {/* Inline MoveDetail — flows directly below the row */}
                 {isExpanded && (
                   <div style={{
-                    border: '0.5px solid rgba(220,38,38,0.4)',
-                    borderTop: 'none',
-                    borderRadius: '0 0 10px 10px',
-                    overflow: 'hidden',
+                    // Connected left border spine — same colour as the row's
+                    // left border, creating visual continuity top to bottom
+                    borderLeft:   `3px solid ${isOnBoard
+                      ? confidenceColor(confidence)
+                      : 'var(--border)'}`,
+                    border:       '0.5px solid var(--border)',
+                    borderTop:    'none',
+                    borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+                    overflow:     'hidden',
+                    marginBottom: 6,
                   }}>
                     {loadingMove ? (
                       <div style={{ padding: 20 }}>
-                        <Skeleton height={200} />
+                        <Skeleton height={180} />
                       </div>
                     ) : expandedMoveFull ? (
                       <MoveDetail
                         move={expandedMoveFull}
-                        onNavigate={(destPos) => handleNavigate(destPos, expandedMoveFull)}
+                        onNavigate={(destPos) =>
+                          handleNavigate(destPos, expandedMoveFull)
+                        }
                         onBack={() => {
                           setExpandedMoveId(null)
                           setExpandedMoveFull(null)
@@ -698,38 +1174,48 @@ export default function ExplorePage() {
               </div>
             )
           })}
-
-          {filteredMoves.length === 0 && !loading && (
-            <div style={{
-              textAlign: 'center', color: 'var(--text-muted)',
-              fontSize: 13, padding: '32px 0',
-            }}>
-              No moves mapped from this position yet.
-            </div>
-          )}
         </div>
       )}
 
-      {/* Saved chain confirmation */}
+      {/* ── Saved chain confirmation ─────────────────────────────────── */}
       {savedChain && (
         <div style={{
-          marginTop: 16,
-          background: 'var(--success-soft)', border: '0.5px solid var(--success-border)',
-          borderRadius: 8, padding: '10px 14px',
-          fontSize: 12, color: 'var(--success)', fontWeight: 600,
+          marginTop:    16,
+          background:   'var(--success-soft)',
+          border:       '0.5px solid var(--success-border)',
+          borderRadius: 'var(--radius-md)',
+          padding:      '10px 16px',
+          fontSize:     12,
+          color:        'var(--success)',
+          fontWeight:   600,
+          display:      'flex',
+          alignItems:   'center',
+          gap:          8,
         }}>
-          ✓ Chain saved as "{savedChain.name}"
+          <span>✓</span>
+          <span>Sequence saved as "{savedChain.name}"</span>
         </div>
       )}
 
-      {/* Chain bar */}
+      {/* ── Chain bar ───────────────────────────────────────────────── */}
       <ChainBar
         trail={chainTrail}
         onSave={(chain) => setSavedChain(chain)}
       />
 
       <style>{`
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes exploreP {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.4; }
+        }
+        @keyframes chainBarIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0);    }
+        }
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.96) translateY(8px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0);   }
+        }
       `}</style>
     </div>
   )
