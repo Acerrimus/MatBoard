@@ -61,17 +61,17 @@ function buildDagreLayout(positions, moves) {
 function nodeStyle(avgConf, hasAnyOnBoard, isActive) {
   if (isActive) {
     return {
-      background:  'rgba(220,38,38,0.16)',
-      borderColor: 'rgba(220,38,38,0.8)',
+      background:  'var(--accent-glow-lg)',
+      borderColor: 'var(--accent)',
       borderWidth: '1.5px',
-      color:       '#DC2626',
-      shadow:      '0 0 0 4px rgba(220,38,38,0.12)',
+      color:       'var(--accent)',
+      shadow:      '0 0 0 4px var(--accent-glow-sm)',
     }
   }
   if (!avgConf && !hasAnyOnBoard) {
     return {
       background:  'var(--bg-subtle)',
-      borderColor: 'rgba(255,255,255,0.1)',
+      borderColor: 'var(--border)',
       borderWidth: '1px',
       color:       'var(--text-muted)',
       shadow:      'none',
@@ -79,11 +79,11 @@ function nodeStyle(avgConf, hasAnyOnBoard, isActive) {
   }
   if (!avgConf && hasAnyOnBoard) {
     return {
-      background:  'rgba(139,92,246,0.08)',
-      borderColor: 'rgba(139,92,246,0.35)',
+      background:  'var(--move-color-bg)',
+      borderColor: 'var(--move-color)',
       borderWidth: '1px',
-      color:       'var(--text-secondary)',
-      shadow:      '0 0 0 3px rgba(139,92,246,0.08)',
+      color:       'var(--move-color)',
+      shadow:      '0 0 0 3px var(--move-color-bg)',
     }
   }
   const color = confidenceColor(avgConf)
@@ -165,11 +165,11 @@ function AggregateEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
     curvature: data.curvature ?? 0.25,
   })
   const onBoard = data.onBoardCount ?? 0
-  const color   = data.avgConfidence
+  const color = data.avgConfidence
     ? confidenceColor(data.avgConfidence)
     : onBoard > 0
-    ? '#8B5CF6'
-    : 'rgba(255,255,255,0.07)'
+    ? 'var(--move-color)'
+    : 'var(--edge-unexplored)'
 
   return (
     <BaseEdge

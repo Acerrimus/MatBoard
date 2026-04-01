@@ -9,16 +9,16 @@
 // null/0: falls back to --border (unrated)
 export function confidenceColor(confidence) {
   if (!confidence) return 'var(--border)'
-  if (confidence <= 2) return '#EF4444'
+  if (confidence <= 2) return 'var(--conf-low)'
   if (confidence === 3) return 'var(--comp-ready)'
-  return '#22C55E'
+  return 'var(--conf-high)'
 }
 
 export function confidenceBg(confidence) {
   if (!confidence) return 'transparent'
-  if (confidence <= 2) return 'rgba(239,68,68,0.08)'
-  if (confidence === 3) return 'rgba(245,158,11,0.08)'
-  return 'rgba(34,197,94,0.08)'
+  if (confidence <= 2) return 'var(--conf-low-bg)'
+  if (confidence === 3) return 'var(--conf-mid-bg)'
+  return 'var(--conf-high-bg)'
 }
 
 // ── Move ownership helpers ────────────────────────────────────────────────────

@@ -49,6 +49,17 @@
 
   --sidebar-width: 220px;
   --transition: 0.15s ease;
+
+  --conf-low: #EF4444;
+  --conf-low-bg: rgba(239, 68, 68, 0.08);
+  --conf-high: #22C55E;
+  --conf-high-bg: rgba(34, 197, 94, 0.08);
+  --conf-mid-bg: rgba(245, 158, 11, 0.08);
+  --move-color-bg: rgba(124, 58, 237, 0.08);
+  --edge-unexplored: rgba(0, 0, 0, 0.08);
+  --accent-glow-sm: rgba(220, 38, 38, 0.08);
+  --accent-glow-md: rgba(220, 38, 38, 0.12);
+  --accent-glow-lg: rgba(220, 38, 38, 0.16);
 }
 
 /* ── DARK MODE ──────────────────────────────────────────────────────────────── */
@@ -89,6 +100,17 @@
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+
+  --conf-low: #EF4444;
+  --conf-low-bg: rgba(239, 68, 68, 0.08);
+  --conf-high: #22C55E;
+  --conf-high-bg: rgba(34, 197, 94, 0.08);
+  --conf-mid-bg: rgba(245, 158, 11, 0.08);
+  --move-color-bg: rgba(139, 92, 246, 0.08);
+  --edge-unexplored: rgba(255, 255, 255, 0.07);
+  --accent-glow-sm: rgba(220, 38, 38, 0.08);
+  --accent-glow-md: rgba(220, 38, 38, 0.12);
+  --accent-glow-lg: rgba(220, 38, 38, 0.16);
 }
 
 /* ── SYSTEM DARK MODE ───────────────────────────────────────────────────────── */
@@ -123,6 +145,16 @@
     --comp-ready-border: #78350F;
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
     --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    --conf-low: #EF4444;
+    --conf-low-bg: rgba(239, 68, 68, 0.08);
+    --conf-high: #22C55E;
+    --conf-high-bg: rgba(34, 197, 94, 0.08);
+    --conf-mid-bg: rgba(245, 158, 11, 0.08);
+    --move-color-bg: rgba(139, 92, 246, 0.08);
+    --edge-unexplored: rgba(255, 255, 255, 0.07);
+    --accent-glow-sm: rgba(220, 38, 38, 0.08);
+    --accent-glow-md: rgba(220, 38, 38, 0.12);
+    --accent-glow-lg: rgba(220, 38, 38, 0.16);
   }
 }
 
