@@ -9,6 +9,15 @@ PLAYLIST_ID     = "PLDo9M4UVhQm4AtlVk4Hv7Fm_lurUDHC55"  # the bit after ?list= i
 SUPABASE_URL    = "https://lksalnbrcoxmnmckmcam.supabase.co"
 SUPABASE_KEY    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrc2FsbmJyY294bW5tY2ttY2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNDYxMDIsImV4cCI6MjA4OTYyMjEwMn0.4xwoYLjMIjPM0whuCaNH32abQsu1zAzXpz0_9z_0tII"  # anon key is fine, moves are public
 
+PLAYLISTS = [
+    "PLDo9M4UVhQm7N2e-D-mLKjAf2RvyXEgIC",
+    "PLDo9M4UVhQm4d5ii338L9fu1fzjyXgWb7",
+    "PLDo9M4UVhQm4AtlVk4Hv7Fm_lurUDHC55",
+    "PLDo9M4UVhQm75STaKHh8voU5ctwdwO6mq",
+    "PLDo9M4UVhQm4o5QEd-UgO7T5DUmCZQFrg",
+    "PLDo9M4UVhQm6qCDzr01gHBv_fOiCWDnMP",
+]
+
 # ── Fetch playlist videos ─────────────────────────────────────────────────────
 def get_playlist_videos(playlist_id, api_key):
     videos = []
@@ -25,8 +34,9 @@ def get_playlist_videos(playlist_id, api_key):
             snippet = item["snippet"]
             vid_id  = snippet["resourceId"]["videoId"]
             videos.append({
-                "title": snippet["title"],
-                "url":   f"https://www.youtube.com/watch?v={vid_id}",
+                "title":       snippet["title"],
+                "url":         f"https://www.youtube.com/watch?v={vid_id}",
+                "playlist_id": playlist_id,
             })
         next_page = resp.get("nextPageToken")
         if not next_page:
@@ -48,7 +58,7 @@ def get_moves():
 
 # ── Infer content type from video title ───────────────────────────────────────
 # "Drills, Activities and Games" section header treated as 'drill' — cannot
-# distinguish drill vs game from title alone. Flag in SQL for manual correction.
+# distinguish drill vs game from title alone. Flagged in SQL for manual correction.
 def infer_content_type(title):
     title_lower = title.lower()
     if "drills, activities and games" in title_lower:
@@ -66,7 +76,6 @@ def similarity(a, b):
 def best_match(move_name, videos, threshold=0.35):
     if not videos:
         return None, 0.0
-
     scored = [
         (v, similarity(move_name, v["title"]))
         for v in videos
@@ -79,43 +88,69 @@ def best_match(move_name, videos, threshold=0.35):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
-    print("Fetching playlist videos...")
-    videos = get_playlist_videos(PLAYLIST_ID, YOUTUBE_API_KEY)
-    print(f"  {len(videos)} videos found\n")
+    # ── Fetch all videos across all playlists ─────────────────────────────────
+    all_videos = []
+    seen_urls  = set()
 
-    if not videos:
-        print("ERROR: No videos fetched. Check your PLAYLIST_ID and YOUTUBE_API_KEY.")
+    for playlist_id in PLAYLISTS:
+        print(f"Fetching playlist {playlist_id}...")
+        videos = get_playlist_videos(playlist_id, YOUTUBE_API_KEY)
+        new_count = 0
+        for v in videos:
+            if v["url"] not in seen_urls:
+                seen_urls.add(v["url"])
+                all_videos.append(v)
+                new_count += 1
+        print(f"  {len(videos)} videos found, {new_count} new after dedup\n")
+
+    print(f"Total unique videos across all playlists: {len(all_videos)}\n")
+
+    if not all_videos:
+        print("ERROR: No videos fetched. Check your PLAYLISTS and YOUTUBE_API_KEY.")
         return
 
+    # ── Fetch moves ───────────────────────────────────────────────────────────
     print("Fetching moves from Supabase...")
     moves = get_moves()
     print(f"  {len(moves)} moves found\n")
 
-    matches   = []
-    unmatched = []
+    # ── Match each move against ALL videos ────────────────────────────────────
+    # A move can match multiple videos — one per playlist section it appears in.
+    # ON CONFLICT DO NOTHING handles exact URL duplicates at insert time.
+    all_matches = []
+    unmatched   = []
 
     print(f"{'Move':<35} {'Score':>6}  {'Type':<10}  Video title")
     print("─" * 110)
 
     for move in sorted(moves, key=lambda m: m["name"]):
-        video, score = best_match(move["name"], videos)
-        if video:
-            content_type = infer_content_type(video["title"])
-            flag = "⚠ " if score < 0.5 else "✓ "
-            print(f"{flag}{move['name']:<33} {score:>5.2f}  {content_type:<10}  {video['title'][:60]}")
-            matches.append({
-                "move_id":      move["id"],
-                "move_name":    move["name"],
-                "url":          video["url"],
-                "video_title":  video["title"],
-                "score":        score,
-                "content_type": content_type,
-            })
+        # Collect ALL videos above threshold for this move, not just the best
+        scored = [
+            (v, similarity(move["name"], v["title"]))
+            for v in all_videos
+        ]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        above_threshold = [(v, s) for v, s in scored if s >= 0.35]
+
+        if above_threshold:
+            for video, score in above_threshold:
+                content_type = infer_content_type(video["title"])
+                flag = "⚠ " if score < 0.5 else "✓ "
+                print(f"{flag}{move['name']:<33} {score:>5.2f}  {content_type:<10}  {video['title'][:60]}")
+                all_matches.append({
+                    "move_id":      move["id"],
+                    "move_name":    move["name"],
+                    "url":          video["url"],
+                    "video_title":  video["title"],
+                    "score":        score,
+                    "content_type": content_type,
+                })
         else:
-            print(f"✗ {move['name']:<33} {score:>5.2f}  {'—':<10}  NO MATCH")
+            best_video, best_score = scored[0] if scored else (None, 0.0)
+            print(f"✗ {move['name']:<33} {best_score:>5.2f}  {'—':<10}  NO MATCH")
             unmatched.append(move["name"])
 
-    print(f"\n{len(matches)} matched, {len(unmatched)} unmatched")
+    print(f"\n{len(all_matches)} match rows, {len(unmatched)} unmatched moves")
 
     if unmatched:
         print("\nUnmatched moves — assign manually:")
@@ -130,8 +165,7 @@ def main():
         f.write("-- content_type on 'drill' rows from 'Drills, Activities and Games'\n")
         f.write("-- section may need manual correction to 'game' where appropriate\n\n")
 
-        for m in matches:
-            # Flag low-confidence matches so they stand out during manual review
+        for m in all_matches:
             if m["score"] < 0.5:
                 f.write(f"-- ⚠ LOW CONFIDENCE ({m['score']:.2f}) — verify this match\n")
             f.write(f"-- {m['move_name']} ← {m['video_title'][:80]}\n")
