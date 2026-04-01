@@ -138,7 +138,7 @@ def main():
             for v in all_videos
         ]
         scored.sort(key=lambda x: x[1], reverse=True)
-        above_threshold = [(v, s) for v, s in scored if s >= 0.35]
+        above_threshold = [(v, s) for v, s in scored if s >= 0.6]
 
         if above_threshold:
             for video, score in above_threshold:
