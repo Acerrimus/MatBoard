@@ -680,7 +680,7 @@ function ExploreInner({
 
   // ── Build graph (desktop only) ───────────────────────────────────────────────
   useEffect(() => {
-    if (isMobile) return
+    if (isMobile && !focusPosition) return 
     if (!filteredPositions.length) return
 
     let newNodes = []
