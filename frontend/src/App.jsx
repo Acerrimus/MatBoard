@@ -139,6 +139,7 @@ function AppShell({ theme, onToggleTheme }) {
         <Route path="/progress"             element={<ProgressPage />} />
         <Route path="/home"                 element={<HomePage />} />
         <Route path="/club"                 element={<ClubPage />} />
+        <Route path="/club-setup"           element={<ClubSetupPage />} />
         <Route path="/dashboard"            element={<DashboardPage />} />
         <Route path="/curricula"            element={<CurriculaPage />} />
         <Route path="/athletes/:athleteId"  element={<AthleteOverviewPage />} />
