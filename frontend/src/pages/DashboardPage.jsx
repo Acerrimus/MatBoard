@@ -597,7 +597,7 @@ export default function DashboardPage() {
     }
     return map
   }, [dashboard?.moves])
-  
+
   const handleCurriculumChange = (currId) => {
     const val = currId || null
     setSelected(val)
@@ -828,3 +828,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+// easter egg or smn
