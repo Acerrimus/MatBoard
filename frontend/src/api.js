@@ -174,6 +174,11 @@ export const unsetCompReady       = (athleteId, moveId)   => requestDelete(`/com
 // ── Club curricula (athlete-accessible) ───────────────────────────────────────
 export const getClubCurricula = (clubId) => request(`/curricula/club/${clubId}`)
 
+export const getCurricula = (includeGlobal = false) => {
+  const params = includeGlobal ? '?include_global=true' : ''
+  return request(`/curricula/${params}`)
+}
+
 // ── Create new moves / positions ──────────────────────────────────────────────
 export const createPersonalMove = (name, fromPositionId, toPositionId) =>
   requestPost('/moves/personal', { name, from_position_id: fromPositionId, to_position_id: toPositionId })
@@ -183,3 +188,4 @@ export const createClubMove = (clubId, name, fromPositionId, toPositionId) =>
 
 export const createClubPosition = (clubId, name, description = '') =>
   requestPost(`/clubs/${clubId}/positions`, { name, description })
+

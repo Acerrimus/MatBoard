@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
 from app.auth import get_current_user, get_supabase_client
@@ -65,18 +65,33 @@ async def _require_chain_owner(supabase, chain_id, club_id):
 
 @router.get("/")
 async def list_curricula(
+    include_global: bool = Query(False),
     user=Depends(get_current_user),
     supabase=Depends(get_supabase_client),
 ):
     club_id = await _require_coach(supabase, user)
-    resp = (
+
+    club_resp = (
         supabase.table("curricula")
         .select("*")
         .eq("club_id", club_id)
         .order("created_at", desc=True)
         .execute()
     )
-    return resp.data
+
+    if not include_global:
+        return club_resp.data or []
+
+    # Include global seed curricula (club_id IS NULL) before club-owned
+    global_resp = (
+        supabase.table("curricula")
+        .select("*")
+        .is_("club_id", "null")
+        .order("created_at")
+        .execute()
+    )
+
+    return (global_resp.data or []) + (club_resp.data or [])
 
 
 # ── Get curriculum with chains and moves ───────────────────────────────────────

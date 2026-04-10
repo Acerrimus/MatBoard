@@ -74,13 +74,16 @@ async def get_club_dashboard(
     if curriculum_id:
         curr_resp = (
             supabase.table("curricula")
-            .select("id")
+            .select("id, club_id")
             .eq("id", curriculum_id)
-            .eq("club_id", club_id)
             .execute()
         )
         if not curr_resp.data:
             raise HTTPException(status_code=404, detail="Curriculum not found")
+
+        curr_club_id = curr_resp.data[0].get("club_id")
+        if curr_club_id is not None and curr_club_id != club_id:
+            raise HTTPException(status_code=403, detail="Curriculum not accessible")
 
         chains_resp = (
             supabase.table("curriculum_chains")
@@ -213,6 +216,7 @@ async def get_club_dashboard(
         s = athlete_stats[aid]
         athlete_aggregates[aid] = {
             "rated_count": s["rated"],
+            "total_count": len(move_ids),
             "avg_confidence": round(s["total"] / s["rated"], 2) if s["rated"] > 0 else None,
         }
 

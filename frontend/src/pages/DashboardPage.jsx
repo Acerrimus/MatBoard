@@ -495,7 +495,7 @@ export default function DashboardPage() {
         setClub(clubData)
         const [dash, currList] = await Promise.all([
           getClubDashboard(clubData.id),
-          getCurricula(),
+          getCurricula(true),
         ])
         setDashboard(dash)
         setCurricula(currList)
