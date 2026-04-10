@@ -1,0 +1,210 @@
+move_id,slug,name,style,from_position,best_score,video_url,video_title,content_type
+00000000-0000-0000-0002-000000000041,2-on-1-arm-drag,2-on-1 Arm Drag,folkstyle,2-on-1,1.00,https://www.youtube.com/watch?v=_h258-ed-no,Armdrags & Chops,technique
+00000000-0000-0000-0002-000000000111,2-on-1-back-attack,2-on-1 Back Attack,folkstyle,back-control-top,0.00,,,
+00000000-0000-0000-0002-000000000038,2-on-1-duck-under,2-on-1 Duck Under,folkstyle,2-on-1,1.00,https://www.youtube.com/watch?v=cVjTySx1uZ4,2 on 1 Duck Under,technique
+00000000-0000-0000-0002-000000000018,2-on-1-entry,2-on-1 Entry,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=ytGfsnQmGgM,2 on 1,technique
+00000000-0000-0000-0002-000000000039,2-on-1-high-dive,2-on-1 High Dive,folkstyle,2-on-1,1.00,https://www.youtube.com/watch?v=O66IwqnOByE,2 on 1 Hi Dive,technique
+00000000-0000-0000-0002-000000000040,2-on-1-single,2-on-1 to Single Leg,folkstyle,2-on-1,1.00,https://www.youtube.com/watch?v=wGwm0qVbu4M,Snatch Single,technique
+00000000-0000-0000-0002-000000000006,ankle-pick,Ankle Pick,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=0bkIMmQf7TE,Snap Down to a Front Headlock,technique
+00000000-0000-0000-0002-000000000093,ankle-rides,Ankle Rides,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=FwA9qL-q8z8,Ankle Rides,technique
+00000000-0000-0000-0002-000000000009,arm-spin,Arm Spin,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=iiXrSGwfJys,Arm Spin,technique
+00000000-0000-0000-0002-000000000049,arm-throw,Arm Throw,folkstyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=iiXrSGwfJys,Arm Spin,technique
+00000000-0000-0000-0002-000000000104,back-exposure-turtle,Back Exposure from Turtle,folkstyle,turtle,0.00,,,
+00000000-0000-0000-0002-000000000108,back-standing-escape,Back Control Standing — Opponent Escapes,folkstyle,back-control-standing,0.00,,,
+00000000-0000-0000-0002-000000000106,back-standing-mat-return,Back Control Standing — Mat Return,folkstyle,back-control-standing,0.00,,,
+00000000-0000-0000-0002-000000000107,back-standing-seatbelt,Back Control Standing — Seatbelt to Mat,folkstyle,back-control-standing,0.00,,,
+00000000-0000-0000-0002-000000000004,blast-double,Blast Double,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=4A2OiHUSbsA,Blast Double,technique
+00000000-0000-0000-0002-000000000045,bodylock-takedown,Bodylock Takedown,folkstyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=-0MbKdOH12s,Finishes Covering Hips,technique
+00000000-0000-0000-0002-000000000094,claw-ride-legs,Claw Ride to Legs,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=Zzt9FQMCyNM,Referee's Top Position - Claw Ride to Legs,technique
+00000000-0000-0000-0002-000000000020,collar-tie-double,Collar Tie — Level Change Double,folkstyle,collar-tie,1.00,https://www.youtube.com/watch?v=8FyeXO4rviw,Double Leg,technique
+00000000-0000-0000-0002-000000000015,collar-tie-entry,Collar Tie Entry,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=4K4mCrXYoKw,Handfighting to Control Tie,technique
+00000000-0000-0000-0002-000000000022,collar-tie-shrug,Collar Tie — Shrug to Underhook,folkstyle,collar-tie,0.00,,,
+00000000-0000-0000-0002-000000000021,collar-tie-single,Collar Tie — Level Change Single,folkstyle,collar-tie,1.00,https://www.youtube.com/watch?v=0BPnLWYBY1I,Single Leg,technique
+00000000-0000-0000-0002-000000000019,collar-tie-snap-down,Collar Tie — Snap Down,folkstyle,collar-tie,1.00,https://www.youtube.com/watch?v=-Xi74uWT0vU,Head Snap,technique
+00000000-0000-0000-0002-000000000100,cradle,Cradle,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=gVFEvCjHcb8,Cradle,technique
+00000000-0000-0000-0002-000000000066,double-covering-hips,Double Leg — Covering Hips Finish,folkstyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=-0MbKdOH12s,Finishes Covering Hips,technique
+00000000-0000-0000-0002-000000000067,double-opponent-turtles,Double Leg — Opponent Turtles,folkstyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=8FyeXO4rviw,Double Leg,technique
+00000000-0000-0000-0002-000000000068,double-scramble,Double Leg — Scramble,folkstyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=8FyeXO4rviw,Double Leg,technique
+00000000-0000-0000-0002-000000000069,double-to-hic,Double to Hi-C Conversion,folkstyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=ehtf3Y5g6BI,High Crotch Change Off to Double,technique
+00000000-0000-0000-0002-000000000070,double-to-single,Double to Outside Single,folkstyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=OcOK0qaEF98,Double Leg Outside Step,technique
+00000000-0000-0000-0002-000000000035,double-under-bodylock,Double Underhook — Bodylock,folkstyle,double-underhooks,0.00,,,
+00000000-0000-0000-0002-000000000036,double-under-duck-under,Double Underhook — Duck Under,folkstyle,double-underhooks,1.00,https://www.youtube.com/watch?v=cVjTySx1uZ4,2 on 1 Duck Under,technique
+00000000-0000-0000-0002-000000000037,double-under-firemans,Double Underhook — Fireman's Carry,folkstyle,double-underhooks,1.00,https://www.youtube.com/watch?v=BReKpgsEOaM,Fireman's Carry Inline Finish,technique
+00000000-0000-0000-0002-000000000034,double-under-hic,Double Underhook — Hi-C,folkstyle,double-underhooks,1.00,https://www.youtube.com/watch?v=b1DwJIJgCIQ,Inside Step Penetration   Hi C,technique
+00000000-0000-0000-0002-000000000010,duck-under,Duck Under,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=cVjTySx1uZ4,2 on 1 Duck Under,technique
+00000000-0000-0000-0002-000000000065,firemans-inline,Fireman's Carry — Inline Finish,folkstyle,high-crotch,0.97,https://www.youtube.com/watch?v=BReKpgsEOaM,Fireman's Carry Inline Finish,technique
+00000000-0000-0000-0002-000000000064,firemans-kelly,Fireman's Carry — Kelly Finish,folkstyle,high-crotch,0.97,https://www.youtube.com/watch?v=-X-AyCR4zC0,Fireman's Carry Kelly Finish,technique
+00000000-0000-0000-0002-000000000058,force-to-turtle,Force to Turtle,folkstyle,front-headlock,0.00,,,
+00000000-0000-0000-0002-000000000056,front-headlock-ankle-pick,Front Headlock — Ankle Pick,folkstyle,front-headlock,1.00,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000051,front-headlock-chop,Front Headlock — Chop / Finish,folkstyle,front-headlock,1.00,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000052,front-headlock-go-behind,Front Headlock — Go Behind,folkstyle,front-headlock,0.96,https://www.youtube.com/watch?v=jIUdo33o3ew,Front Headlock Go Behind,technique
+00000000-0000-0000-0002-000000000054,front-headlock-reset,Front Headlock — Reset to Neutral,folkstyle,front-headlock,1.00,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000053,front-headlock-shuck-by,Front Headlock — Shuck By,folkstyle,front-headlock,1.00,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000055,front-headlock-snap-spin,Front Headlock — Snap and Spin,folkstyle,front-headlock,1.00,https://www.youtube.com/watch?v=fUARd8ssOVE,Snap & Spin,technique
+00000000-0000-0000-0002-000000000057,front-headlock-throw,Front Headlock — Throw,folkstyle,front-headlock,0.78,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000087,granby-roll,Granby Roll,folkstyle,referees-bottom,0.00,,,
+00000000-0000-0000-0002-000000000105,gut-wrench-turtle,Gut Wrench from Turtle,folkstyle,turtle,1.00,https://www.youtube.com/watch?v=f1fJcbiSlcY,Gut Wrench,technique
+00000000-0000-0000-0002-000000000089,half-nelson,Half Nelson,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=5DFJOOs-eVQ,Half Nelson,technique
+00000000-0000-0000-0002-000000000101,head-and-arm,Head & Arm,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=3sXklJiRqq8,Head & Arm,technique
+00000000-0000-0000-0002-000000000008,head-outside-single,Head Outside Single,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=wGwm0qVbu4M,Snatch Single,technique
+00000000-0000-0000-0002-000000000012,head-snap,Head Snap,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=-Xi74uWT0vU,Head Snap,technique
+00000000-0000-0000-0002-000000000062,hic-outside-finish,Hi-C — Outside Finish,folkstyle,high-crotch,1.00,https://www.youtube.com/watch?v=XgvA-g8CFVk,High Crotch Outside Step Penetration,technique
+00000000-0000-0000-0002-000000000059,hic-pop-finish,Hi-C — Pop Finish,folkstyle,high-crotch,1.00,https://www.youtube.com/watch?v=GwRZj65x2xE,High Crotch   Pop Finish,technique
+00000000-0000-0000-0002-000000000063,hic-stuff-head,Hi-C Counter — Stuff Head,folkstyle,high-crotch,1.00,https://www.youtube.com/watch?v=RWqifP1lYSw,High Crotch Counter   Stuff Head,technique
+00000000-0000-0000-0002-000000000060,hic-to-double,Hi-C — Convert to Double,folkstyle,high-crotch,1.00,https://www.youtube.com/watch?v=ehtf3Y5g6BI,High Crotch Change Off to Double,technique
+00000000-0000-0000-0002-000000000061,hic-to-single,Hi-C — Convert to Single,folkstyle,high-crotch,1.00,https://www.youtube.com/watch?v=0BPnLWYBY1I,Single Leg,technique
+00000000-0000-0000-0002-000000000050,hip-dump,Hip Dump,folkstyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=i0fP5Q8c1kc,Hip Dump,technique
+00000000-0000-0000-0002-000000000046,hiplock,Hiplock,folkstyle,clinch-bodylock,0.00,,,
+00000000-0000-0000-0002-000000000024,inside-tie-double,Inside Tie — Level Change Double,folkstyle,inside-tie,1.00,https://www.youtube.com/watch?v=SfmLZMiUEUM,Double Leg Inside Step,technique
+00000000-0000-0000-0002-000000000016,inside-tie-entry,Inside Tie Entry,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=iAgE1NmnGU0,Inside Tie & Elbow Tie,technique
+00000000-0000-0000-0002-000000000025,inside-tie-hic,Inside Tie — Level Change Hi-C,folkstyle,inside-tie,1.00,https://www.youtube.com/watch?v=witUsu1OzX8,High Crotch Inside Step Penetration,technique
+00000000-0000-0000-0002-000000000023,inside-tie-snap-down,Inside Tie — Snap Down,folkstyle,inside-tie,1.00,https://www.youtube.com/watch?v=-Xi74uWT0vU,Head Snap,technique
+00000000-0000-0000-0002-000000000026,inside-tie-to-underhook,Inside Tie to Underhook,folkstyle,inside-tie,1.00,https://www.youtube.com/watch?v=j3869U-uCCo,Neutral Position - Underhooks Head Position,technique
+00000000-0000-0000-0002-000000000110,leg-ride,Leg Ride,folkstyle,back-control-top,0.00,,,
+00000000-0000-0000-0002-000000000001,level-change-double,Level Change — Double Leg,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=8FyeXO4rviw,Double Leg,technique
+00000000-0000-0000-0002-000000000002,level-change-hic,Level Change — Hi-C,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=witUsu1OzX8,High Crotch Inside Step Penetration,technique
+00000000-0000-0000-0002-000000000003,level-change-single,Level Change — Single Leg,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=0BPnLWYBY1I,Single Leg,technique
+00000000-0000-0000-0002-000000000007,low-single,Low Single,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=wGwm0qVbu4M,Snatch Single,technique
+00000000-0000-0000-0002-000000000044,overhook-peek-out,Overhook — Peek Out,folkstyle,overhook,0.00,,,
+00000000-0000-0000-0002-000000000088,peterson-roll,Peterson Roll,folkstyle,referees-bottom,0.00,,,
+00000000-0000-0000-0002-000000000096,pop-and-chop,Pop & Chop,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=49bYMsfR6xg,Pop & Chop,technique
+00000000-0000-0000-0002-000000000095,pop-and-go,Pop & Go,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=drBu9cpKH3Q,Pop & Go,technique
+00000000-0000-0000-0002-000000000097,pop-chop-bar-arms,Pop & Chop to Bar Arms,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=xah_aUIsuQg,Pop & Chop to Bar Arms,technique
+00000000-0000-0000-0002-000000000098,pop-chop-cheap-tilt,Pop & Chop to Near Wrist Cheap Tilt,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=jelOYSlTKtI,Pop & Chop to a Near Wrist Cheap Tilt,technique
+00000000-0000-0000-0002-000000000099,pop-chop-far-side-tilt,Pop & Chop to Far Side Tilt,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=kkhxdmy8nic,Pop & Chop to a Far Side Tilt,technique
+00000000-0000-0000-0002-000000000033,pummeling-arm-drag,Pummeling to Arm Drag,folkstyle,underhook,1.00,https://www.youtube.com/watch?v=_h258-ed-no,Armdrags & Chops,technique
+00000000-0000-0000-0002-000000000048,reverse-headlock,Reverse Headlock,folkstyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=gLEabYdy_Tk,Headlock Defense Part II,technique
+00000000-0000-0000-0002-000000000047,sag-headlock,Sag Headlock,folkstyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=iAT0HViIXK8,Headlock Defense Part I   Throw Finish,technique
+00000000-0000-0000-0002-000000000113,scramble-back-standing,Scramble to Back Control — Standing,folkstyle,scramble,0.00,,,
+00000000-0000-0000-0002-000000000112,scramble-neutral,Scramble to Neutral,folkstyle,scramble,0.00,,,
+00000000-0000-0000-0002-000000000083,short-sit,Short Sit,folkstyle,referees-bottom,1.00,https://www.youtube.com/watch?v=78CgLjI3Vgg,Short Sit,technique
+00000000-0000-0000-0002-000000000086,short-sit-head-post,Short Sit to Head Post,folkstyle,referees-bottom,1.00,https://www.youtube.com/watch?v=s4Stwx0hP8s,Short Sit to a Head Post,technique
+00000000-0000-0000-0002-000000000085,short-sit-stand-up,Short Sit to Stand Up,folkstyle,referees-bottom,1.00,https://www.youtube.com/watch?v=hDrypwAVVaE,Short Sit to a Stand Up,technique
+00000000-0000-0000-0002-000000000084,short-sit-switch,Short Sit to Switch,folkstyle,referees-bottom,1.00,https://www.youtube.com/watch?v=xKvMJ4PWSTI,Short Sit to a Switch,technique
+00000000-0000-0000-0002-000000000073,single-ankle-turn,Single Leg — Ankle Turn Finish,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=1XeFyfGLsY0,Sweep Single   Head Inside,technique
+00000000-0000-0000-0002-000000000078,single-back-door,Single Leg — Back Door,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=0BPnLWYBY1I,Single Leg,technique
+00000000-0000-0000-0002-000000000079,single-back-exposure,Single to Back Exposure,folkstyle,single-leg,0.00,,,
+00000000-0000-0000-0002-000000000072,single-chest-to-back,Single Leg — Chest to Back Finish,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=tOyeuv1xCSs,Sweep Single   Head Outside,technique
+00000000-0000-0000-0002-000000000071,single-outside-finish,Single Leg — Outside Finish,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=tOyeuv1xCSs,Sweep Single   Head Outside,technique
+00000000-0000-0000-0002-000000000077,single-run-the-pipe,Single Leg — Run the Pipe,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=0732LbzcXGc,Sweep Single   Run the Pipe Finish Head Inside,technique
+00000000-0000-0000-0002-000000000080,single-stuff-head,Single Leg Counter — Stuff Head,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=VRussZAawxs,Single Leg Counter   Stuff Head,technique
+00000000-0000-0000-0002-000000000074,single-sweep-head-inside,Single Leg — Sweep Head Inside,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=1XeFyfGLsY0,Sweep Single   Head Inside,technique
+00000000-0000-0000-0002-000000000075,single-sweep-head-outside,Single Leg — Sweep Head Outside,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=tOyeuv1xCSs,Sweep Single   Head Outside,technique
+00000000-0000-0000-0002-000000000076,single-tree-top,Single Leg — Tree Top Finish,folkstyle,single-leg,1.00,https://www.youtube.com/watch?v=pG5WynBZRhU,Sweep Single   Tree Top Finish,technique
+00000000-0000-0000-0002-000000000011,snap-down,Snap Down,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=-Xi74uWT0vU,Head Snap,technique
+00000000-0000-0000-0002-000000000005,snatch-single,Snatch Single,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=wGwm0qVbu4M,Snatch Single,technique
+00000000-0000-0000-0002-000000000090,spiral-ride,Spiral Ride,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=W7SvQct6NIY,Spiral Ride,technique
+00000000-0000-0000-0002-000000000092,spiral-ride-arm-turk,Spiral Ride to Arm Turk,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=mqngp-Mt_IY,Spiral Ride to Arm Turk,technique
+00000000-0000-0000-0002-000000000091,spiral-ride-leg-turk,Spiral Ride to Leg Turk,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=dS5RQK43Ino,Spiral Ride to Leg Turk,technique
+00000000-0000-0000-0002-000000000014,sprawl-defense,Sprawl Defense,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=YKH3oShF3Fc,Downblock & Sprawl,technique
+00000000-0000-0000-0002-000000000013,sprawl-to-front-headlock,Sprawl to Front Headlock,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=0bkIMmQf7TE,Snap Down to a Front Headlock,technique
+00000000-0000-0000-0002-000000000081,stand-up,Stand Up,folkstyle,referees-bottom,1.00,https://www.youtube.com/watch?v=VwytIfWS1Ws,Stand Up,technique
+00000000-0000-0000-0002-000000000103,stand-up-turtle,Stand Up from Turtle,folkstyle,turtle,1.00,https://www.youtube.com/watch?v=VwytIfWS1Ws,Stand Up,technique
+00000000-0000-0000-0002-000000000082,switch,Switch,folkstyle,referees-bottom,1.00,https://www.youtube.com/watch?v=koErfJdRCfA,Switch,technique
+00000000-0000-0000-0002-000000000102,turk-lock,Turk Lock,folkstyle,referees-top,1.00,https://www.youtube.com/watch?v=i9gzCppt79Y,Turks,technique
+00000000-0000-0000-0002-000000000028,underhook-bodylock,Underhook — Bodylock,folkstyle,underhook,0.00,,,
+00000000-0000-0000-0002-000000000029,underhook-duck-under,Underhook — Duck Under,folkstyle,underhook,1.00,https://www.youtube.com/watch?v=cVjTySx1uZ4,2 on 1 Duck Under,technique
+00000000-0000-0000-0002-000000000017,underhook-entry,Underhook Entry,folkstyle,neutral,1.00,https://www.youtube.com/watch?v=j3869U-uCCo,Neutral Position - Underhooks Head Position,technique
+00000000-0000-0000-0002-000000000027,underhook-hic,Underhook — Hi-C,folkstyle,underhook,1.00,https://www.youtube.com/watch?v=witUsu1OzX8,High Crotch Inside Step Penetration,technique
+00000000-0000-0000-0002-000000000030,underhook-shrug,Underhook — Shrug / Throw By,folkstyle,underhook,0.00,,,
+00000000-0000-0000-0002-000000000031,underhook-slide-by,Underhook — Slide By,folkstyle,underhook,0.00,,,
+00000000-0000-0000-0002-000000000032,underhook-to-double,Underhook to Double Underhooks,folkstyle,underhook,0.00,,,
+00000000-0000-0000-0002-000000000043,whizzer-sit-out,Whizzer — Sit Out,folkstyle,overhook,0.00,,,
+00000000-0000-0000-0002-000000000042,whizzer-trick-knee,Whizzer — Trick Knee,folkstyle,overhook,1.00,https://www.youtube.com/watch?v=7Sy_Akka8RU,Neutral Position Offense - Trick Knee Whizzer,technique
+00000000-0000-0000-0002-000000000109,wrist-ride,Wrist Ride,folkstyle,back-control-top,0.00,,,
+00000000-0000-0000-0002-000000000154,fs-2-on-1-arm-drag,2-on-1 Arm Drag,freestyle,2-on-1,1.00,https://www.youtube.com/watch?v=_h258-ed-no,Armdrags & Chops,technique
+00000000-0000-0000-0002-000000000207,fs-2-on-1-back-attack,2-on-1 Back Attack,freestyle,back-control-top,0.00,,,
+00000000-0000-0000-0002-000000000151,fs-2-on-1-duck-under,2-on-1 Duck Under,freestyle,2-on-1,1.00,https://www.youtube.com/watch?v=cVjTySx1uZ4,2 on 1 Duck Under,technique
+00000000-0000-0000-0002-000000000131,fs-2-on-1-entry,2-on-1 Entry,freestyle,neutral,1.00,https://www.youtube.com/watch?v=ytGfsnQmGgM,2 on 1,technique
+00000000-0000-0000-0002-000000000152,fs-2-on-1-high-dive,2-on-1 High Dive,freestyle,2-on-1,1.00,https://www.youtube.com/watch?v=O66IwqnOByE,2 on 1 Hi Dive,technique
+00000000-0000-0000-0002-000000000153,fs-2-on-1-single,2-on-1 to Single Leg,freestyle,2-on-1,1.00,https://www.youtube.com/watch?v=wGwm0qVbu4M,Snatch Single,technique
+00000000-0000-0000-0002-000000000191,fs-ankle-lace,Ankle Lace,freestyle,par-terre-top,1.00,https://www.youtube.com/watch?v=g9nMnsCRPgg,Ankle Lace,technique
+00000000-0000-0000-0002-000000000192,fs-ankle-lace-defense,Ankle Lace Defense — Catch the Ankle,freestyle,par-terre-bottom,1.00,https://www.youtube.com/watch?v=lBWYC3NLm64,Ankle Lace Defense,technique
+00000000-0000-0000-0002-000000000119,fs-ankle-pick,Ankle Pick,freestyle,neutral,1.00,https://www.youtube.com/watch?v=0bkIMmQf7TE,Snap Down to a Front Headlock,technique
+00000000-0000-0000-0002-000000000122,fs-arm-spin,Arm Spin,freestyle,neutral,1.00,https://www.youtube.com/watch?v=iiXrSGwfJys,Arm Spin,technique
+00000000-0000-0000-0002-000000000161,fs-arm-throw,Arm Throw,freestyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=iiXrSGwfJys,Arm Spin,technique
+00000000-0000-0000-0002-000000000200,fs-back-exposure-turtle,Back Exposure from Turtle,freestyle,turtle,0.00,,,
+00000000-0000-0000-0002-000000000204,fs-back-standing-escape,Back Control Standing — Opponent Escapes,freestyle,back-control-standing,0.00,,,
+00000000-0000-0000-0002-000000000202,fs-back-standing-mat-return,Back Control Standing — Mat Return,freestyle,back-control-standing,0.00,,,
+00000000-0000-0000-0002-000000000203,fs-back-standing-seatbelt,Back Control Standing — Seatbelt to Mat,freestyle,back-control-standing,0.00,,,
+00000000-0000-0000-0002-000000000117,fs-blast-double,Blast Double,freestyle,neutral,1.00,https://www.youtube.com/watch?v=4A2OiHUSbsA,Blast Double,technique
+00000000-0000-0000-0002-000000000157,fs-bodylock-takedown,Bodylock Takedown,freestyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=-0MbKdOH12s,Finishes Covering Hips,technique
+00000000-0000-0000-0002-000000000133,fs-collar-tie-double,Collar Tie — Level Change Double,freestyle,collar-tie,1.00,https://www.youtube.com/watch?v=8FyeXO4rviw,Double Leg,technique
+00000000-0000-0000-0002-000000000128,fs-collar-tie-entry,Collar Tie Entry,freestyle,neutral,1.00,https://www.youtube.com/watch?v=4K4mCrXYoKw,Handfighting to Control Tie,technique
+00000000-0000-0000-0002-000000000135,fs-collar-tie-shrug,Collar Tie — Shrug to Underhook,freestyle,collar-tie,0.00,,,
+00000000-0000-0000-0002-000000000134,fs-collar-tie-single,Collar Tie — Level Change Single,freestyle,collar-tie,1.00,https://www.youtube.com/watch?v=0BPnLWYBY1I,Single Leg,technique
+00000000-0000-0000-0002-000000000132,fs-collar-tie-snap-down,Collar Tie — Snap Down,freestyle,collar-tie,1.00,https://www.youtube.com/watch?v=-Xi74uWT0vU,Head Snap,technique
+00000000-0000-0000-0002-000000000179,fs-double-covering-hips,Double Leg — Covering Hips Finish,freestyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=-0MbKdOH12s,Finishes Covering Hips,technique
+00000000-0000-0000-0002-000000000180,fs-double-opponent-turtles,Double Leg — Opponent Turtles,freestyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=8FyeXO4rviw,Double Leg,technique
+00000000-0000-0000-0002-000000000181,fs-double-scramble,Double Leg — Scramble,freestyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=8FyeXO4rviw,Double Leg,technique
+00000000-0000-0000-0002-000000000182,fs-double-to-hic,Double to Hi-C Conversion,freestyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=ehtf3Y5g6BI,High Crotch Change Off to Double,technique
+00000000-0000-0000-0002-000000000183,fs-double-to-single,Double to Outside Single,freestyle,double-leg-shot,1.00,https://www.youtube.com/watch?v=OcOK0qaEF98,Double Leg Outside Step,technique
+00000000-0000-0000-0002-000000000148,fs-double-under-bodylock,Double Underhook — Bodylock,freestyle,double-underhooks,0.00,,,
+00000000-0000-0000-0002-000000000149,fs-double-under-duck-under,Double Underhook — Duck Under,freestyle,double-underhooks,1.00,https://www.youtube.com/watch?v=cVjTySx1uZ4,2 on 1 Duck Under,technique
+00000000-0000-0000-0002-000000000150,fs-double-under-firemans,Double Underhook — Fireman's Carry,freestyle,double-underhooks,1.00,https://www.youtube.com/watch?v=BReKpgsEOaM,Fireman's Carry Inline Finish,technique
+00000000-0000-0000-0002-000000000147,fs-double-under-hic,Double Underhook — Hi-C,freestyle,double-underhooks,1.00,https://www.youtube.com/watch?v=b1DwJIJgCIQ,Inside Step Penetration   Hi C,technique
+00000000-0000-0000-0002-000000000123,fs-duck-under,Duck Under,freestyle,neutral,1.00,https://www.youtube.com/watch?v=cVjTySx1uZ4,2 on 1 Duck Under,technique
+00000000-0000-0000-0002-000000000178,fs-firemans-inline,Fireman's Carry — Inline Finish,freestyle,high-crotch,0.97,https://www.youtube.com/watch?v=BReKpgsEOaM,Fireman's Carry Inline Finish,technique
+00000000-0000-0000-0002-000000000177,fs-firemans-kelly,Fireman's Carry — Kelly Finish,freestyle,high-crotch,0.97,https://www.youtube.com/watch?v=-X-AyCR4zC0,Fireman's Carry Kelly Finish,technique
+00000000-0000-0000-0002-000000000171,fs-force-to-turtle,Force to Turtle,freestyle,front-headlock,0.00,,,
+00000000-0000-0000-0002-000000000169,fs-front-headlock-ankle-pick,Front Headlock — Ankle Pick,freestyle,front-headlock,1.00,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000164,fs-front-headlock-chop,Front Headlock — Chop / Finish,freestyle,front-headlock,1.00,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000165,fs-front-headlock-go-behind,Front Headlock — Go Behind,freestyle,front-headlock,0.96,https://www.youtube.com/watch?v=jIUdo33o3ew,Front Headlock Go Behind,technique
+00000000-0000-0000-0002-000000000167,fs-front-headlock-reset,Front Headlock — Reset to Neutral,freestyle,front-headlock,1.00,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000166,fs-front-headlock-shuck-by,Front Headlock — Shuck By,freestyle,front-headlock,1.00,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000168,fs-front-headlock-snap-spin,Front Headlock — Snap and Spin,freestyle,front-headlock,1.00,https://www.youtube.com/watch?v=fUARd8ssOVE,Snap & Spin,technique
+00000000-0000-0000-0002-000000000170,fs-front-headlock-throw,Front Headlock — Throw,freestyle,front-headlock,0.78,https://www.youtube.com/watch?v=x-PIwrkcuIo,Front Headlock,technique
+00000000-0000-0000-0002-000000000189,fs-gut-wrench,Gut Wrench,freestyle,par-terre-top,1.00,https://www.youtube.com/watch?v=f1fJcbiSlcY,Gut Wrench,technique
+00000000-0000-0000-0002-000000000190,fs-gut-wrench-defense,Gut Wrench Defense — Hips Square,freestyle,par-terre-bottom,1.00,https://www.youtube.com/watch?v=_ZVeAIMLWr8,Gut Wrench Defense   Hips and Shoulders Square and Heavy,technique
+00000000-0000-0000-0002-000000000201,fs-gut-wrench-turtle,Gut Wrench from Turtle,freestyle,turtle,1.00,https://www.youtube.com/watch?v=f1fJcbiSlcY,Gut Wrench,technique
+00000000-0000-0000-0002-000000000121,fs-head-outside-single,Head Outside Single,freestyle,neutral,1.00,https://www.youtube.com/watch?v=wGwm0qVbu4M,Snatch Single,technique
+00000000-0000-0000-0002-000000000125,fs-head-snap,Head Snap,freestyle,neutral,1.00,https://www.youtube.com/watch?v=-Xi74uWT0vU,Head Snap,technique
+00000000-0000-0000-0002-000000000175,fs-hic-outside-finish,Hi-C — Outside Finish,freestyle,high-crotch,1.00,https://www.youtube.com/watch?v=XgvA-g8CFVk,High Crotch Outside Step Penetration,technique
+00000000-0000-0000-0002-000000000172,fs-hic-pop-finish,Hi-C — Pop Finish,freestyle,high-crotch,1.00,https://www.youtube.com/watch?v=GwRZj65x2xE,High Crotch   Pop Finish,technique
+00000000-0000-0000-0002-000000000176,fs-hic-stuff-head,Hi-C Counter — Stuff Head,freestyle,high-crotch,1.00,https://www.youtube.com/watch?v=RWqifP1lYSw,High Crotch Counter   Stuff Head,technique
+00000000-0000-0000-0002-000000000173,fs-hic-to-double,Hi-C — Convert to Double,freestyle,high-crotch,1.00,https://www.youtube.com/watch?v=ehtf3Y5g6BI,High Crotch Change Off to Double,technique
+00000000-0000-0000-0002-000000000174,fs-hic-to-single,Hi-C — Convert to Single,freestyle,high-crotch,1.00,https://www.youtube.com/watch?v=0BPnLWYBY1I,Single Leg,technique
+00000000-0000-0000-0002-000000000163,fs-hip-dump,Hip Dump,freestyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=i0fP5Q8c1kc,Hip Dump,technique
+00000000-0000-0000-0002-000000000158,fs-hiplock,Hiplock,freestyle,clinch-bodylock,0.00,,,
+00000000-0000-0000-0002-000000000137,fs-inside-tie-double,Inside Tie — Level Change Double,freestyle,inside-tie,1.00,https://www.youtube.com/watch?v=SfmLZMiUEUM,Double Leg Inside Step,technique
+00000000-0000-0000-0002-000000000129,fs-inside-tie-entry,Inside Tie Entry,freestyle,neutral,1.00,https://www.youtube.com/watch?v=iAgE1NmnGU0,Inside Tie & Elbow Tie,technique
+00000000-0000-0000-0002-000000000138,fs-inside-tie-hic,Inside Tie — Level Change Hi-C,freestyle,inside-tie,1.00,https://www.youtube.com/watch?v=witUsu1OzX8,High Crotch Inside Step Penetration,technique
+00000000-0000-0000-0002-000000000136,fs-inside-tie-snap-down,Inside Tie — Snap Down,freestyle,inside-tie,1.00,https://www.youtube.com/watch?v=-Xi74uWT0vU,Head Snap,technique
+00000000-0000-0000-0002-000000000139,fs-inside-tie-to-underhook,Inside Tie to Underhook,freestyle,inside-tie,1.00,https://www.youtube.com/watch?v=j3869U-uCCo,Neutral Position - Underhooks Head Position,technique
+00000000-0000-0000-0002-000000000195,fs-leg-lace-cartwheel,Leg Lace — Cartwheel Finish,freestyle,par-terre-top,1.00,https://www.youtube.com/watch?v=HWdkrx8LsQE,Par Terre Offense   Leg Lace with Cartwheel Finish,technique
+00000000-0000-0000-0002-000000000206,fs-leg-ride,Leg Ride,freestyle,back-control-top,0.00,,,
+00000000-0000-0000-0002-000000000114,fs-level-change-double,Level Change — Double Leg,freestyle,neutral,1.00,https://www.youtube.com/watch?v=8FyeXO4rviw,Double Leg,technique
+00000000-0000-0000-0002-000000000115,fs-level-change-hic,Level Change — Hi-C,freestyle,neutral,1.00,https://www.youtube.com/watch?v=witUsu1OzX8,High Crotch Inside Step Penetration,technique
+00000000-0000-0000-0002-000000000116,fs-level-change-single,Level Change — Single Leg,freestyle,neutral,1.00,https://www.youtube.com/watch?v=0BPnLWYBY1I,Single Leg,technique
+00000000-0000-0000-0002-000000000194,fs-low-lock-gut-wrench,Low Lock Gut Wrench,freestyle,par-terre-top,1.00,https://www.youtube.com/watch?v=WJ2GP8EYVjU,Par Terre Offense   Low Lock Gut Wrench,technique
+00000000-0000-0000-0002-000000000120,fs-low-single,Low Single,freestyle,neutral,1.00,https://www.youtube.com/watch?v=wGwm0qVbu4M,Snatch Single,technique
+00000000-0000-0000-0002-000000000156,fs-overhook-peek-out,Overhook — Peek Out,freestyle,overhook,0.00,,,
+00000000-0000-0000-0002-000000000196,fs-par-terre-fighting-lock,Par Terre — Fighting the Lock,freestyle,par-terre-bottom,1.00,https://www.youtube.com/watch?v=ZpMGBQNmspo,Par Terre Defense   Fighting Lock,technique
+00000000-0000-0000-0002-000000000197,fs-par-terre-movement,Par Terre — Movement,freestyle,par-terre-bottom,1.00,https://www.youtube.com/watch?v=p-MqkxGuSPg,Par Terre Defense   Movement,technique
+00000000-0000-0000-0002-000000000146,fs-pummeling-arm-drag,Pummeling to Arm Drag,freestyle,underhook,1.00,https://www.youtube.com/watch?v=_h258-ed-no,Armdrags & Chops,technique
+00000000-0000-0000-0002-000000000160,fs-reverse-headlock,Reverse Headlock,freestyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=gLEabYdy_Tk,Headlock Defense Part II,technique
+00000000-0000-0000-0002-000000000193,fs-reverse-lift,Reverse Lift,freestyle,par-terre-top,1.00,https://www.youtube.com/watch?v=1gjhBXu4oUM,Reverse Lift,technique
+00000000-0000-0000-0002-000000000159,fs-sag-headlock,Sag Headlock,freestyle,clinch-bodylock,1.00,https://www.youtube.com/watch?v=iAT0HViIXK8,Headlock Defense Part I   Throw Finish,technique
+00000000-0000-0000-0002-000000000209,fs-scramble-back-standing,Scramble to Back Control — Standing,freestyle,scramble,0.00,,,
+00000000-0000-0000-0002-000000000208,fs-scramble-neutral,Scramble to Neutral,freestyle,scramble,0.00,,,
+00000000-0000-0000-0002-000000000186,fs-single-ankle-turn,Single Leg — Ankle Turn Finish,freestyle,single-leg,1.00,https://www.youtube.com/watch?v=1XeFyfGLsY0,Sweep Single   Head Inside,technique
+00000000-0000-0000-0002-000000000187,fs-single-back-exposure,Single to Back Exposure,freestyle,single-leg,0.00,,,
+00000000-0000-0000-0002-000000000185,fs-single-chest-to-back,Single Leg — Chest to Back Finish,freestyle,single-leg,1.00,https://www.youtube.com/watch?v=tOyeuv1xCSs,Sweep Single   Head Outside,technique
+00000000-0000-0000-0002-000000000184,fs-single-outside-finish,Single Leg — Outside Finish,freestyle,single-leg,1.00,https://www.youtube.com/watch?v=tOyeuv1xCSs,Sweep Single   Head Outside,technique
+00000000-0000-0000-0002-000000000188,fs-single-stuff-head,Single Leg Counter — Stuff Head,freestyle,single-leg,1.00,https://www.youtube.com/watch?v=VRussZAawxs,Single Leg Counter   Stuff Head,technique
+00000000-0000-0000-0002-000000000124,fs-snap-down,Snap Down,freestyle,neutral,1.00,https://www.youtube.com/watch?v=-Xi74uWT0vU,Head Snap,technique
+00000000-0000-0000-0002-000000000118,fs-snatch-single,Snatch Single,freestyle,neutral,1.00,https://www.youtube.com/watch?v=wGwm0qVbu4M,Snatch Single,technique
+00000000-0000-0000-0002-000000000127,fs-sprawl-defense,Sprawl Defense,freestyle,neutral,1.00,https://www.youtube.com/watch?v=YKH3oShF3Fc,Downblock & Sprawl,technique
+00000000-0000-0000-0002-000000000126,fs-sprawl-to-front-headlock,Sprawl to Front Headlock,freestyle,neutral,1.00,https://www.youtube.com/watch?v=0bkIMmQf7TE,Snap Down to a Front Headlock,technique
+00000000-0000-0000-0002-000000000199,fs-stand-up-turtle,Stand Up from Turtle,freestyle,turtle,1.00,https://www.youtube.com/watch?v=VwytIfWS1Ws,Stand Up,technique
+00000000-0000-0000-0002-000000000162,fs-suplex,Suplex,freestyle,clinch-bodylock,0.00,,,
+00000000-0000-0000-0002-000000000198,fs-takedown-to-par-terre,Takedown to Par Terre,freestyle,back-control-standing,1.00,https://www.youtube.com/watch?v=CClAaLPWNp4,Transitioning from a Takedown to Par Tarre Offensive,technique
+00000000-0000-0000-0002-000000000141,fs-underhook-bodylock,Underhook — Bodylock,freestyle,underhook,0.00,,,
+00000000-0000-0000-0002-000000000142,fs-underhook-duck-under,Underhook — Duck Under,freestyle,underhook,1.00,https://www.youtube.com/watch?v=cVjTySx1uZ4,2 on 1 Duck Under,technique
+00000000-0000-0000-0002-000000000130,fs-underhook-entry,Underhook Entry,freestyle,neutral,1.00,https://www.youtube.com/watch?v=j3869U-uCCo,Neutral Position - Underhooks Head Position,technique
+00000000-0000-0000-0002-000000000140,fs-underhook-hic,Underhook — Hi-C,freestyle,underhook,1.00,https://www.youtube.com/watch?v=witUsu1OzX8,High Crotch Inside Step Penetration,technique
+00000000-0000-0000-0002-000000000143,fs-underhook-shrug,Underhook — Shrug / Throw By,freestyle,underhook,0.00,,,
+00000000-0000-0000-0002-000000000144,fs-underhook-slide-by,Underhook — Slide By,freestyle,underhook,0.00,,,
+00000000-0000-0000-0002-000000000145,fs-underhook-to-double,Underhook to Double Underhooks,freestyle,underhook,0.00,,,
+00000000-0000-0000-0002-000000000155,fs-whizzer-sit-out,Whizzer — Sit Out,freestyle,overhook,0.00,,,
+00000000-0000-0000-0002-000000000205,fs-wrist-ride,Wrist Ride,freestyle,back-control-top,0.00,,,

@@ -33,6 +33,20 @@ class PersonalMoveCreate(BaseModel):
         return v or ""
 
 
+# ── Shared select string ─────────────────────────────────────────────────────
+# Single source of truth for move fields + joins.
+# move_media is a 1-to-many join — returns an array of media objects per move.
+
+MOVE_SELECT = """
+    id, name, slug, description,
+    scoring_value, risk_rating, sport,
+    club_id, created_by,
+    from_position:positions!from_position_id(id, name, slug),
+    to_position:positions!to_position_id(id, name, slug),
+    move_media(url, media_type, content_type)
+"""
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.get("/")
@@ -48,13 +62,7 @@ def get_moves(
       - Club moves (club_id = Y) → club members only
     """
     res = client.table("moves") \
-        .select("""
-            id, name, slug, description,
-            scoring_value, risk_rating, sport,
-            club_id, created_by,
-            from_position:positions!from_position_id(id, name, slug),
-            to_position:positions!to_position_id(id, name, slug)
-        """) \
+        .select(MOVE_SELECT) \
         .execute()
     return res.data or []
 
@@ -70,13 +78,7 @@ def get_move(
     RLS controls visibility — returns 404 if not visible to the user.
     """
     res = client.table("moves") \
-        .select("""
-            id, name, slug, description,
-            scoring_value, risk_rating, sport,
-            club_id, created_by,
-            from_position:positions!from_position_id(id, name, slug),
-            to_position:positions!to_position_id(id, name, slug)
-        """) \
+        .select(MOVE_SELECT) \
         .eq("slug", slug) \
         .maybeSingle() \
         .execute()
@@ -119,13 +121,7 @@ def create_personal_move(
 
     move_id = res.data[0]["id"]
     full = client.table("moves") \
-        .select("""
-            id, name, slug, description,
-            scoring_value, risk_rating, sport,
-            club_id, created_by,
-            from_position:positions!from_position_id(id, name, slug),
-            to_position:positions!to_position_id(id, name, slug)
-        """) \
+        .select(MOVE_SELECT) \
         .eq("id", move_id) \
         .single() \
         .execute()

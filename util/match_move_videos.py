@@ -1,6 +1,6 @@
 """
 match_move_videos.py — Match individual moves to YouTube videos
-Generates a CSV for review, then SQL inserts for move_media.
+Wrestling-aware matching with manual overrides for known mismatches.
 
 Usage:
   python3 match_move_videos.py              # generates move_video_matches.csv
@@ -26,9 +26,118 @@ PLAYLISTS = [
     "PLDo9M4UVhQm4o5QEd-UgO7T5DUmCZQFrg",  # Freestyle L2
 ]
 
-MATCH_THRESHOLD = 0.55  # lower than chains — move names are shorter
+MATCH_THRESHOLD = 0.55
 CSV_FILE = "move_video_matches.csv"
 SQL_FILE = "move_media_inserts.sql"
+
+# ── Manual overrides ──────────────────────────────────────────────────────────
+# move name (lowercase) → stripped video title (lowercase) to force-match
+# These fix known bad fuzzy matches and known-good matches the fuzzer misses.
+# Applied to BOTH folkstyle and freestyle versions of each move.
+MANUAL_OVERRIDES = {
+    # ── Wrong fuzzy matches — correct them ────────────────────────────────────
+    "ankle pick":                               "snap down to a front headlock",
+    "arm throw":                                "arm spin",
+    "head outside single":                      "snatch single",
+    "leg ride":                                 None,  # no good match in playlists
+    "sprawl defense":                           "downblock & sprawl",
+    "scramble to neutral":                      None,  # no good match
+    "wrist ride":                               None,  # wrist tie is different
+
+    # ── Unmatched moves — assign best available ───────────────────────────────
+    "2-on-1 arm drag":                          "armdrags & chops",
+    "2-on-1 back attack":                       None,  # no match
+    "2-on-1 entry":                             "2 on 1",
+    "back exposure from turtle":                None,  # no match
+    "back control standing — mat return":       None,  # no match
+    "back control standing — seatbelt to mat":  None,  # no match
+    "bodylock takedown":                        "finishes covering hips",
+    "collar tie — level change double":         "double leg",
+    "collar tie entry":                         "handfighting to control tie",
+    "collar tie — shrug to underhook":          None,  # no match
+    "collar tie — level change single":         "single leg",
+    "collar tie — snap down":                   "head snap",
+    "double leg — covering hips finish":        "finishes covering hips",
+    "double leg — opponent turtles":            "double leg",
+    "double leg — scramble":                    "double leg",
+    "double to hi-c conversion":                "high crotch change off to double",
+    "double underhook — bodylock":              None,  # no match
+    "double underhook — hi-c":                  "inside step penetration   hi c",
+    "duck under":                               "2 on 1 duck under",
+    "force to turtle":                          None,  # no match
+    "front headlock — ankle pick":              "front headlock",
+    "front headlock — chop / finish":           "front headlock",
+    "front headlock — reset to neutral":        "front headlock",
+    "front headlock — shuck by":                "front headlock",
+    "front headlock — snap and spin":           "snap & spin",
+    "granby roll":                              None,  # no match — folkstyle only
+    "gut wrench from turtle":                   "gut wrench",
+    "hi-c — outside finish":                    "high crotch outside step penetration",
+    "hi-c — convert to single":                 "single leg",
+    "hiplock":                                  None,  # no match
+    "inside tie — level change double":         "double leg inside step",
+    "inside tie — level change hi-c":           "high crotch inside step penetration",
+    "inside tie — snap down":                   "head snap",
+    "inside tie to underhook":                  "neutral position - underhooks head position",
+    "inside tie entry":                         "inside tie & elbow tie",
+    "level change — double leg":                "double leg",
+    "level change — hi-c":                      "high crotch inside step penetration",
+    "level change — single leg":                "single leg",
+    "low single":                               "snatch single",
+    "overhook — peek out":                      None,  # no match
+    "peterson roll":                            None,  # no match — folkstyle only
+    "pummeling to arm drag":                    "armdrags & chops",
+    "reverse headlock":                         "headlock defense part ii",
+    "sag headlock":                             "headlock defense part i   throw finish",
+    "scramble to back control — standing":      None,  # no match
+    "single leg — ankle turn finish":           "sweep single   head inside",
+    "single leg — back door":                   "single leg",
+    "single to back exposure":                  None,  # no match
+    "single leg — chest to back finish":        "sweep single   head outside",
+    "single leg — outside finish":              "sweep single   head outside",
+    "single leg — run the pipe":                "sweep single   run the pipe finish head inside",
+    "snap down":                                "head snap",
+    "sprawl to front headlock":                 "snap down to a front headlock",
+    "stand up from turtle":                     "stand up",
+    "suplex":                                   None,  # no match
+    "takedown to par terre":                    "transitioning from a takedown to par tarre offensi",
+    "turk lock":                                "turks",
+    "underhook — bodylock":                     None,  # no match
+    "underhook — duck under":                   "2 on 1 duck under",
+    "underhook entry":                          "neutral position - underhooks head position",
+    "underhook — hi-c":                         "high crotch inside step penetration",
+    "underhook — shrug / throw by":             None,  # no match
+    "underhook — slide by":                     None,  # no match
+    "underhook to double underhooks":           None,  # no match
+    "whizzer — sit out":                        None,  # no match
+    "whizzer — trick knee":                     "neutral position offense - trick knee whizzer",
+    "double underhook — duck under":            "2 on 1 duck under",
+    "double underhook — fireman's carry":       "fireman's carry inline finish",
+    "back control standing — opponent escapes": None,  # no match
+    "hi-c — pop finish":                        "high crotch   pop finish",
+    "hi-c counter — stuff head":                "high crotch counter   stuff head",
+    "hi-c — convert to double":                 "high crotch change off to double",
+    "ankle lace defense — catch the ankle":     "ankle lace defense",
+    "gut wrench defense — hips square":         "gut wrench defense   hips and shoulders square and",
+    "low lock gut wrench":                      "par terre offense   low lock gut wrench",
+    "par terre — fighting the lock":            "par terre defense   fighting lock",
+    "par terre — movement":                     "par terre defense   movement",
+    "leg lace — cartwheel finish":              "par terre offense   leg lace with cartwheel finish",
+    "pop & chop to near wrist cheap tilt":      "pop & chop to a near wrist cheap tilt",
+    "pop & chop to far side tilt":              "pop & chop to a far side tilt",
+    "single leg — sweep head inside":           "sweep single   head inside",
+    "single leg — sweep head outside":          "sweep single   head outside",
+    "single leg — tree top finish":             "sweep single   tree top finish",
+    "single leg counter — stuff head":          "single leg counter   stuff head",
+    "short sit to head post":                   "short sit to a head post",
+    "short sit to stand up":                    "short sit to a stand up",
+    "short sit to switch":                      "short sit to a switch",
+    "double to outside single":                 "double leg outside step",
+    "2-on-1 to single leg":                     "snatch single",
+    "claw ride to legs":                        "referee's top position - claw ride to legs",
+    "2-on-1 duck under":                        "2 on 1 duck under",
+    "2-on-1 high dive":                         "2 on 1 hi dive",
+}
 
 # ── Fetch playlist videos ─────────────────────────────────────────────────────
 def get_playlist_videos(playlist_id, api_key):
@@ -105,6 +214,24 @@ def infer_content_type(title):
         return "game"
     return "technique"
 
+# ── Find video by stripped title (case-insensitive prefix match) ──────────────
+def find_video_by_title(videos, target_title):
+    """Find a video whose stripped title starts with target_title (case-insensitive)."""
+    target_lower = target_title.lower().strip()
+    # Try exact match first
+    for v in videos:
+        if v["stripped_title"].lower().strip() == target_lower:
+            return v
+    # Try starts-with match (handles truncated titles in overrides)
+    for v in videos:
+        if v["stripped_title"].lower().strip().startswith(target_lower):
+            return v
+    # Try target starts with video title (for shorter video titles)
+    for v in videos:
+        if target_lower.startswith(v["stripped_title"].lower().strip()):
+            return v
+    return None
+
 # ── Phase 1: Generate CSV ─────────────────────────────────────────────────────
 def generate_csv():
     # Fetch all videos across all playlists
@@ -135,12 +262,14 @@ def generate_csv():
     positions = get_positions()
     print(f"  {len(moves)} moves found\n")
 
-    # Match each move to best video
-    matched   = 0
-    unmatched = 0
+    # Match each move
+    matched        = 0
+    unmatched      = 0
+    override_used  = 0
+    override_none  = 0
 
-    print(f"{'Style':<12} {'Position':<25} {'Move':<40} {'Score':>6}  Video")
-    print("─" * 130)
+    print(f"{'Src':<5} {'Style':<12} {'Position':<25} {'Move':<40} {'Score':>6}  Video")
+    print("─" * 140)
 
     rows = []
     for move in sorted(moves, key=lambda m: (m["styles"][0] if m["styles"] else "", m["slug"])):
@@ -149,7 +278,82 @@ def generate_csv():
         pos_name = pos.get("name", "Unknown")
         pos_slug = pos.get("slug", "unknown")
 
-        # Score against all videos using move name
+        move_name_lower = move["name"].lower().strip()
+        source = "fuzzy"
+
+        # ── Pass 1: Check manual overrides ────────────────────────────────────
+        if move_name_lower in MANUAL_OVERRIDES:
+            override_target = MANUAL_OVERRIDES[move_name_lower]
+
+            if override_target is None:
+                # Explicitly no match
+                source = "SKIP"
+                override_none += 1
+                flag = "⊘"
+                video_url    = ""
+                video_title  = "NO MATCH (manual override)"
+                content_type = ""
+                best_score   = 0.0
+                unmatched += 1
+
+                print(
+                    f"{flag} {source:<4} {style:<11} "
+                    f"{pos_name[:23]:<25} "
+                    f"{move['name'][:38]:<40} "
+                    f"{'—':>6}  "
+                    f"{video_title}"
+                )
+
+                rows.append({
+                    "move_id":        move["id"],
+                    "slug":           move["slug"],
+                    "name":           move["name"],
+                    "style":          style,
+                    "from_position":  pos_slug,
+                    "best_score":     "0.00",
+                    "video_url":      "",
+                    "video_title":    "",
+                    "content_type":   "",
+                })
+                continue
+
+            # Find the video by title
+            video = find_video_by_title(all_videos, override_target)
+            if video:
+                source = "OVRD"
+                override_used += 1
+                matched += 1
+                flag = "★"
+                video_url    = video["url"]
+                video_title  = video["stripped_title"]
+                content_type = infer_content_type(video["title"])
+                best_score   = 1.0
+
+                print(
+                    f"{flag} {source:<4} {style:<11} "
+                    f"{pos_name[:23]:<25} "
+                    f"{move['name'][:38]:<40} "
+                    f"{'1.00':>6}  "
+                    f"{video_title[:50]}"
+                )
+
+                rows.append({
+                    "move_id":        move["id"],
+                    "slug":           move["slug"],
+                    "name":           move["name"],
+                    "style":          style,
+                    "from_position":  pos_slug,
+                    "best_score":     "1.00",
+                    "video_url":      video_url,
+                    "video_title":    video_title,
+                    "content_type":   content_type,
+                })
+                continue
+            else:
+                # Override target not found in videos — fall through to fuzzy
+                print(f"  ⚠ Override target not found: '{override_target}' for '{move['name']}'")
+
+        # ── Pass 2: Fuzzy match ───────────────────────────────────────────────
         scored = [
             (v, similarity(move["name"], v["stripped_title"]))
             for v in all_videos
@@ -161,8 +365,8 @@ def generate_csv():
         if best_score >= MATCH_THRESHOLD and best_video:
             flag = "✓"
             matched += 1
-            video_url   = best_video["url"]
-            video_title = best_video["stripped_title"]
+            video_url    = best_video["url"]
+            video_title  = best_video["stripped_title"]
             content_type = infer_content_type(best_video["title"])
         else:
             flag = "✗"
@@ -172,7 +376,7 @@ def generate_csv():
             content_type = ""
 
         print(
-            f"{flag} {style:<11} "
+            f"{flag} {source:<4} {style:<11} "
             f"{pos_name[:23]:<25} "
             f"{move['name'][:38]:<40} "
             f"{best_score:>5.2f}  "
@@ -186,13 +390,19 @@ def generate_csv():
             "style":          style,
             "from_position":  pos_slug,
             "best_score":     f"{best_score:.2f}",
-            "video_url":      video_url,
-            "video_title":    video_title if video_url else "",
-            "content_type":   content_type,
+            "video_url":      video_url if flag != "✗" else "",
+            "video_title":    video_title if flag != "✗" else "",
+            "content_type":   content_type if flag != "✗" else "",
         })
 
     # Write CSV
-    print(f"\n{matched} matched, {unmatched} unmatched out of {len(moves)} moves")
+    print(f"\n{'─' * 60}")
+    print(f"TOTAL:      {len(moves)} moves")
+    print(f"MATCHED:    {matched} ({matched*100//len(moves)}%)")
+    print(f"UNMATCHED:  {unmatched}")
+    print(f"OVERRIDES:  {override_used} used, {override_none} explicit no-match")
+    print(f"{'─' * 60}")
+
     print(f"\nWriting {CSV_FILE}...")
 
     with open(CSV_FILE, "w", newline="") as f:
@@ -203,8 +413,9 @@ def generate_csv():
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"  {CSV_FILE} written — review and fill in blanks, then run:")
-    print(f"  python3 match_move_videos.py --sql")
+    print(f"  {CSV_FILE} written")
+    print(f"\n  Review the CSV — fill in blanks for unmatched moves if you have URLs.")
+    print(f"  Then run: python3 match_move_videos.py --sql")
 
 # ── Phase 2: Generate SQL from reviewed CSV ───────────────────────────────────
 def generate_sql():
@@ -220,7 +431,7 @@ def generate_sql():
         for row in reader:
             url = row.get("video_url", "").strip()
             if not url:
-                continue  # skip unmatched / blank rows
+                continue
 
             move_id      = row["move_id"]
             content_type = row.get("content_type", "technique").strip() or "technique"
@@ -245,7 +456,6 @@ def generate_sql():
         f.write("-- generated by match_move_videos.py --sql\n\n")
 
         for m in inserts:
-            # Escape single quotes in titles
             safe_title = m["video_title"].replace("'", "''")
             f.write(f"-- {m['slug']} — {m['name']} ← {safe_title[:80]}\n")
             f.write(
