@@ -54,6 +54,161 @@ function StatPill({ label, value, accent, gold }) {
   )
 }
 
+// ── Confidence Distribution Bar ────────────────────────────────────────────────
+function ConfidenceDistributionBar({ progress }) {
+  if (!progress || progress.length === 0) return null
+
+  const counts = [0, 0, 0, 0, 0]
+  for (const row of progress) {
+    if (row.confidence >= 1 && row.confidence <= 5) {
+      counts[row.confidence - 1]++
+    }
+  }
+  const total = progress.length
+
+  return (
+    <div style={{ marginBottom: '1.75rem' }}>
+      <SectionLabel>Confidence Distribution</SectionLabel>
+
+      {/* Bar */}
+      <div style={{
+        display: 'flex', height: '2rem', borderRadius: 'var(--radius-md)',
+        overflow: 'hidden', border: '0.5px solid var(--border)',
+      }}>
+        {counts.map((count, i) => {
+          if (count === 0) return null
+          const level = i + 1
+          const pct = (count / total) * 100
+          const wide = pct > 8
+          return (
+            <div
+              key={level}
+              style={{
+                width: `${pct}%`,
+                background: confidenceBg(level),
+                borderRight: '0.5px solid var(--border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'width 0.3s ease',
+              }}
+            >
+              {wide && (
+                <span style={{
+                  fontSize: '0.6875rem', fontWeight: 700,
+                  color: confidenceColor(level),
+                  fontFamily: 'var(--font-display)',
+                }}>×{count}</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Legend */}
+      <div style={{
+        display: 'flex', gap: '0.75rem', marginTop: '0.375rem',
+        flexWrap: 'wrap',
+      }}>
+        {counts.map((count, i) => {
+          if (count === 0) return null
+          const level = i + 1
+          return (
+            <span key={level} style={{
+              display: 'flex', alignItems: 'center', gap: '0.25rem',
+              fontSize: '0.625rem', color: 'var(--text-muted)',
+            }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: 2,
+                background: confidenceColor(level),
+                display: 'inline-block', flexShrink: 0,
+              }} />
+              {count} at {level}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Position Comfort Grid ──────────────────────────────────────────────────────
+function PositionComfortGrid({ progress, isMobile, onPositionClick }) {
+  if (!progress || progress.length === 0) return null
+
+  // Group by from_position
+  const byPosition = {}
+  for (const row of progress) {
+    const pos = row.move?.from_position
+    if (!pos) continue
+    const key = pos.name
+    if (!byPosition[key]) {
+      byPosition[key] = { name: pos.name, slug: pos.slug, confidences: [] }
+    }
+    byPosition[key].confidences.push(row.confidence)
+  }
+
+  // Calculate avg and sort weakest-first
+  const cards = Object.values(byPosition).map(p => {
+    const avg = p.confidences.reduce((a, b) => a + b, 0) / p.confidences.length
+    return { ...p, avg, count: p.confidences.length }
+  }).sort((a, b) => a.avg - b.avg)
+
+  if (cards.length === 0) return null
+
+  return (
+    <div style={{ marginBottom: '1.75rem' }}>
+      <SectionLabel count={cards.length}>Position Comfort</SectionLabel>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr',
+        gap: '0.5rem',
+      }}>
+        {cards.map(card => {
+          const color = confidenceColor(Math.round(card.avg))
+          const bg = confidenceBg(Math.round(card.avg))
+          return (
+            <button
+              key={card.name}
+              onClick={() => onPositionClick(card.name)}
+              style={{
+                background: 'var(--bg-surface)',
+                border: '0.5px solid var(--border)',
+                borderLeft: `3px solid ${color}`,
+                borderRadius: 'var(--radius-md)',
+                padding: '0.625rem 0.75rem',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                textAlign: 'left',
+                transition: 'background 0.15s',
+                display: 'flex', flexDirection: 'column', gap: '0.25rem',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = bg }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)' }}
+            >
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{
+                  fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  flex: 1,
+                }}>{card.name}</span>
+                <span style={{
+                  fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700,
+                  color, flexShrink: 0, marginLeft: '0.5rem',
+                }}>{card.avg.toFixed(1)}</span>
+              </div>
+              <div style={{
+                fontSize: '0.5625rem', color: 'var(--text-muted)',
+                fontWeight: 500,
+              }}>{card.count} rated</div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Insight card ───────────────────────────────────────────────────────────────
 function InsightCard({ icon, label, moveName, confidence, squadAvg, fromPosition, variant }) {
   // variant: 'danger' | 'success' | 'focus'
@@ -455,11 +610,15 @@ export default function AthleteOverviewPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [compReadyIds, setCompReadyIds] = useState([])
-  const [toggling, setToggling] = useState(null) // move_id currently being toggled
+  const [toggling, setToggling] = useState(null)
 
   const [insights, setInsights] = useState(null)
   const [insightsLoading, setInsightsLoading] = useState(true)
   const [clubId, setClubId] = useState(null)
+
+  // Refs for scroll-to-position
+  const positionRefs = useRef({})
+  const [highlightedPos, setHighlightedPos] = useState(null)
 
   // ── Fetch club membership to get clubId for insights ──────────────────────
   useEffect(() => {
@@ -526,6 +685,15 @@ export default function AthleteOverviewPage() {
       setToggling(null)
     }
   }, [athleteId])
+
+  const handlePositionClick = useCallback((posName) => {
+    const el = positionRefs.current[posName]
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setHighlightedPos(posName)
+      setTimeout(() => setHighlightedPos(null), 1500)
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -613,30 +781,18 @@ export default function AthleteOverviewPage() {
         <StatPill label="Comp Ready" value={compReadyCount} gold />
       </div>
 
+      {/* ── Confidence Distribution ──────────────────────────────────────── */}
+      <ConfidenceDistributionBar progress={progress} />
+
+      {/* ── Position Comfort ─────────────────────────────────────────────── */}
+      <PositionComfortGrid
+        progress={progress}
+        isMobile={isMobile}
+        onPositionClick={handlePositionClick}
+      />
+
       {/* ── Insights panel ──────────────────────────────────────────────── */}
       <AthleteInsightsPanel insights={insights} loading={insightsLoading} />
-
-      {/* ── Personal chains ─────────────────────────────────────────────── */}
-      <div style={{ marginBottom: '2rem' }}>
-        <SectionLabel count={chains.length}>Personal Chains</SectionLabel>
-        {chains.length === 0 ? (
-          <div style={{
-            background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
-            borderRadius: 'var(--radius-md)', padding: '1.5rem',
-            textAlign: 'center', fontSize: '0.8125rem', color: 'var(--text-muted)',
-          }}>
-            No personal chains yet
-          </div>
-        ) : (
-          chains.map(chain => (
-            <AthleteChainCard
-              key={chain.id}
-              chain={chain}
-              progress={progress}
-            />
-          ))
-        )}
-      </div>
 
       {/* ── Progress by position ─────────────────────────────────────────── */}
       <div>
@@ -653,18 +809,22 @@ export default function AthleteOverviewPage() {
         ) : (
           grouped.map(({ pos, rows }) => (
             <div key={pos} style={{ marginBottom: '1.25rem' }}>
-                            {/* Position group header */}
-              <div style={{
-                fontSize: '0.6875rem', fontWeight: 600,
-                color: 'var(--text-secondary)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                padding: '0.375rem 1rem',
-                background: 'var(--bg-subtle)',
-                border: '0.5px solid var(--border)',
-                borderBottom: 'none',
-                borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
-              }}>{pos}</div>
+              {/* Position group header */}
+              <div
+                ref={el => positionRefs.current[pos] = el}
+                style={{
+                  fontSize: '0.6875rem', fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  padding: '0.375rem 1rem',
+                  background: highlightedPos === pos ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+                  border: `0.5px solid ${highlightedPos === pos ? 'var(--border-accent)' : 'var(--border)'}`,
+                  borderBottom: 'none',
+                  borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+                  transition: 'background 0.3s ease, border-color 0.3s ease',
+                }}
+              >{pos}</div>
 
               <div style={{
                 background: 'var(--bg-surface)',
@@ -687,6 +847,30 @@ export default function AthleteOverviewPage() {
           ))
         )}
       </div>
+
+      {/* ── Personal chains (moved to bottom) ────────────────────────────── */}
+      <div style={{ marginTop: '2rem' }}>
+        <SectionLabel count={chains.length}>Personal Chains</SectionLabel>
+        {chains.length === 0 ? (
+          <div style={{
+            background: 'var(--bg-surface)', border: '0.5px solid var(--border)',
+            borderRadius: 'var(--radius-md)', padding: '1.5rem',
+            textAlign: 'center', fontSize: '0.8125rem', color: 'var(--text-muted)',
+          }}>
+            No personal chains yet
+          </div>
+        ) : (
+          chains.map(chain => (
+            <AthleteChainCard
+              key={chain.id}
+              chain={chain}
+              progress={progress}
+            />
+          ))
+        )}
+      </div>
+
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
     </div>
   )
 }
