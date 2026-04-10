@@ -1,19 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getAthleteOverview, setCompReady, unsetCompReady, getAthleteInsights } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabase'
 
+
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
-  }, [])
-  return isMobile
+  return useRef(window.innerWidth < 768).current
 }
 
 function SectionLabel({ children, count }) {

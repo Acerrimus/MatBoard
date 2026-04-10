@@ -14,20 +14,17 @@ function withTimeout(promise, ms) {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser]               = useState(null)
-  const [session, setSession]         = useState(null)
-  const [profile, setProfile]         = useState(undefined)
+  const [user, setUser]                 = useState(null)
+  const [session, setSession]           = useState(null)
+  const [profile, setProfile]           = useState(undefined)
   const [profileError, setProfileError] = useState(false)
-  const [loading, setLoading]         = useState(true)
-  const initialised                   = useRef(false)
+  const [loading, setLoading]           = useState(true)
+  const initialised                     = useRef(false)
+  const currentUserIdRef                = useRef(null)
 
-  // ── Change 1: fetchProfile never resets to undefined if we already
-  // have a profile for this user. Only reset when switching users.
   const fetchProfile = useCallback(async (userId, { forceReset = false } = {}) => {
     if (!userId) { setProfile(null); return }
 
-    // Only flash the loading state on first load or explicit user switch.
-    // Never on TOKEN_REFRESHED — that's what was causing remounts.
     if (forceReset) {
       setProfile(undefined)
     }
@@ -55,7 +52,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id) // no forceReset — silent refresh
+    if (user) await fetchProfile(user.id)
   }, [user, fetchProfile])
 
   useEffect(() => {
@@ -68,8 +65,8 @@ export function AuthProvider({ children }) {
         if (error) throw error
         setSession(session)
         setUser(session?.user ?? null)
+        currentUserIdRef.current = session?.user?.id ?? null
         if (session?.user) {
-          // forceReset: true on init — we have no profile yet, loading state is correct
           await fetchProfile(session.user.id, { forceReset: true })
         } else {
           setProfile(null)
@@ -80,6 +77,7 @@ export function AuthProvider({ children }) {
         setUser(null)
         setProfile(null)
         setProfileError(true)
+        currentUserIdRef.current = null
       } finally {
         initialised.current = true
         setLoading(false)
@@ -92,24 +90,27 @@ export function AuthProvider({ children }) {
       async (event, session) => {
         if (!initialised.current) return
 
-        // ── Change 2: TOKEN_REFRESHED just updates the session token.
-        // The user hasn't changed. Don't touch profile. Don't cause remounts.
         if (event === 'TOKEN_REFRESHED') {
           setSession(session)
           return
         }
 
-        // ── Change 3: SIGNED_OUT clears everything.
-        // SIGNED_IN with a different user fetches fresh profile with reset.
+        if (event === 'SIGNED_OUT') {
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+          currentUserIdRef.current = null
+          return
+        }
+
         const incomingUserId = session?.user?.id ?? null
-        const currentUserId  = incomingUserId // read before setUser
+        const isNewUser = incomingUserId !== currentUserIdRef.current
 
         setSession(session)
         setUser(session?.user ?? null)
+        currentUserIdRef.current = incomingUserId
 
         if (session?.user) {
-          // forceReset only if this is a different user than before
-          const isNewUser = incomingUserId !== user?.id
           await fetchProfile(session.user.id, { forceReset: isNewUser })
         } else {
           setProfile(null)
