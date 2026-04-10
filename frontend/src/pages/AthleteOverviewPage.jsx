@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { getAthleteOverview, setCompReady, unsetCompReady, getAthleteInsights } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
 import { useAuth } from '../context/AuthContext'
