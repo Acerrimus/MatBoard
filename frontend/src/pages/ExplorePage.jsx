@@ -14,7 +14,7 @@ import MoveDetail from '../components/MoveDetail'
 import { confidenceColor, confidenceBg, confidenceLabel } from '../components/MoveCard'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const DEFAULT_POSITION = 'fk-neutral'
+const DEFAULT_POSITION = 'neutral'
 
 const STYLE_LABELS = {
   folkstyle: 'Folkstyle',
