@@ -153,7 +153,11 @@ export const getAthleteInsights = (clubId, athleteId) =>
   request(`/dashboard/${clubId}/athletes/${athleteId}/insights`)
 
 // ── Curricula ─────────────────────────────────────────────────────────────────
-export const getCurricula               = ()                        => request('/curricula/')
+
+export const getCurricula = (includeGlobal = false) => {
+  const params = includeGlobal ? '?include_global=true' : ''
+  return request(`/curricula/${params}`)
+}
 export const getCurriculum              = (id)                      => request(`/curricula/${id}`)
 export const createCurriculum           = (name, description = '')  => requestPost('/curricula/', { name, description })
 export const deleteCurriculum           = (id)                      => requestDelete(`/curricula/${id}`)
@@ -173,11 +177,6 @@ export const unsetCompReady       = (athleteId, moveId)   => requestDelete(`/com
 
 // ── Club curricula (athlete-accessible) ───────────────────────────────────────
 export const getClubCurricula = (clubId) => request(`/curricula/club/${clubId}`)
-
-export const getCurricula = (includeGlobal = false) => {
-  const params = includeGlobal ? '?include_global=true' : ''
-  return request(`/curricula/${params}`)
-}
 
 // ── Create new moves / positions ──────────────────────────────────────────────
 export const createPersonalMove = (name, fromPositionId, toPositionId) =>
