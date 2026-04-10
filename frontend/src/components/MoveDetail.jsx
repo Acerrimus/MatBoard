@@ -10,9 +10,9 @@ import { addToBoard, removeFromBoard, upsertProgress, deleteProgress } from '../
 // Tapping an already-selected rating removes it (toggle off).
 function ConfidenceRater({ value, onChange, disabled }) {
   const levels = [
-    { n: 1, label: 'Just started' },
-    { n: 2, label: 'Getting there' },
-    { n: 3, label: 'Developing'   },
+    { n: 1, label: 'Introduced' },
+    { n: 2, label: 'Drilling' },
+    { n: 3, label: 'Independant use'   },
     { n: 4, label: 'Solid'        },
     { n: 5, label: 'Competition ready' },
   ]
@@ -170,9 +170,18 @@ function SectionHeader({ children }) {
   )
 }
 
+// ── Extract YouTube video ID from a URL ───────────────────────────────────────
+// Handles both youtube.com/watch?v=X and youtu.be/X formats.
+// Returns null if no valid ID found.
+function extractYouTubeId(url) {
+  if (!url) return null
+  const match = url.match(/(?:v=|youtu\.be\/)([^&\s]+)/)
+  return match ? match[1] : null
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 // Props:
-//   move             — full move object
+//   move             — full move object (now includes move_media[] from backend join)
 //   onNavigate       — (destinationPosition) => void — navigate to next position
 //   onBack           — () => void — collapse/close this detail
 //   isOnBoard        — bool
@@ -208,6 +217,14 @@ export default function MoveDetail({
   const accentColor = confidence
     ? confidenceColor(confidence)
     : 'var(--border)'
+
+  // ── Derive video from move_media join ───────────────────────────────────────
+  // Backend now returns move_media[] array on every move object.
+  // We pick the first youtube technique video if one exists.
+  const mediaEntry = Array.isArray(move?.move_media)
+    ? move.move_media.find(m => m.media_type === 'youtube')
+    : null
+  const videoId = extractYouTubeId(mediaEntry?.url)
 
   // ── Load club + comments ────────────────────────────────────────────────────
   // Must stay before early return — Rules of Hooks
@@ -254,11 +271,6 @@ export default function MoveDetail({
 
   // ── Early return after all hooks ────────────────────────────────────────────
   if (!move) return null
-
-  // ── Derive video ID from youtube_url if present ─────────────────────────────
-  const videoId = move.youtube_url
-    ? move.youtube_url.match(/(?:v=|youtu\.be\/)([^&\s]+)/)?.[1]
-    : null
 
   // ── Confidence change ───────────────────────────────────────────────────────
   // Core interaction: auto-adds to board on first rating.
@@ -567,6 +579,8 @@ export default function MoveDetail({
       </div>
 
       {/* ── Video ────────────────────────────────────────────────────── */}
+      {/* Video sourced from move_media join — backend returns move_media[]
+          array on every move object. We pick the first youtube entry. */}
       {videoId ? (
         <div style={{
           position:      'relative',

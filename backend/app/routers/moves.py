@@ -80,7 +80,7 @@ def get_move(
     res = client.table("moves") \
         .select(MOVE_SELECT) \
         .eq("slug", slug) \
-        .maybeSingle() \
+        .maybe_single() \
         .execute()
 
     if not res.data:
