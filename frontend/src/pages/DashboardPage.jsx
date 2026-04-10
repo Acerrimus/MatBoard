@@ -590,7 +590,14 @@ export default function DashboardPage() {
       setDashboard(dash)
     } catch (err) { setError(err.message) }
   }
-
+  const moveNameById = useMemo(() => {
+    const map = {}
+    if (dashboard?.moves) {
+      dashboard.moves.forEach(m => { map[m.id] = m.name })
+    }
+    return map
+  }, [dashboard?.moves])
+  
   const handleCurriculumChange = (currId) => {
     const val = currId || null
     setSelected(val)
@@ -640,12 +647,6 @@ export default function DashboardPage() {
     comp_ready = {},
     insights,
   } = dashboard
-
-  const moveNameById = useMemo(() => {
-    const map = {}
-    moves.forEach(m => { map[m.id] = m.name })
-    return map
-  }, [moves])
 
   const athleteAggs    = Object.values(athlete_aggregates)
   const ratedAthletes  = athleteAggs.filter(a => a.avg_confidence != null)
