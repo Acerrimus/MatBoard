@@ -420,7 +420,7 @@ function HomePageInner({ user, profile, displayName, role, isCoach, navigate }) 
 
   // Coach state
   const [dashboardData, setDashboardData] = useState(null)
-  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [dashboardLoading, setDashboardLoading] = useState(true)
 
   // Athlete state
   const [athleteInsights, setAthleteInsights] = useState(null)
