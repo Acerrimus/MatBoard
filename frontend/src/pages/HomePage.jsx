@@ -449,17 +449,19 @@ function HomePageInner({ user, profile, displayName, role, isCoach, navigate }) 
 
       if (error) {
         console.error('Failed to resolve club membership:', error)
+        setDashboardLoading(false)
         return
       }
 
       if (memberships?.length) {
-        // Prefer coach role over athlete role — matches multi-membership constraint
         const preferred =
           memberships.find(m => m.role === 'coach') ||
           memberships.find(m => m.role === 'admin') ||
           memberships[0]
         setClubId(preferred.club_id)
         setClubName(preferred.clubs?.name || null)
+      } else {
+        setDashboardLoading(false)
       }
     }
 
