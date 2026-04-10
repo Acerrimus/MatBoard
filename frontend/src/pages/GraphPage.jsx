@@ -13,14 +13,14 @@ import {
   useReactFlow,
   ReactFlowProvider,
 } from '@xyflow/react'
-import dagre from 'dagre'
 import '@xyflow/react/dist/style.css'
 import { getGraph, getMyBoard, getMyProgress } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const NODE_W = 152
-const NODE_H = 44
+const NODE_W = 140
+const NODE_H = 80
+const isMobile = window.innerWidth < 768
 
 const STYLE_LABELS = {
   folkstyle: 'Folkstyle',
@@ -28,128 +28,166 @@ const STYLE_LABELS = {
   greco:     'Greco-Roman',
 }
 
-// ── Dagre layout ──────────────────────────────────────────────────────────────
-function buildDagreLayout(positions, moves) {
-  const g = new dagre.graphlib.Graph()
-  g.setDefaultEdgeLabel(() => ({}))
-  g.setGraph({
-    rankdir: 'TB',
-    ranksep: 80,
-    nodesep: 40,
-    marginx: 60,
-    marginy: 60,
-  })
-  positions.forEach(p => g.setNode(p.id, { width: NODE_W, height: NODE_H }))
-  const posIds = new Set(positions.map(p => p.id))
-  moves.forEach(m => {
-    if (posIds.has(m.from_position_id) && posIds.has(m.to_position_id)) {
-      g.setEdge(m.from_position_id, m.to_position_id)
-    }
-  })
-  dagre.layout(g)
-  const posXY = {}
-  positions.forEach(p => {
-    const node = g.node(p.id)
-    posXY[p.id] = { x: node.x - NODE_W / 2, y: node.y - NODE_H / 2 }
-  })
-  return posXY
+// ── Hand-positioned layout ────────────────────────────────────────────────────
+// Positions arranged by wrestling flow: Neutral → Ties → Attacks → Control → Ground
+// x values are spaced to centre each tier horizontally.
+// Keyed by position slug for easy lookup.
+const POSITION_COORDS = {
+  // Tier 1 — Entry
+  'neutral':              { x: 420, y: 0 },
+
+  // Tier 2 — Ties & Setups
+  'collar-tie':           { x: 0,   y: 140 },
+  'inside-tie':           { x: 160, y: 140 },
+  'underhook':            { x: 320, y: 140 },
+  'double-underhooks':    { x: 480, y: 140 },
+  'overhook':             { x: 640, y: 140 },
+  '2-on-1':               { x: 800, y: 140 },
+  'clinch-bodylock':      { x: 960, y: 140 },
+
+  // Tier 3 — Attacks
+  'front-headlock':       { x: 100, y: 300 },
+  'high-crotch':          { x: 320, y: 300 },
+  'double-leg-shot':      { x: 540, y: 300 },
+  'single-leg':           { x: 760, y: 300 },
+
+  // Tier 4 — Control & Transition
+  'back-control-standing': { x: 160, y: 460 },
+  'back-control-top':      { x: 420, y: 460 },
+  'scramble':              { x: 680, y: 460 },
+
+  // Tier 5 — Ground
+  'referees-top':         { x: 60,  y: 620 },
+  'referees-bottom':      { x: 240, y: 620 },
+  'par-terre-top':        { x: 440, y: 620 },
+  'par-terre-bottom':     { x: 640, y: 620 },
+  'turtle':               { x: 840, y: 620 },
 }
 
-// ── Node confidence glow ──────────────────────────────────────────────────────
-// Encodes avg confidence of moves from this position into
-// the node's background, border, and shadow.
-function nodeStyle(avgConf, hasAnyOnBoard, isActive) {
+// Fallback for any position not in the map (future-proofing)
+let fallbackX = 0
+function getPositionCoords(slug) {
+  if (POSITION_COORDS[slug]) return POSITION_COORDS[slug]
+  fallbackX += 170
+  return { x: fallbackX, y: 780 }
+}
+
+// ── Node component ────────────────────────────────────────────────────────────
+function PositionNode({ data }) {
+  const { name, isActive, avgConf, hasAnyOnBoard, moveCount, onBoardCount, onClick } = data
+
+  // Determine colour scheme
+  let bg, border, color, shadow, statColor
   if (isActive) {
-    return {
-      background:  'var(--accent-glow-lg)',
-      borderColor: 'var(--accent)',
-      borderWidth: '1.5px',
-      color:       'var(--accent)',
-      shadow:      '0 0 0 4px var(--accent-glow-sm)',
-    }
+    bg       = 'var(--accent-glow-lg)'
+    border   = '2px solid var(--accent)'
+    color    = 'var(--accent)'
+    shadow   = '0 0 0 4px var(--accent-glow-sm), 0 8px 24px rgba(220,38,38,0.15)'
+    statColor = 'var(--accent)'
+  } else if (avgConf) {
+    const c  = confidenceColor(avgConf)
+    bg       = confidenceBg(avgConf)
+    border   = `1.5px solid ${c}44`
+    color    = c
+    shadow   = `0 2px 12px ${c}15`
+    statColor = 'var(--text-muted)'
+  } else if (hasAnyOnBoard) {
+    bg       = 'var(--move-color-bg)'
+    border   = '1.5px solid var(--move-color)'
+    color    = 'var(--move-color)'
+    shadow   = '0 2px 12px rgba(139,92,246,0.08)'
+    statColor = 'var(--text-muted)'
+  } else {
+    bg       = 'var(--bg-surface)'
+    border   = '1px solid var(--border)'
+    color    = 'var(--text-secondary)'
+    shadow   = 'none'
+    statColor = 'var(--text-muted)'
   }
-  if (!avgConf && !hasAnyOnBoard) {
-    return {
-      background:  'var(--bg-subtle)',
-      borderColor: 'var(--border)',
-      borderWidth: '1px',
-      color:       'var(--text-muted)',
-      shadow:      'none',
-    }
-  }
-  if (!avgConf && hasAnyOnBoard) {
-    return {
-      background:  'var(--move-color-bg)',
-      borderColor: 'var(--move-color)',
-      borderWidth: '1px',
-      color:       'var(--move-color)',
-      shadow:      '0 0 0 3px var(--move-color-bg)',
-    }
-  }
-  const color = confidenceColor(avgConf)
-  const bg    = confidenceBg(avgConf)
-  return {
-    background:  bg,
-    borderColor: `${color}66`,
-    borderWidth: '1px',
-    color:       color,
-    shadow:      `0 0 0 3px ${bg}`,
-  }
-}
 
-// ── Position node ─────────────────────────────────────────────────────────────
-function MapPositionNode({ data }) {
-  const { name, isActive, avgConf, hasAnyOnBoard, onClick } = data
-  const s = nodeStyle(avgConf, hasAnyOnBoard, isActive)
+  // Stat line text
+  const statLine = avgConf
+    ? `${moveCount} move${moveCount !== 1 ? 's' : ''} · avg ${avgConf.toFixed(1)}`
+    : `${moveCount} move${moveCount !== 1 ? 's' : ''}${onBoardCount > 0 ? ` · ${onBoardCount} in kit` : ''}`
 
   return (
     <>
-      <Handle type="target" position={Position.Top}  style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top}    style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Left}   style={{ opacity: 0 }} />
       <div
         onClick={onClick}
         style={{
-          width:          NODE_W,
-          height:         NODE_H,
-          background:     s.background,
-          border:         `${s.borderWidth} solid ${s.borderColor}`,
-          borderRadius:   22,
-          display:        'flex',
-          alignItems:     'center',
+          width:        NODE_W,
+          height:       NODE_H,
+          background:   bg,
+          border:       border,
+          borderRadius: 'var(--radius-lg)',
+          display:      'flex',
+          flexDirection: 'column',
           justifyContent: 'center',
-          padding:        '0 16px',
-          cursor:         'pointer',
-          transition:     'all 0.15s ease',
-          boxShadow:      s.shadow,
+          padding:      '0 14px',
+          cursor:       'pointer',
+          transition:   'all 0.15s ease',
+          boxShadow:    shadow,
+          overflow:     'hidden',
         }}
         onMouseEnter={e => {
           if (!isActive) {
-            e.currentTarget.style.background  = 'rgba(220,38,38,0.1)'
-            e.currentTarget.style.borderColor = 'rgba(220,38,38,0.55)'
-            e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(220,38,38,0.08)'
+            e.currentTarget.style.borderColor = 'var(--accent)'
+            e.currentTarget.style.boxShadow   = '0 0 0 3px var(--accent-glow-sm), 0 8px 24px rgba(220,38,38,0.1)'
+            e.currentTarget.style.transform   = 'scale(1.04)'
           }
         }}
         onMouseLeave={e => {
           if (!isActive) {
-            e.currentTarget.style.background  = s.background
-            e.currentTarget.style.borderColor = s.borderColor
-            e.currentTarget.style.boxShadow   = s.shadow
+            e.currentTarget.style.borderColor = border.split('solid ')[1] || 'var(--border)'
+            e.currentTarget.style.boxShadow   = shadow
+            e.currentTarget.style.transform   = 'scale(1)'
           }
         }}
       >
+        {/* Diagram space — reserved for future position illustrations */}
+        {/* For now, shows a subtle confidence indicator dot when rated */}
+        <div style={{
+          display:     'flex',
+          alignItems:  'center',
+          gap:         8,
+          marginBottom: 4,
+        }}>
+          {avgConf && (
+            <div style={{
+              width:        8,
+              height:       8,
+              borderRadius: '50%',
+              background:   confidenceColor(avgConf),
+              flexShrink:   0,
+            }} />
+          )}
+          <span style={{
+            fontFamily:    'var(--font-display)',
+            fontSize:      12,
+            fontWeight:    700,
+            color:         color,
+            overflow:      'hidden',
+            textOverflow:  'ellipsis',
+            whiteSpace:    'nowrap',
+            letterSpacing: '-0.01em',
+            lineHeight:    1.2,
+          }}>
+            {name}
+          </span>
+        </div>
         <span style={{
-          fontFamily:    'var(--font-display)',
-          fontSize:      11,
-          fontWeight:    700,
-          color:         s.color,
+          fontSize:      10,
+          fontWeight:    500,
+          color:         statColor,
+          letterSpacing: '0.01em',
+          lineHeight:    1,
           overflow:      'hidden',
           textOverflow:  'ellipsis',
           whiteSpace:    'nowrap',
-          pointerEvents: 'none',
-          letterSpacing: '0.02em',
-          transition:    'color 0.15s ease',
         }}>
-          {name}
+          {statLine}
         </span>
       </div>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
@@ -158,35 +196,63 @@ function MapPositionNode({ data }) {
   )
 }
 
-// ── Aggregate edge ────────────────────────────────────────────────────────────
-function AggregateEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
+// ── Edge component ────────────────────────────────────────────────────────────
+function ConfidenceEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
   const [edgePath] = getBezierPath({
     sourceX, sourceY, targetX, targetY,
     curvature: data.curvature ?? 0.25,
   })
+
   const onBoard = data.onBoardCount ?? 0
-  const color = data.avgConfidence
-    ? confidenceColor(data.avgConfidence)
-    : onBoard > 0
-    ? 'var(--move-color)'
-    : 'var(--edge-unexplored)'
+  const rated   = data.avgConfidence != null
+
+  let color, width, opacity
+  if (rated) {
+    color   = confidenceColor(data.avgConfidence)
+    width   = 2.5
+    opacity = 0.7
+  } else if (onBoard > 0) {
+    color   = 'var(--move-color)'
+    width   = 1.5
+    opacity = 0.5
+  } else {
+    color   = 'var(--edge-unexplored)'
+    width   = 1
+    opacity = 0.2
+  }
 
   return (
-    <BaseEdge
-      id={id}
-      path={edgePath}
-      style={{
-        stroke:      color,
-        strokeWidth: onBoard > 0 ? 2 : 1,
-        opacity:     onBoard > 0 ? 0.8 : 0.3,
-        transition:  'stroke 0.2s ease',
-      }}
-    />
+    <>
+      <defs>
+        <marker
+          id={`arrow-${id}`}
+          viewBox="0 0 10 8"
+          refX="8"
+          refY="4"
+          markerWidth="8"
+          markerHeight="6"
+          orient="auto"
+        >
+          <path d="M 0 0 L 10 4 L 0 8 z" fill={color} opacity={opacity} />
+        </marker>
+      </defs>
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        style={{
+          stroke:         color,
+          strokeWidth:    width,
+          opacity:        opacity,
+          transition:     'stroke 0.2s ease, opacity 0.2s ease',
+          markerEnd:      `url(#arrow-${id})`,
+        }}
+      />
+    </>
   )
 }
 
-const nodeTypes = { mapPosition: MapPositionNode }
-const edgeTypes = { aggregate:  AggregateEdge  }
+const nodeTypes = { positionNode: PositionNode }
+const edgeTypes = { confidenceEdge: ConfidenceEdge }
 
 // ── Position popup ────────────────────────────────────────────────────────────
 function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
@@ -208,34 +274,29 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
       : 'Needs work'
     : null
 
-  // Keep popup inside viewport
   const popupW = 228
-  const safeX  = Math.min(
-    Math.max(screenPos.x, 8),
-    window.innerWidth - popupW - 8,
-  )
+  const safeX  = Math.min(Math.max(screenPos.x, 8), window.innerWidth - popupW - 8)
   const safeY  = Math.min(screenPos.y, window.innerHeight - 280)
 
   return (
     <div
       ref={popupRef}
       style={{
-        position:  'fixed',
-        left:      safeX,
-        top:       safeY,
-        zIndex:    30,
-        width:     popupW,
-        // Top border colour-codes confidence state before you read anything
-        borderTop: `3px solid ${confColor}`,
-        border:    '0.5px solid var(--border)',
-        borderTopWidth:  3,
-        borderTopColor:  confColor,
-        borderRadius:    'var(--radius-lg)',
-        background:      'var(--bg-surface)',
-        boxShadow:       '0 16px 48px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.2)',
-        overflow:        'hidden',
-        animation:       'popupIn 0.14s ease',
-        pointerEvents:   'all',
+        position:     'fixed',
+        left:         safeX,
+        top:          safeY,
+        zIndex:       30,
+        width:        popupW,
+        borderTop:    `3px solid ${confColor}`,
+        border:       '0.5px solid var(--border)',
+        borderTopWidth: 3,
+        borderTopColor: confColor,
+        borderRadius: 'var(--radius-lg)',
+        background:   'var(--bg-surface)',
+        boxShadow:    '0 16px 48px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.2)',
+        overflow:     'hidden',
+        animation:    'popupIn 0.14s ease',
+        pointerEvents: 'all',
       }}
     >
       {/* Header */}
@@ -282,7 +343,7 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
         padding: '10px 16px',
         display: 'grid',
         gridTemplateColumns: stats.onBoardCount > 0 ? '1fr 1fr' : '1fr',
-        gap:     8,
+        gap: 8,
       }}>
         <div style={{
           background:   'var(--bg-subtle)',
@@ -296,9 +357,7 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
             fontWeight: 700,
             color:      'var(--text-primary)',
             lineHeight: 1,
-          }}>
-            {stats.moveCount}
-          </div>
+          }}>{stats.moveCount}</div>
           <div style={{
             fontSize:      9,
             fontWeight:    700,
@@ -306,11 +365,8 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
             textTransform: 'uppercase',
             color:         'var(--text-muted)',
             marginTop:     4,
-          }}>
-            {stats.moveCount === 1 ? 'move' : 'moves'}
-          </div>
+          }}>{stats.moveCount === 1 ? 'move' : 'moves'}</div>
         </div>
-
         {stats.onBoardCount > 0 && (
           <div style={{
             background:   'var(--bg-subtle)',
@@ -324,9 +380,7 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
               fontWeight: 700,
               color:      'var(--text-primary)',
               lineHeight: 1,
-            }}>
-              {stats.onBoardCount}
-            </div>
+            }}>{stats.onBoardCount}</div>
             <div style={{
               fontSize:      9,
               fontWeight:    700,
@@ -334,9 +388,7 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
               textTransform: 'uppercase',
               color:         'var(--text-muted)',
               marginTop:     4,
-            }}>
-              in my kit
-            </div>
+            }}>in my kit</div>
           </div>
         )}
       </div>
@@ -363,18 +415,18 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
         <button
           onClick={onExplore}
           style={{
-            width:         '100%',
-            padding:       '10px 14px',
-            background:    'var(--accent)',
-            border:        'none',
-            borderRadius:  'var(--radius-md)',
-            fontSize:      12,
-            fontWeight:    700,
-            color:         '#fff',
-            cursor:        'pointer',
-            fontFamily:    'var(--font-body)',
-            boxShadow:     '0 2px 8px rgba(220,38,38,0.3)',
-            transition:    'opacity 0.12s ease',
+            width:        '100%',
+            padding:      '10px 14px',
+            background:   'var(--accent)',
+            border:       'none',
+            borderRadius: 'var(--radius-md)',
+            fontSize:     12,
+            fontWeight:   700,
+            color:        '#fff',
+            cursor:       'pointer',
+            fontFamily:   'var(--font-body)',
+            boxShadow:    '0 2px 8px rgba(220,38,38,0.3)',
+            transition:   'opacity 0.12s ease',
             letterSpacing: '0.01em',
           }}
           onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
@@ -387,27 +439,24 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
   )
 }
 
-// ── Canvas overlays ───────────────────────────────────────────────────────────
-// Style toggle + Explore shortcut float on the canvas.
-// No top bar — the sidebar owns the shell chrome.
-
+// ── Style toggle overlay ──────────────────────────────────────────────────────
 function StyleToggleOverlay({ styles, activeStyle, onChange }) {
   if (!styles.length) return null
   return (
     <div style={{
-      position:       'absolute',
-      top:            16,
-      left:           '50%',
-      transform:      'translateX(-50%)',
-      zIndex:         10,
-      display:        'inline-flex',
-      background:     'var(--bg-surface)',
-      border:         '0.5px solid var(--border)',
-      borderRadius:   'var(--radius-lg)',
-      padding:        3,
-      gap:            2,
-      boxShadow:      'var(--shadow-md)',
-      pointerEvents:  'all',
+      position:      'absolute',
+      top:           16,
+      left:          '50%',
+      transform:     'translateX(-50%)',
+      zIndex:        10,
+      display:       'inline-flex',
+      background:    'var(--bg-surface)',
+      border:        '0.5px solid var(--border)',
+      borderRadius:  'var(--radius-lg)',
+      padding:       3,
+      gap:           2,
+      boxShadow:     'var(--shadow-md)',
+      pointerEvents: 'all',
     }}>
       {['all', ...styles].map(s => {
         const active = activeStyle === s
@@ -437,154 +486,77 @@ function StyleToggleOverlay({ styles, activeStyle, onChange }) {
   )
 }
 
-function ExploreShortcut({ onClick }) {
+// ── Mobile fallback ───────────────────────────────────────────────────────────
+function MobileFallback() {
+  const navigate = useNavigate()
   return (
     <div style={{
-      position:     'absolute',
-      top:          16,
-      right:        16,
-      zIndex:       10,
-      pointerEvents: 'all',
+      width:          '100%',
+      height:         '100%',
+      display:        'flex',
+      flexDirection:  'column',
+      alignItems:     'center',
+      justifyContent: 'center',
+      padding:        '2rem',
+      textAlign:      'center',
+      gap:            '1.25rem',
     }}>
-      <button
-        onClick={onClick}
-        style={{
-          background:   'var(--bg-surface)',
-          border:       '0.5px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding:      '6px 13px',
-          fontSize:     11,
-          fontWeight:   600,
-          color:        'var(--text-muted)',
-          cursor:       'pointer',
-          fontFamily:   'var(--font-body)',
-          boxShadow:    'var(--shadow-sm)',
-          transition:   'all 0.12s ease',
-          whiteSpace:   'nowrap',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.color       = 'var(--text-primary)'
-          e.currentTarget.style.borderColor = 'var(--border-strong)'
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.color       = 'var(--text-muted)'
-          e.currentTarget.style.borderColor = 'var(--border)'
-        }}
-      >
-        Explore →
-      </button>
-    </div>
-  )
-}
-
-// ── Legend ────────────────────────────────────────────────────────────────────
-// Collapsed by default. Auto-shows for 3s on first mount then collapses.
-function Legend() {
-  const [open, setOpen] = useState(false)
-  const shownRef        = useRef(false)
-  const timerRef        = useRef(null)
-
-  useEffect(() => {
-    if (shownRef.current) return
-    shownRef.current = true
-    setOpen(true)
-    timerRef.current = setTimeout(() => setOpen(false), 3000)
-    return () => clearTimeout(timerRef.current)
-  }, [])
-
-  const items = [
-    { color: '#22C55E',               label: 'Strong (4–5)'       },
-    { color: 'var(--comp-ready)',     label: 'Developing (3)'     },
-    { color: '#EF4444',               label: 'Needs work (1–2)'   },
-    { color: '#8B5CF6',               label: 'In kit, unrated'    },
-    { color: 'rgba(255,255,255,0.15)', label: 'Not explored'      },
-  ]
-
-  return (
-    <div style={{
-      position:     'absolute',
-      bottom:       56,
-      left:         16,
-      zIndex:       10,
-      pointerEvents:'all',
-    }}>
-      {open && (
+      <div style={{
+        width:        56,
+        height:       56,
+        borderRadius: 'var(--radius-lg)',
+        background:   'var(--bg-subtle)',
+        border:       '0.5px solid var(--border)',
+        display:      'flex',
+        alignItems:   'center',
+        justifyContent: 'center',
+        fontSize:     24,
+      }}>🗺️</div>
+      <div>
         <div style={{
-          background:   'var(--bg-surface)',
-          border:       '0.5px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding:      '12px 14px',
-          marginBottom: 8,
-          boxShadow:    'var(--shadow-md)',
-          animation:    'legendIn 0.15s ease',
-          minWidth:     160,
+          fontFamily:    'var(--font-display)',
+          fontSize:      '1.125rem',
+          fontWeight:    700,
+          color:         'var(--text-primary)',
+          marginBottom:  8,
+          letterSpacing: '-0.3px',
         }}>
-          <div style={{
-            fontSize:      9,
-            fontWeight:    700,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color:         'var(--text-muted)',
-            marginBottom:  10,
-          }}>
-            Edge colour
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {items.map(({ color, label }) => (
-              <div key={label} style={{
-                display:    'flex',
-                alignItems: 'center',
-                gap:        8,
-                fontSize:   11,
-                color:      'var(--text-secondary)',
-              }}>
-                <div style={{
-                  width:        7,
-                  height:       7,
-                  borderRadius: '50%',
-                  background:   color,
-                  flexShrink:   0,
-                  border:       color.includes('0.15')
-                    ? '1px solid var(--border-strong)'
-                    : 'none',
-                }} />
-                {label}
-              </div>
-            ))}
-          </div>
+          Graph view is built for desktop
         </div>
-      )}
-
+        <div style={{
+          fontSize:   '0.8125rem',
+          color:      'var(--text-muted)',
+          lineHeight: 1.6,
+          maxWidth:   320,
+        }}>
+          The technique graph needs a bigger screen to be useful. Explore your positions and moves below instead.
+        </div>
+      </div>
       <button
-        onClick={() => {
-          clearTimeout(timerRef.current)
-          setOpen(p => !p)
-        }}
+        onClick={() => navigate('/explore')}
         style={{
-          width:          28,
-          height:         28,
-          borderRadius:   '50%',
-          background:     open ? 'var(--accent-soft)' : 'var(--bg-surface)',
-          border:         `0.5px solid ${open ? 'var(--accent)' : 'var(--border)'}`,
-          color:          open ? 'var(--accent)' : 'var(--text-muted)',
-          fontSize:       11,
-          fontWeight:     700,
-          cursor:         'pointer',
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: 'center',
-          fontFamily:     'var(--font-display)',
-          transition:     'all 0.12s ease',
-          boxShadow:      'var(--shadow-sm)',
+          padding:       '0.625rem 1.5rem',
+          background:    'var(--accent)',
+          border:        'none',
+          borderRadius:  'var(--radius-md)',
+          fontSize:      '0.8125rem',
+          fontWeight:    700,
+          color:         '#fff',
+          cursor:        'pointer',
+          fontFamily:    'var(--font-body)',
+          boxShadow:     '0 2px 8px rgba(220,38,38,0.3)',
+          transition:    'opacity 0.12s ease',
         }}
+        onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
       >
-        ?
+        Explore positions →
       </button>
     </div>
   )
 }
 
-// ── Graph inner ───────────────────────────────────────────────────────────────
+// ── Graph inner (desktop only) ────────────────────────────────────────────────
 function GraphInner({
   rawPositions,
   rawMoves,
@@ -602,9 +574,6 @@ function GraphInner({
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [activePopup, setActivePopup]    = useState(null)
 
-  // ── Ref that always reflects current activePopup ───────────────────────────
-  // Used inside handleNodeClick so the callback never needs activePopup
-  // in its dependency array — breaking the layout rebuild loop.
   const activePopupRef = useRef(null)
   useEffect(() => {
     activePopupRef.current = activePopup
@@ -656,8 +625,6 @@ function GraphInner({
   }, [filteredPositions, filteredMoves, boardMoveIds, progressMap])
 
   // ── Node click ─────────────────────────────────────────────────────────────
-  // Reads activePopup via ref — no dep on activePopup state,
-  // so this callback is stable and does not trigger the layout effect.
   const handleNodeClick = useCallback((position, nodeEl) => {
     const current = activePopupRef.current
     if (current?.position.id === position.id) {
@@ -668,49 +635,39 @@ function GraphInner({
     const screenPos = rect
       ? { x: rect.left + rect.width / 2 - 114, y: rect.bottom + 10 }
       : { x: window.innerWidth / 2 - 114,       y: window.innerHeight / 2 }
-
     setActivePopup({
       position,
       stats: positionStats[position.id] ?? {
-        moveCount:     0,
-        onBoardCount:  0,
-        avgConfidence: null,
-        bestMove:      null,
-        hasAnyOnBoard: false,
+        moveCount: 0, onBoardCount: 0, avgConfidence: null,
+        bestMove: null, hasAnyOnBoard: false,
       },
       screenPos,
     })
   }, [positionStats])
-  // positionStats is still a dep here because we read it to build the popup
-  // stats snapshot. That's correct — positionStats only changes when data
-  // changes, not when the popup opens/closes.
 
   // ── Build nodes + edges ────────────────────────────────────────────────────
-  // activePopup and handleNodeClick are intentionally excluded.
-  // isActive is applied in a separate shallow effect below.
   useEffect(() => {
     if (!filteredPositions.length) return
 
-    const posXY    = buildDagreLayout(filteredPositions, filteredMoves)
-    const newNodes = []
-    const newEdges = []
-
-    filteredPositions.forEach(p => {
-      const ps = positionStats[p.id] ?? {}
-      newNodes.push({
+    const newNodes = filteredPositions.map(p => {
+      const ps    = positionStats[p.id] ?? {}
+      const coord = getPositionCoords(p.slug)
+      return {
         id:        `pos-${p.id}`,
-        type:      'mapPosition',
-        position:  posXY[p.id] ?? { x: 0, y: 0 },
+        type:      'positionNode',
+        position:  coord,
         draggable: false,
         zIndex:    1,
         data: {
           name:          p.name,
-          isActive:      false,          // always false here — patched below
+          isActive:      false,
           avgConf:       ps.avgConfidence ?? null,
           hasAnyOnBoard: ps.hasAnyOnBoard ?? false,
+          moveCount:     ps.moveCount ?? 0,
+          onBoardCount:  ps.onBoardCount ?? 0,
           onClick:       (e) => handleNodeClick(p, e?.currentTarget),
         },
-      })
+      }
     })
 
     const pairMoves = {}
@@ -720,7 +677,7 @@ function GraphInner({
       pairMoves[key].push(m)
     })
 
-    Object.entries(pairMoves).forEach(([key, ms]) => {
+    const newEdges = Object.entries(pairMoves).map(([key, ms]) => {
       const [fromId, toId] = key.split('__')
       const hasReverse     = !!pairMoves[`${toId}__${fromId}`]
       const onBoardCount   = ms.filter(m => boardMoveIds.has(m.id)).length
@@ -731,11 +688,11 @@ function GraphInner({
         ? confs.reduce((a, b) => a + b, 0) / confs.length
         : null
 
-      newEdges.push({
-        id:     `agg-${key}`,
+      return {
+        id:     `edge-${key}`,
         source: `pos-${fromId}`,
         target: `pos-${toId}`,
-        type:   'aggregate',
+        type:   'confidenceEdge',
         zIndex: 0,
         data: {
           count:         ms.length,
@@ -743,35 +700,22 @@ function GraphInner({
           avgConfidence: avgConf,
           curvature:     hasReverse ? 0.35 : 0.2,
         },
-      })
+      }
     })
 
     setNodes(newNodes)
     setEdges(newEdges)
     fitQueued.current = true
-  }, [
-    filteredPositions,
-    filteredMoves,
-    boardMoveIds,
-    progressMap,
-    positionStats,
-    handleNodeClick,
-  ])
+  }, [filteredPositions, filteredMoves, boardMoveIds, progressMap, positionStats, handleNodeClick])
 
-  // ── Patch isActive on nodes when popup changes ─────────────────────────────
-  // Shallow update — only touches the isActive flag, never recalculates
-  // layout or edges. This is what was previously forcing a full rebuild
-  // on every popup open/close.
+  // ── Patch isActive when popup changes ──────────────────────────────────────
   useEffect(() => {
     setNodes(prev =>
       prev.map(n => {
         const posId    = n.id.replace('pos-', '')
         const isActive = activePopup?.position.id === posId
-        if (n.data.isActive === isActive) return n   // no change, skip
-        return {
-          ...n,
-          data: { ...n.data, isActive },
-        }
+        if (n.data.isActive === isActive) return n
+        return { ...n, data: { ...n.data, isActive } }
       })
     )
   }, [activePopup, setNodes])
@@ -780,7 +724,7 @@ function GraphInner({
   useEffect(() => {
     if (!fitQueued.current) return
     const t = setTimeout(() => {
-      fitView({ padding: 0.28, duration: 400 })
+      fitView({ padding: 0.15, duration: 400 })
       fitQueued.current = false
     }, 50)
     return () => clearTimeout(t)
@@ -790,16 +734,12 @@ function GraphInner({
   useEffect(() => { setActivePopup(null) }, [activeStyle])
 
   return (
-    // This wrapper fills the available space inside main-content.
-    // overflow: hidden is critical — without it ReactFlow bleeds out.
     <div style={{
       position: 'relative',
       width:    '100%',
       height:   '100%',
       overflow: 'hidden',
     }}>
-
-      {/* Style toggle — floats top-centre on canvas */}
       <StyleToggleOverlay
         styles={styles}
         activeStyle={activeStyle}
@@ -809,13 +749,6 @@ function GraphInner({
         }}
       />
 
-      {/* Explore shortcut — floats top-right */}
-      <ExploreShortcut onClick={() => navigate('/explore')} />
-
-      {/* Legend — floats bottom-left, collapsed by default
-      <Legend /> */}
-
-      {/* Position popup */}
       {activePopup && (
         <PositionPopup
           position={activePopup.position}
@@ -837,8 +770,8 @@ function GraphInner({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        fitViewOptions={{ padding: 0.28 }}
-        minZoom={0.06}
+        fitViewOptions={{ padding: 0.15 }}
+        minZoom={0.3}
         maxZoom={2.5}
         style={{
           background: 'var(--bg-page)',
@@ -857,7 +790,7 @@ function GraphInner({
           color="var(--border)"
           gap={32}
           size={0.6}
-          style={{ opacity: 0.4 }}
+          style={{ opacity: 0.3 }}
         />
         <Controls
           showInteractive={false}
@@ -875,10 +808,6 @@ function GraphInner({
         @keyframes popupIn {
           from { opacity: 0; transform: translateY(-6px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0)    scale(1);    }
-        }
-        @keyframes legendIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0);   }
         }
         .react-flow__controls-button {
           background:    var(--bg-surface) !important;
@@ -906,6 +835,7 @@ export default function GraphPage() {
   const [error, setError]               = useState(null)
 
   useEffect(() => {
+    if (isMobile) { setLoading(false); return }
     Promise.all([getGraph(), getMyBoard(), getMyProgress()])
       .then(([graphData, boardData, progressData]) => {
         setBoardMoveIds(new Set(boardData.map(i => i.move.id)))
@@ -927,7 +857,8 @@ export default function GraphPage() {
     return set.size > 1 ? Array.from(set).sort() : []
   }, [rawMoves])
 
-  // Loading state — spinner in accent colour
+  if (isMobile) return <MobileFallback />
+
   if (loading) return (
     <div style={{
       width:          '100%',
@@ -946,16 +877,10 @@ export default function GraphPage() {
         borderTopColor: 'var(--accent)',
         animation:      'graphSpin 0.7s linear infinite',
       }} />
-      <span style={{
-        fontSize:  12,
-        fontWeight: 500,
-        color:     'var(--text-muted)',
-      }}>
+      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>
         Loading graph...
       </span>
-      <style>{`
-        @keyframes graphSpin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes graphSpin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
@@ -969,24 +894,14 @@ export default function GraphPage() {
       padding:        24,
       textAlign:      'center',
     }}>
-      <span style={{
-        fontSize:   13,
-        fontWeight: 600,
-        color:      'var(--accent)',
-      }}>
+      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
         {error}
       </span>
     </div>
   )
 
   return (
-    // Fills main-content exactly. overflow: hidden prevents
-    // ReactFlow from causing a scrollbar on the shell.
-    <div style={{
-      width:    '100%',
-      height:   '100%',
-      overflow: 'hidden',
-    }}>
+    <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       <ReactFlowProvider>
         <GraphInner
           rawPositions={rawPositions}
