@@ -312,6 +312,38 @@ def update_member_role(
 
     return {"user_id": member_id, "role": body.role}
 
+@router.delete("/{club_id}/members/{member_id}")
+def remove_member(
+    club_id: str,
+    member_id: str,
+    user=Depends(get_current_user),
+    client=Depends(get_supabase_client),
+):
+    """Remove a member from the club. Owner or coach only."""
+    assert_coach_in_club(club_id, user.id, client)
+
+    if member_id == user.id:
+        raise HTTPException(status_code=400, detail="Cannot remove yourself")
+
+    # Check the target is not the club owner
+    club_res = client.table("clubs") \
+        .select("owner_id") \
+        .eq("id", club_id) \
+        .execute()
+
+    if club_res.data and club_res.data[0]["owner_id"] == member_id:
+        raise HTTPException(status_code=400, detail="Cannot remove the club owner")
+
+    res = client.table("club_memberships") \
+        .delete() \
+        .eq("club_id", club_id) \
+        .eq("user_id", member_id) \
+        .execute()
+
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    return {"status": "removed", "user_id": member_id}
 
 # ── Club content creation ─────────────────────────────────────────────────────
 

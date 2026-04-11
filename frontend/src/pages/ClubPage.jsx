@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
   getMyClub, getClubMembers, getClubRoster,
-  updateMemberRole, createClub, joinClub, getClubCurricula,
+  updateMemberRole, removeMember, createClub, joinClub, getClubCurricula,
 } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
 
@@ -262,14 +262,19 @@ function RoleBadge({ role }) {
   )
 }
 
-function MemberRow({ member, isOwner, clubId, onRoleChange, roleUpdating, currentUserId }) {
+function MemberRow({ member, isOwner, isCoach, clubOwnerId, clubId, onRoleChange, onRemove, roleUpdating, removing, currentUserId }) {
   const updating = roleUpdating === member.user_id
+  const isRemoving = removing === member.user_id
   const isSelf = member.user_id === currentUserId
+  const isMemberOwner = member.user_id === clubOwnerId
+  const canManage = (isOwner || isCoach) && !isSelf && !isMemberOwner
 
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '0.75rem',
       padding: '0.75rem 1rem', borderBottom: '0.5px solid var(--border)',
+      opacity: isRemoving ? 0.5 : 1,
+      transition: 'opacity 0.2s ease',
     }}>
       <div style={{
         width: '2.125rem', height: '2.125rem', borderRadius: '50%',
@@ -294,21 +299,43 @@ function MemberRow({ member, isOwner, clubId, onRoleChange, roleUpdating, curren
 
       <RoleBadge role={member.role} />
 
-      {isOwner && !isSelf && (
+      {/* Role toggle — owner only */}
+      {isOwner && canManage && (
         <button
-          disabled={updating}
+          disabled={updating || isRemoving}
           onClick={() => onRoleChange(member.user_id, member.role === 'athlete' ? 'coach' : 'athlete')}
           style={{
             padding: '0.3125rem 0.625rem',
             background: 'var(--bg-subtle)', border: '0.5px solid var(--border)',
             borderRadius: 'var(--radius-sm)', fontSize: '0.6875rem', fontWeight: 500,
             color: updating ? 'var(--text-muted)' : 'var(--text-secondary)',
-            cursor: updating ? 'not-allowed' : 'pointer',
+            cursor: updating || isRemoving ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-body)', flexShrink: 0,
             transition: 'all 0.15s', minHeight: '2.75rem',
           }}
         >
           {updating ? '...' : member.role === 'athlete' ? 'Make coach' : 'Make athlete'}
+        </button>
+      )}
+
+      {/* Kick button — owner or coach, not self, not owner */}
+      {canManage && (
+        <button
+          disabled={isRemoving || updating}
+          onClick={() => onRemove(member.user_id, member.display_name)}
+          style={{
+            padding: '0.3125rem 0.625rem',
+            background: 'transparent', border: '0.5px solid var(--border)',
+            borderRadius: 'var(--radius-sm)', fontSize: '0.6875rem', fontWeight: 500,
+            color: isRemoving ? 'var(--text-muted)' : 'var(--accent)',
+            cursor: isRemoving || updating ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-body)', flexShrink: 0,
+            transition: 'all 0.15s', minHeight: '2.75rem',
+          }}
+          onMouseEnter={e => { if (!isRemoving && !updating) e.currentTarget.style.background = 'var(--accent-soft)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+        >
+          {isRemoving ? '...' : 'Remove'}
         </button>
       )}
     </div>
@@ -570,6 +597,26 @@ export default function ClubPage() {
     }
   }, [club])
 
+  const [removing, setRemoving] = useState(null)
+
+  const handleRemove = useCallback(async (userId, displayName) => {
+    const confirmed = window.confirm(
+      `Remove ${displayName || 'this member'} from ${club.name}? They can rejoin with the invite code.`
+    )
+    if (!confirmed) return
+
+    setRemoving(userId)
+    try {
+      await removeMember(club.id, userId)
+      setMembers(prev => prev.filter(m => m.user_id !== userId))
+    } catch (err) {
+      console.error('Failed to remove member:', err)
+    } finally {
+      setRemoving(null)
+    }
+  }, [club])
+
+
   if (loading) return (
     <div style={{ maxWidth: '42.5rem', margin: '0 auto', padding: '1.75rem 1.5rem' }}>
       {[120, 200, 80, 80, 80].map((w, i) => (
@@ -657,9 +704,13 @@ if (error) return (
                 key={m.user_id}
                 member={m}
                 isOwner={isOwner}
+                isCoach={isCoach}
+                clubOwnerId={club.owner_id}
                 clubId={club.id}
                 onRoleChange={handleRoleChange}
+                onRemove={handleRemove}
                 roleUpdating={roleUpdating}
+                removing={removing}
                 currentUserId={user?.id}
               />
             ))

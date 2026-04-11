@@ -126,6 +126,7 @@ export const getMyClub            = ()                           => request('/cl
 export const getClubMembers       = (clubId)                     => request(`/clubs/${clubId}/members`)
 export const getClubRoster        = (clubId)                     => request(`/clubs/${clubId}/roster`)
 export const updateMemberRole     = (clubId, userId, role)       => requestPatch(`/clubs/${clubId}/members/${userId}/role`, { role })
+export const removeMember        = (clubId, userId)              => requestDelete(`/clubs/${clubId}/members/${userId}`)
 
 // ── Board ─────────────────────────────────────────────────────────────────────
 export const getMyBoard           = ()        => request('/board/')
