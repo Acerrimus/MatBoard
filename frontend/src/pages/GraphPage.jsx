@@ -30,12 +30,8 @@ const STYLE_LABELS = {
 }
 
 // ── Hand-positioned layout ────────────────────────────────────────────────────
-// x values adjusted for NODE_W = 170. Tiers spaced tighter vertically.
 const POSITION_COORDS = {
-  // Tier 1 — Entry
   'neutral':              { x: 460, y: 0 },
-
-  // Tier 2 — Ties & Setups
   'collar-tie':           { x: 0,   y: 140 },
   'inside-tie':           { x: 190, y: 140 },
   'underhook':            { x: 380, y: 140 },
@@ -43,19 +39,13 @@ const POSITION_COORDS = {
   'overhook':             { x: 760, y: 140 },
   '2-on-1':               { x: 950, y: 140 },
   'clinch-bodylock':      { x: 1140, y: 140 },
-
-  // Tier 3 — Attacks
   'front-headlock':       { x: 120, y: 300 },
   'high-crotch':          { x: 380, y: 300 },
   'double-leg-shot':      { x: 640, y: 300 },
   'single-leg':           { x: 900, y: 300 },
-
-  // Tier 4 — Control & Transition
   'back-control-standing': { x: 190, y: 460 },
   'back-control-top':      { x: 480, y: 460 },
   'scramble':              { x: 770, y: 460 },
-
-  // Tier 5 — Ground (tightened gap)
   'referees-top':         { x: 60,  y: 590 },
   'referees-bottom':      { x: 260, y: 590 },
   'par-terre-top':        { x: 480, y: 590 },
@@ -63,7 +53,6 @@ const POSITION_COORDS = {
   'turtle':               { x: 920, y: 590 },
 }
 
-// Tier lookup by slug — used for edge routing decisions
 const TIER_BY_SLUG = {}
 const TIER_DEFS = [
   { tier: 0, slugs: ['neutral'] },
@@ -74,7 +63,6 @@ const TIER_DEFS = [
 ]
 TIER_DEFS.forEach(({ tier, slugs }) => slugs.forEach(s => { TIER_BY_SLUG[s] = tier }))
 
-// Fallback for any position not in the map (future-proofing)
 let fallbackX = 0
 function getPositionCoords(slug) {
   if (POSITION_COORDS[slug]) return POSITION_COORDS[slug]
@@ -83,59 +71,43 @@ function getPositionCoords(slug) {
 }
 
 // ── Edge routing helper ───────────────────────────────────────────────────────
-// Determines which side of source/target to connect, based on relative position.
 function getEdgeHandles(sourceCoord, targetCoord) {
   const dx = targetCoord.x - sourceCoord.x
   const dy = targetCoord.y - sourceCoord.y
-
-  // Primarily vertical (target is below/above)
   if (Math.abs(dy) > Math.abs(dx) * 0.4) {
     if (dy > 0) return { sourceHandle: 'bottom', targetHandle: 'top' }
     return { sourceHandle: 'top', targetHandle: 'bottom' }
   }
-  // Primarily horizontal
   if (dx > 0) return { sourceHandle: 'right', targetHandle: 'left' }
   return { sourceHandle: 'left', targetHandle: 'right' }
 }
 
-const HANDLE_POSITIONS = {
-  top:    Position.Top,
-  bottom: Position.Bottom,
-  left:   Position.Left,
-  right:  Position.Right,
-}
-
 // ── Node component ────────────────────────────────────────────────────────────
 function PositionNode({ data }) {
-  const { name, isActive, avgConf, hasAnyOnBoard, moveCount, onBoardCount, onClick } = data
+  const {
+    name, isActive, isConnected, avgConf, hasAnyOnBoard,
+    moveCount, onBoardCount, onClick, onHover, onHoverEnd,
+  } = data
 
-  let bg, border, color, shadow, statColor
-  if (isActive) {
-    bg       = 'var(--accent-glow-lg)'
-    border   = '2px solid var(--accent)'
-    color    = 'var(--accent)'
-    shadow   = '0 0 0 4px var(--accent-glow-sm), 0 8px 24px rgba(220,38,38,0.15)'
-    statColor = 'var(--accent)'
-  } else if (avgConf) {
-    const c  = confidenceColor(avgConf)
-    bg       = confidenceBg(avgConf)
-    border   = `1.5px solid ${c}44`
-    color    = c
-    shadow   = `0 2px 12px ${c}15`
-    statColor = 'var(--text-muted)'
-  } else if (hasAnyOnBoard) {
-    bg       = 'var(--move-color-bg)'
-    border   = '1.5px solid var(--move-color)'
-    color    = 'var(--move-color)'
-    shadow   = '0 2px 12px rgba(139,92,246,0.08)'
-    statColor = 'var(--text-muted)'
-  } else {
-    bg       = 'var(--bg-surface)'
-    border   = '1px solid var(--border)'
-    color    = 'var(--text-secondary)'
-    shadow   = 'none'
-    statColor = 'var(--text-muted)'
-  }
+  // Left accent stripe colour
+  const accentColor = avgConf
+    ? confidenceColor(avgConf)
+    : hasAnyOnBoard
+      ? 'var(--move-color)'
+      : 'var(--border)'
+
+  // Visual states
+  const isHighlighted = isActive || isConnected
+  const borderColor = isActive
+    ? 'var(--accent)'
+    : isConnected
+      ? accentColor
+      : 'var(--border)'
+  const shadow = isActive
+    ? '0 0 0 3px var(--accent-glow-sm), 0 8px 24px rgba(220,38,38,0.12)'
+    : isConnected
+      ? `0 0 0 2px ${accentColor}22, 0 4px 16px rgba(0,0,0,0.15)`
+      : 'none'
 
   const statLine = avgConf
     ? `${moveCount} move${moveCount !== 1 ? 's' : ''} · avg ${avgConf.toFixed(1)}`
@@ -149,34 +121,24 @@ function PositionNode({ data }) {
       <Handle type="target" position={Position.Right}  id="right"  style={{ opacity: 0 }} />
       <div
         onClick={onClick}
+        onMouseEnter={onHover}
+        onMouseLeave={onHoverEnd}
         style={{
-          width:        NODE_W,
-          height:       NODE_H,
-          background:   bg,
-          border:       border,
-          borderRadius: 'var(--radius-lg)',
-          display:      'flex',
+          width:         NODE_W,
+          height:        NODE_H,
+          background:    'var(--bg-surface)',
+          border:        `1.5px solid ${borderColor}`,
+          borderLeft:    `4px solid ${accentColor}`,
+          borderRadius:  'var(--radius-lg)',
+          display:       'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          padding:      '0 14px',
-          cursor:       'pointer',
-          transition:   'all 0.15s ease',
-          boxShadow:    shadow,
-          overflow:     'hidden',
-        }}
-        onMouseEnter={e => {
-          if (!isActive) {
-            e.currentTarget.style.borderColor = 'var(--accent)'
-            e.currentTarget.style.boxShadow   = '0 0 0 3px var(--accent-glow-sm), 0 8px 24px rgba(220,38,38,0.1)'
-            e.currentTarget.style.transform   = 'scale(1.04)'
-          }
-        }}
-        onMouseLeave={e => {
-          if (!isActive) {
-            e.currentTarget.style.borderColor = border.split('solid ')[1] || 'var(--border)'
-            e.currentTarget.style.boxShadow   = shadow
-            e.currentTarget.style.transform   = 'scale(1)'
-          }
+          padding:       '0 14px',
+          cursor:        'pointer',
+          transition:    'all 0.15s ease',
+          boxShadow:     shadow,
+          overflow:      'hidden',
+          opacity:       1,
         }}
       >
         <div style={{
@@ -198,7 +160,7 @@ function PositionNode({ data }) {
             fontFamily:    'var(--font-display)',
             fontSize:      12,
             fontWeight:    700,
-            color:         color,
+            color:         isHighlighted ? 'var(--text-primary)' : 'var(--text-secondary)',
             overflow:      'hidden',
             textOverflow:  'ellipsis',
             whiteSpace:    'nowrap',
@@ -211,7 +173,7 @@ function PositionNode({ data }) {
         <span style={{
           fontSize:      10,
           fontWeight:    500,
-          color:         statColor,
+          color:         'var(--text-muted)',
           letterSpacing: '0.01em',
           lineHeight:    1,
           overflow:      'hidden',
@@ -248,20 +210,18 @@ function ConfidenceEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition
 
   const onBoard = data.onBoardCount ?? 0
   const rated   = data.avgConfidence != null
+  const visible = data.isVisible
 
-  let color, width, opacity
+  let color, width
   if (rated) {
-    color   = confidenceColor(data.avgConfidence)
-    width   = 2.5
-    opacity = 0.65
+    color = confidenceColor(data.avgConfidence)
+    width = 2.5
   } else if (onBoard > 0) {
-    color   = 'var(--move-color)'
-    width   = 1.5
-    opacity = 0.35
+    color = 'var(--move-color)'
+    width = 1.5
   } else {
-    color   = 'var(--edge-unexplored)'
-    width   = 1
-    opacity = 0.12
+    color = 'var(--text-muted)'
+    width = 1
   }
 
   return (
@@ -276,18 +236,18 @@ function ConfidenceEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition
           markerHeight="6"
           orient="auto"
         >
-          <path d="M 0 0 L 10 4 L 0 8 z" fill={color} opacity={opacity + 0.15} />
+          <path d="M 0 0 L 10 4 L 0 8 z" fill={color} opacity={visible ? 0.8 : 0} />
         </marker>
       </defs>
       <BaseEdge
         id={id}
         path={edgePath}
         style={{
-          stroke:         color,
-          strokeWidth:    width,
-          opacity:        opacity,
-          transition:     'stroke 0.2s ease, opacity 0.2s ease',
-          markerEnd:      `url(#arrow-${id})`,
+          stroke:      color,
+          strokeWidth: width,
+          opacity:     visible ? 0.7 : 0,
+          transition:  'opacity 0.25s ease',
+          markerEnd:   `url(#arrow-${id})`,
         }}
       />
     </>
@@ -330,7 +290,6 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
         top:          safeY,
         zIndex:       30,
         width:        popupW,
-        borderTop:    `3px solid ${confColor}`,
         border:       '0.5px solid var(--border)',
         borderTopWidth: 3,
         borderTopColor: confColor,
@@ -612,11 +571,15 @@ function GraphInner({
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [activePopup, setActivePopup]    = useState(null)
+  const [hoveredPosId, setHoveredPosId]  = useState(null)
 
   const activePopupRef = useRef(null)
   useEffect(() => {
     activePopupRef.current = activePopup
   }, [activePopup])
+
+  // The "focus" node is whichever is hovered or has the popup open
+  const focusPosId = hoveredPosId || activePopup?.position.id || null
 
   // ── Slug-to-id lookup ──────────────────────────────────────────────────────
   const posIdToSlug = useMemo(() => {
@@ -670,6 +633,29 @@ function GraphInner({
     return stats
   }, [filteredPositions, filteredMoves, boardMoveIds, progressMap])
 
+  // ── Aggregated edge data (stable between renders) ──────────────────────────
+  const pairData = useMemo(() => {
+    const pairs = {}
+    filteredMoves.forEach(m => {
+      const key = `${m.from_position_id}__${m.to_position_id}`
+      if (!pairs[key]) pairs[key] = []
+      pairs[key].push(m)
+    })
+    return pairs
+  }, [filteredMoves])
+
+  // ── Connected position IDs for the focus node ──────────────────────────────
+  const connectedPosIds = useMemo(() => {
+    if (!focusPosId) return new Set()
+    const ids = new Set()
+    Object.keys(pairData).forEach(key => {
+      const [fromId, toId] = key.split('__')
+      if (fromId === focusPosId) ids.add(toId)
+      if (toId === focusPosId) ids.add(fromId)
+    })
+    return ids
+  }, [focusPosId, pairData])
+
   // ── Node click ─────────────────────────────────────────────────────────────
   const handleNodeClick = useCallback((position, nodeEl) => {
     const current = activePopupRef.current
@@ -707,28 +693,23 @@ function GraphInner({
         data: {
           name:          p.name,
           isActive:      false,
+          isConnected:   false,
           avgConf:       ps.avgConfidence ?? null,
           hasAnyOnBoard: ps.hasAnyOnBoard ?? false,
           moveCount:     ps.moveCount ?? 0,
           onBoardCount:  ps.onBoardCount ?? 0,
           onClick:       (e) => handleNodeClick(p, e?.currentTarget),
+          onHover:       () => setHoveredPosId(p.id),
+          onHoverEnd:    () => setHoveredPosId(prev => prev === p.id ? null : prev),
         },
       }
     })
 
-    // Aggregate moves per position pair
-    const pairMoves = {}
-    filteredMoves.forEach(m => {
-      const key = `${m.from_position_id}__${m.to_position_id}`
-      if (!pairMoves[key]) pairMoves[key] = []
-      pairMoves[key].push(m)
-    })
-
-    const newEdges = Object.entries(pairMoves).map(([key, ms]) => {
+    const newEdges = Object.entries(pairData).map(([key, ms]) => {
       const [fromId, toId] = key.split('__')
       const fromSlug       = posIdToSlug[fromId]
       const toSlug         = posIdToSlug[toId]
-      const hasReverse     = !!pairMoves[`${toId}__${fromId}`]
+      const hasReverse     = !!pairData[`${toId}__${fromId}`]
       const onBoardCount   = ms.filter(m => boardMoveIds.has(m.id)).length
       const confs          = ms
         .map(m => progressMap[m.id]?.confidence)
@@ -737,12 +718,10 @@ function GraphInner({
         ? confs.reduce((a, b) => a + b, 0) / confs.length
         : null
 
-      // Determine edge routing based on relative node positions
       const sourceCoord = getPositionCoords(fromSlug)
       const targetCoord = getPositionCoords(toSlug)
       const { sourceHandle, targetHandle } = getEdgeHandles(sourceCoord, targetCoord)
 
-      // Tier span for edge type decision
       const fromTier = TIER_BY_SLUG[fromSlug] ?? 0
       const toTier   = TIER_BY_SLUG[toSlug] ?? 0
       const tierSpan = Math.abs(fromTier - toTier)
@@ -761,6 +740,7 @@ function GraphInner({
           avgConfidence: avgConf,
           curvature:     hasReverse ? 0.35 : 0.2,
           tierSpan,
+          isVisible:     false,
         },
       }
     })
@@ -768,19 +748,29 @@ function GraphInner({
     setNodes(newNodes)
     setEdges(newEdges)
     fitQueued.current = true
-  }, [filteredPositions, filteredMoves, boardMoveIds, progressMap, positionStats, posIdToSlug, handleNodeClick])
+  }, [filteredPositions, filteredMoves, boardMoveIds, progressMap, positionStats, posIdToSlug, pairData, handleNodeClick])
 
-  // ── Patch isActive when popup changes ──────────────────────────────────────
+  // ── Update node highlight + edge visibility when focus changes ─────────────
   useEffect(() => {
     setNodes(prev =>
       prev.map(n => {
-        const posId    = n.id.replace('pos-', '')
-        const isActive = activePopup?.position.id === posId
-        if (n.data.isActive === isActive) return n
-        return { ...n, data: { ...n.data, isActive } }
+        const posId      = n.id.replace('pos-', '')
+        const isActive   = activePopup?.position.id === posId || hoveredPosId === posId
+        const isConnected = !isActive && connectedPosIds.has(posId)
+        if (n.data.isActive === isActive && n.data.isConnected === isConnected) return n
+        return { ...n, data: { ...n.data, isActive, isConnected } }
       })
     )
-  }, [activePopup, setNodes])
+
+    setEdges(prev =>
+      prev.map(e => {
+        const [fromId, toId] = e.id.replace('edge-', '').split('__')
+        const isVisible = focusPosId ? (fromId === focusPosId || toId === focusPosId) : false
+        if (e.data.isVisible === isVisible) return e
+        return { ...e, data: { ...e.data, isVisible } }
+      })
+    )
+  }, [focusPosId, activePopup, hoveredPosId, connectedPosIds, setNodes, setEdges])
 
   // ── Fit view after nodes settle ────────────────────────────────────────────
   useEffect(() => {
@@ -808,6 +798,7 @@ function GraphInner({
         onChange={(s) => {
           setActiveStyle(s)
           setActivePopup(null)
+          setHoveredPosId(null)
         }}
       />
 
@@ -846,7 +837,7 @@ function GraphInner({
         onNodeClick={(event, node) => {
           if (node.data?.onClick) node.data.onClick(event)
         }}
-        onPaneClick={() => setActivePopup(null)}
+        onPaneClick={() => { setActivePopup(null); setHoveredPosId(null) }}
       >
         <Background
           color="var(--border)"
