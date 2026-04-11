@@ -10,6 +10,7 @@ import {
   Position,
   BaseEdge,
   getBezierPath,
+  getSmoothStepPath,
   useReactFlow,
   ReactFlowProvider,
 } from '@xyflow/react'
@@ -18,7 +19,7 @@ import { getGraph, getMyBoard, getMyProgress } from '../api'
 import { confidenceColor, confidenceBg } from '../components/MoveCard'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const NODE_W = 140
+const NODE_W = 170
 const NODE_H = 80
 const isMobile = window.innerWidth < 768
 
@@ -29,54 +30,85 @@ const STYLE_LABELS = {
 }
 
 // ── Hand-positioned layout ────────────────────────────────────────────────────
-// Positions arranged by wrestling flow: Neutral → Ties → Attacks → Control → Ground
-// x values are spaced to centre each tier horizontally.
-// Keyed by position slug for easy lookup.
+// x values adjusted for NODE_W = 170. Tiers spaced tighter vertically.
 const POSITION_COORDS = {
   // Tier 1 — Entry
-  'neutral':              { x: 420, y: 0 },
+  'neutral':              { x: 460, y: 0 },
 
   // Tier 2 — Ties & Setups
   'collar-tie':           { x: 0,   y: 140 },
-  'inside-tie':           { x: 160, y: 140 },
-  'underhook':            { x: 320, y: 140 },
-  'double-underhooks':    { x: 480, y: 140 },
-  'overhook':             { x: 640, y: 140 },
-  '2-on-1':               { x: 800, y: 140 },
-  'clinch-bodylock':      { x: 960, y: 140 },
+  'inside-tie':           { x: 190, y: 140 },
+  'underhook':            { x: 380, y: 140 },
+  'double-underhooks':    { x: 570, y: 140 },
+  'overhook':             { x: 760, y: 140 },
+  '2-on-1':               { x: 950, y: 140 },
+  'clinch-bodylock':      { x: 1140, y: 140 },
 
   // Tier 3 — Attacks
-  'front-headlock':       { x: 100, y: 300 },
-  'high-crotch':          { x: 320, y: 300 },
-  'double-leg-shot':      { x: 540, y: 300 },
-  'single-leg':           { x: 760, y: 300 },
+  'front-headlock':       { x: 120, y: 300 },
+  'high-crotch':          { x: 380, y: 300 },
+  'double-leg-shot':      { x: 640, y: 300 },
+  'single-leg':           { x: 900, y: 300 },
 
   // Tier 4 — Control & Transition
-  'back-control-standing': { x: 160, y: 460 },
-  'back-control-top':      { x: 420, y: 460 },
-  'scramble':              { x: 680, y: 460 },
+  'back-control-standing': { x: 190, y: 460 },
+  'back-control-top':      { x: 480, y: 460 },
+  'scramble':              { x: 770, y: 460 },
 
-  // Tier 5 — Ground
-  'referees-top':         { x: 60,  y: 620 },
-  'referees-bottom':      { x: 240, y: 620 },
-  'par-terre-top':        { x: 440, y: 620 },
-  'par-terre-bottom':     { x: 640, y: 620 },
-  'turtle':               { x: 840, y: 620 },
+  // Tier 5 — Ground (tightened gap)
+  'referees-top':         { x: 60,  y: 590 },
+  'referees-bottom':      { x: 260, y: 590 },
+  'par-terre-top':        { x: 480, y: 590 },
+  'par-terre-bottom':     { x: 700, y: 590 },
+  'turtle':               { x: 920, y: 590 },
 }
+
+// Tier lookup by slug — used for edge routing decisions
+const TIER_BY_SLUG = {}
+const TIER_DEFS = [
+  { tier: 0, slugs: ['neutral'] },
+  { tier: 1, slugs: ['collar-tie','inside-tie','underhook','double-underhooks','overhook','2-on-1','clinch-bodylock'] },
+  { tier: 2, slugs: ['front-headlock','high-crotch','double-leg-shot','single-leg'] },
+  { tier: 3, slugs: ['back-control-standing','back-control-top','scramble'] },
+  { tier: 4, slugs: ['referees-top','referees-bottom','par-terre-top','par-terre-bottom','turtle'] },
+]
+TIER_DEFS.forEach(({ tier, slugs }) => slugs.forEach(s => { TIER_BY_SLUG[s] = tier }))
 
 // Fallback for any position not in the map (future-proofing)
 let fallbackX = 0
 function getPositionCoords(slug) {
   if (POSITION_COORDS[slug]) return POSITION_COORDS[slug]
-  fallbackX += 170
-  return { x: fallbackX, y: 780 }
+  fallbackX += 190
+  return { x: fallbackX, y: 720 }
+}
+
+// ── Edge routing helper ───────────────────────────────────────────────────────
+// Determines which side of source/target to connect, based on relative position.
+function getEdgeHandles(sourceCoord, targetCoord) {
+  const dx = targetCoord.x - sourceCoord.x
+  const dy = targetCoord.y - sourceCoord.y
+
+  // Primarily vertical (target is below/above)
+  if (Math.abs(dy) > Math.abs(dx) * 0.4) {
+    if (dy > 0) return { sourceHandle: 'bottom', targetHandle: 'top' }
+    return { sourceHandle: 'top', targetHandle: 'bottom' }
+  }
+  // Primarily horizontal
+  if (dx > 0) return { sourceHandle: 'right', targetHandle: 'left' }
+  return { sourceHandle: 'left', targetHandle: 'right' }
+}
+
+const HANDLE_POSITIONS = {
+  top:    Position.Top,
+  bottom: Position.Bottom,
+  left:   Position.Left,
+  right:  Position.Right,
 }
 
 // ── Node component ────────────────────────────────────────────────────────────
 function PositionNode({ data }) {
   const { name, isActive, avgConf, hasAnyOnBoard, moveCount, onBoardCount, onClick } = data
 
-  // Determine colour scheme
   let bg, border, color, shadow, statColor
   if (isActive) {
     bg       = 'var(--accent-glow-lg)'
@@ -105,15 +137,16 @@ function PositionNode({ data }) {
     statColor = 'var(--text-muted)'
   }
 
-  // Stat line text
   const statLine = avgConf
     ? `${moveCount} move${moveCount !== 1 ? 's' : ''} · avg ${avgConf.toFixed(1)}`
     : `${moveCount} move${moveCount !== 1 ? 's' : ''}${onBoardCount > 0 ? ` · ${onBoardCount} in kit` : ''}`
 
   return (
     <>
-      <Handle type="target" position={Position.Top}    style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left}   style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top}    id="top"    style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Bottom} id="bottom" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Left}   id="left"   style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Right}  id="right"  style={{ opacity: 0 }} />
       <div
         onClick={onClick}
         style={{
@@ -146,8 +179,6 @@ function PositionNode({ data }) {
           }
         }}
       >
-        {/* Diagram space — reserved for future position illustrations */}
-        {/* For now, shows a subtle confidence indicator dot when rated */}
         <div style={{
           display:     'flex',
           alignItems:  'center',
@@ -190,18 +221,30 @@ function PositionNode({ data }) {
           {statLine}
         </span>
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Right}  style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Top}    id="top"    style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Left}   id="left"   style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Right}  id="right"  style={{ opacity: 0 }} />
     </>
   )
 }
 
 // ── Edge component ────────────────────────────────────────────────────────────
-function ConfidenceEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
-  const [edgePath] = getBezierPath({
-    sourceX, sourceY, targetX, targetY,
-    curvature: data.curvature ?? 0.25,
-  })
+function ConfidenceEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }) {
+  const useSmoothStep = data.tierSpan >= 2
+
+  const [edgePath] = useSmoothStep
+    ? getSmoothStepPath({
+        sourceX, sourceY, targetX, targetY,
+        sourcePosition, targetPosition,
+        borderRadius: 16,
+        offset: 20,
+      })
+    : getBezierPath({
+        sourceX, sourceY, targetX, targetY,
+        sourcePosition, targetPosition,
+        curvature: data.curvature ?? 0.25,
+      })
 
   const onBoard = data.onBoardCount ?? 0
   const rated   = data.avgConfidence != null
@@ -210,15 +253,15 @@ function ConfidenceEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
   if (rated) {
     color   = confidenceColor(data.avgConfidence)
     width   = 2.5
-    opacity = 0.7
+    opacity = 0.65
   } else if (onBoard > 0) {
     color   = 'var(--move-color)'
     width   = 1.5
-    opacity = 0.5
+    opacity = 0.35
   } else {
     color   = 'var(--edge-unexplored)'
     width   = 1
-    opacity = 0.2
+    opacity = 0.12
   }
 
   return (
@@ -233,7 +276,7 @@ function ConfidenceEdge({ id, sourceX, sourceY, targetX, targetY, data }) {
           markerHeight="6"
           orient="auto"
         >
-          <path d="M 0 0 L 10 4 L 0 8 z" fill={color} opacity={opacity} />
+          <path d="M 0 0 L 10 4 L 0 8 z" fill={color} opacity={opacity + 0.15} />
         </marker>
       </defs>
       <BaseEdge
@@ -299,7 +342,6 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
         pointerEvents: 'all',
       }}
     >
-      {/* Header */}
       <div style={{
         padding:      '14px 16px 12px',
         borderBottom: '0.5px solid var(--border)',
@@ -338,7 +380,6 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
         )}
       </div>
 
-      {/* Stats */}
       <div style={{
         padding: '10px 16px',
         display: 'grid',
@@ -393,7 +434,6 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
         )}
       </div>
 
-      {/* Best technique */}
       {stats.bestMove && (
         <div style={{
           padding:      '0 16px 10px',
@@ -410,7 +450,6 @@ function PositionPopup({ position, stats, screenPos, onExplore, onClose }) {
         </div>
       )}
 
-      {/* CTA */}
       <div style={{ padding: '0 12px 12px' }}>
         <button
           onClick={onExplore}
@@ -579,6 +618,13 @@ function GraphInner({
     activePopupRef.current = activePopup
   }, [activePopup])
 
+  // ── Slug-to-id lookup ──────────────────────────────────────────────────────
+  const posIdToSlug = useMemo(() => {
+    const map = {}
+    rawPositions.forEach(p => { map[p.id] = p.slug })
+    return map
+  }, [rawPositions])
+
   // ── Style filtering ────────────────────────────────────────────────────────
   const filteredMoves = useMemo(() => {
     if (activeStyle === 'all') return rawMoves
@@ -670,6 +716,7 @@ function GraphInner({
       }
     })
 
+    // Aggregate moves per position pair
     const pairMoves = {}
     filteredMoves.forEach(m => {
       const key = `${m.from_position_id}__${m.to_position_id}`
@@ -679,6 +726,8 @@ function GraphInner({
 
     const newEdges = Object.entries(pairMoves).map(([key, ms]) => {
       const [fromId, toId] = key.split('__')
+      const fromSlug       = posIdToSlug[fromId]
+      const toSlug         = posIdToSlug[toId]
       const hasReverse     = !!pairMoves[`${toId}__${fromId}`]
       const onBoardCount   = ms.filter(m => boardMoveIds.has(m.id)).length
       const confs          = ms
@@ -688,17 +737,30 @@ function GraphInner({
         ? confs.reduce((a, b) => a + b, 0) / confs.length
         : null
 
+      // Determine edge routing based on relative node positions
+      const sourceCoord = getPositionCoords(fromSlug)
+      const targetCoord = getPositionCoords(toSlug)
+      const { sourceHandle, targetHandle } = getEdgeHandles(sourceCoord, targetCoord)
+
+      // Tier span for edge type decision
+      const fromTier = TIER_BY_SLUG[fromSlug] ?? 0
+      const toTier   = TIER_BY_SLUG[toSlug] ?? 0
+      const tierSpan = Math.abs(fromTier - toTier)
+
       return {
-        id:     `edge-${key}`,
-        source: `pos-${fromId}`,
-        target: `pos-${toId}`,
-        type:   'confidenceEdge',
-        zIndex: 0,
+        id:           `edge-${key}`,
+        source:       `pos-${fromId}`,
+        target:       `pos-${toId}`,
+        sourceHandle: sourceHandle,
+        targetHandle: targetHandle,
+        type:         'confidenceEdge',
+        zIndex:       0,
         data: {
           count:         ms.length,
           onBoardCount,
           avgConfidence: avgConf,
           curvature:     hasReverse ? 0.35 : 0.2,
+          tierSpan,
         },
       }
     })
@@ -706,7 +768,7 @@ function GraphInner({
     setNodes(newNodes)
     setEdges(newEdges)
     fitQueued.current = true
-  }, [filteredPositions, filteredMoves, boardMoveIds, progressMap, positionStats, handleNodeClick])
+  }, [filteredPositions, filteredMoves, boardMoveIds, progressMap, positionStats, posIdToSlug, handleNodeClick])
 
   // ── Patch isActive when popup changes ──────────────────────────────────────
   useEffect(() => {
