@@ -656,9 +656,7 @@ export default function MoveDetail({
       </div>
 
       {/* ── Go to destination CTA ────────────────────────────────────── */}
-      {/* Navigation action. Suppressed in inline mode —
-          ExplorePage renders its own "Go to" button on the move row. */}
-      {!inline && move.to_position && (
+      {move.to_position && (
         <div style={{
           padding:      '12px 18px',
           borderBottom: '0.5px solid var(--border)',
