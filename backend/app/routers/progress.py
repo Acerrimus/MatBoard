@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, model_validator
-from typing import Optional
+from pydantic import BaseModel, Field, model_validator
+from typing import Optional, List
 from app.auth import get_current_user, get_supabase_client
 
 router = APIRouter()
@@ -18,6 +18,15 @@ class ProgressUpsert(BaseModel):
         if self.confidence is None and not self.is_favourite:
             raise ValueError('must provide confidence or is_favourite')
         return self
+
+
+class BulkRating(BaseModel):
+    move_id: str
+    confidence: int = Field(ge=1, le=5)
+
+
+class BulkRateRequest(BaseModel):
+    ratings: List[BulkRating]
 
 
 @router.get("/")
@@ -47,6 +56,48 @@ def get_progress_for_move(
     if not response.data:
         raise HTTPException(status_code=404, detail="No progress found for this move")
     return response.data[0]
+
+
+@router.post("/bulk-rate")
+def bulk_rate_progress(
+    body: BulkRateRequest,
+    user=Depends(get_current_user),
+    client=Depends(get_supabase_client)
+):
+    if not body.ratings:
+        return {"count": 0}
+
+    # Build rows for user_move_progress
+    progress_rows = [
+        {
+            "user_id": user.id,
+            "move_id": r.move_id,
+            "confidence": r.confidence,
+            "is_favourite": False,
+        }
+        for r in body.ratings
+    ]
+
+    # Build rows for user_board
+    board_rows = [
+        {
+            "user_id": user.id,
+            "move_id": r.move_id,
+        }
+        for r in body.ratings
+    ]
+
+    # Bulk upsert progress
+    client.table("user_move_progress") \
+        .upsert(progress_rows, on_conflict="user_id,move_id") \
+        .execute()
+
+    # Bulk upsert board
+    client.table("user_board") \
+        .upsert(board_rows, on_conflict="user_id,move_id") \
+        .execute()
+
+    return {"count": len(body.ratings)}
 
 
 @router.post("/")

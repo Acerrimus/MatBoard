@@ -31,7 +31,7 @@ export default function OnboardingPage() {
       await updateMyProfile({ display_name: name.trim() })
       await setMyRole(role)
       await refreshProfile()
-      navigate(role === 'coach' ? '/club-setup' : '/')
+      navigate(role === 'coach' ? '/club-setup' : '/rate-your-game')
     } catch (e) {
       console.error('Failed to complete onboarding:', e)
       setError('Could not save — please try again.')

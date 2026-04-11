@@ -15,6 +15,7 @@ import AthleteOverviewPage from './pages/AthleteOverviewPage'
 import './styles/globals.css'
 import HomePage from './pages/HomePage'
 import LandingPage from './pages/LandingPage'
+import RateYourGamePage from './pages/RateYourGamePage'
 
 function getInitialTheme() {
   const stored = localStorage.getItem('mb-theme')
@@ -164,6 +165,7 @@ export default function App() {
         <Routes>
           <Route path="/login"      element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/rate-your-game" element={<RateYourGamePage />} />
           <Route path="/landing"    element={<LandingPage />} />
           <Route path="/*" element={
             <Protected>

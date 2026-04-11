@@ -112,6 +112,7 @@ export const getMyProgress        = ()                                        =>
 export const getProgressForMove   = (moveId)                                  => request(`/progress/${moveId}`)
 export const upsertProgress       = (moveId, confidence, isFavourite = false) => requestPost('/progress/', { move_id: moveId, confidence, is_favourite: isFavourite })
 export const deleteProgress       = (moveId)                                  => requestDelete(`/progress/${moveId}`)
+export const bulkRateProgress     = (ratings)                                 => requestPost('/progress/bulk-rate', { ratings })
 
 // ── Profiles ──────────────────────────────────────────────────────────────────
 export const setMyRole            = (role) => requestPatch('/profiles/me/role', { role })
