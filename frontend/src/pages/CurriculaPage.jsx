@@ -23,6 +23,12 @@ function truncateName(name, max = 22) {
   return `${name.slice(0, half + 2)}…${name.slice(-half)}`
 }
 
+function getYouTubeId(url) {
+  if (!url) return null
+  const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?&]+)/)
+  return match ? match[1] : null
+}
+
 // ── Shared components ─────────────────────────────────────────────────────────
 function SectionLabel({ children, count }) {
   return (
@@ -386,6 +392,10 @@ function MovePicker({ existingMoveIds, onAdd, autoPositionSlug = null, clubId })
 function ChainCard({ chain, onAddMove, onRemoveMove, onDeleteChain, clubId }) {
   const [picking, setPicking]       = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [videoOpen, setVideoOpen]   = useState(false)
+
+  const media = chain.media || []
+  const hasVideo = media.length > 0 && media.some(m => getYouTubeId(m.url))
 
   const existingIds      = new Set()
   const lastMove         = chain.moves.length > 0 ? chain.moves[chain.moves.length - 1] : null
@@ -418,6 +428,20 @@ function ChainCard({ chain, onAddMove, onRemoveMove, onDeleteChain, clubId }) {
           {chain.name}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
+          {hasVideo && (
+            <button
+              onClick={() => setVideoOpen(v => !v)}
+              style={{
+                padding: '3px 8px', fontSize: 11, fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: `0.5px solid ${videoOpen ? 'var(--accent)' : 'var(--border)'}`,
+                background: videoOpen ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+                color: videoOpen ? 'var(--accent)' : 'var(--text-muted)',
+                cursor: 'pointer', fontFamily: 'var(--font-body)',
+                transition: 'all var(--transition)',
+              }}
+            >{videoOpen ? '✕ Close' : '▶ Watch'}</button>
+          )}
           <button
             onClick={() => setPicking(!picking)}
             style={{
@@ -444,6 +468,34 @@ function ChainCard({ chain, onAddMove, onRemoveMove, onDeleteChain, clubId }) {
           >{confirming ? 'Confirm' : 'Delete'}</button>
         </div>
       </div>
+
+      {/* Video embed */}
+      {videoOpen && media.map(m => {
+        const videoId = getYouTubeId(m.url)
+        if (!videoId) return null
+        return (
+          <div key={m.id} style={{
+            position: 'relative', width: '100%',
+            paddingBottom: '56.25%', /* 16:9 */
+            marginBottom: 12,
+            borderRadius: 'var(--radius-md)',
+            overflow: 'hidden',
+            background: 'var(--bg-subtle)',
+            border: '0.5px solid var(--border)',
+          }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title={chain.name}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{
+                position: 'absolute', top: 0, left: 0,
+                width: '100%', height: '100%', border: 'none',
+              }}
+            />
+          </div>
+        )
+      })}
 
       {/* Chain flow */}
       {chain.moves.length === 0 ? (

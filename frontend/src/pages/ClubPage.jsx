@@ -30,6 +30,12 @@ function getInitials(name) {
   return '?'
 }
 
+function getYouTubeId(url) {
+  if (!url) return null
+  const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?&]+)/)
+  return match ? match[1] : null
+}
+
 // ── Shared primitives ─────────────────────────────────────────────────────────
 function SectionLabel({ children, count }) {
   return (
@@ -426,105 +432,165 @@ function CurriculumCard({ curriculum }) {
             }}>No chains in this curriculum yet</div>
           ) : (
             curriculum.chains.map((chain, ci) => (
-              <div key={chain.id} style={{
-                borderBottom: ci < curriculum.chains.length - 1
-                  ? '0.5px solid var(--border)' : 'none',
-                padding: '0.875rem 1rem',
-              }}>
-                {/* Chain name */}
-                <div style={{
-                  fontSize: '0.75rem', fontWeight: 600,
-                  color: 'var(--text-secondary)',
-                  marginBottom: '0.625rem',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                }}>{chain.name}</div>
-
-                {/* Move pills */}
-                {chain.moves.length === 0 ? (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    No moves
-                  </div>
-                ) : (
-                  <div style={{
-                    display: 'flex', alignItems: 'center',
-                    flexWrap: 'wrap', gap: 0,
-                  }}>
-                    {chain.moves.map((move, i) => {
-                      const conf = move.confidence
-                      const color = conf ? confidenceColor(conf) : 'var(--border)'
-                      const bg = conf ? confidenceBg(conf) : 'var(--bg-subtle)'
-                      return (
-                        <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
-                          <div style={{
-                            background: bg, border: `1.5px solid ${color}`,
-                            borderRadius: 'var(--radius-sm)',
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.6875rem', fontWeight: 500,
-                            color: conf ? color : 'var(--text-secondary)',
-                            whiteSpace: 'nowrap',
-                            display: 'flex', alignItems: 'center', gap: '0.3rem',
-                          }}>
-                            <span style={{ color: 'var(--text-move)', fontWeight: 600 }}>
-                              {move.name}
-                            </span>
-                            {conf ? (
-                              <span style={{
-                                fontWeight: 700, fontSize: '0.625rem',
-                                fontFamily: 'var(--font-display)', opacity: 0.9,
-                              }}>{conf}</span>
-                            ) : (
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>—</span>
-                            )}
-                            {move.is_favourite && (
-                              <span style={{ fontSize: '0.5rem', color: 'var(--comp-ready)' }}>★</span>
-                            )}
-                          </div>
-                          {i < chain.moves.length - 1 && (
-                            <div style={{
-                              fontSize: '0.6875rem', color: 'var(--text-muted)',
-                              padding: '0 0.2rem', flexShrink: 0,
-                            }}>→</div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Chain completion bar */}
-                {chain.moves.length > 0 && (() => {
-                  const rated = chain.moves.filter(m => m.confidence != null).length
-                  const pct = (rated / chain.moves.length) * 100
-                  const barColor = rated === 0 ? 'var(--border)'
-                    : rated === chain.moves.length ? confidenceColor(5)
-                    : confidenceColor(3)
-                  return (
-                    <div style={{
-                      display: 'flex', alignItems: 'center',
-                      gap: '0.5rem', marginTop: '0.625rem',
-                    }}>
-                      <div style={{
-                        flex: 1, height: '0.1875rem', borderRadius: '0.125rem',
-                        background: 'var(--bg-subtle)',
-                      }}>
-                        <div style={{
-                          width: `${pct}%`, height: '100%',
-                          borderRadius: '0.125rem', background: barColor,
-                          transition: 'width 0.3s ease',
-                        }} />
-                      </div>
-                      <span style={{
-                        fontSize: '0.6rem', color: 'var(--text-muted)',
-                        fontWeight: 500, whiteSpace: 'nowrap',
-                      }}>{rated}/{chain.moves.length} rated</span>
-                    </div>
-                  )
-                })()}
-              </div>
+              <ChainRow key={chain.id} chain={chain} isLast={ci === curriculum.chains.length - 1} />
             ))
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Single chain row inside CurriculumCard ────────────────────────────────────
+function ChainRow({ chain, isLast }) {
+  const [videoOpen, setVideoOpen] = useState(false)
+  const media = chain.media || []
+  const hasVideo = media.length > 0 && media.some(m => getYouTubeId(m.url))
+
+  return (
+    <div style={{
+      borderBottom: !isLast ? '0.5px solid var(--border)' : 'none',
+      padding: '0.875rem 1rem',
+    }}>
+      {/* Chain name + video toggle */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: '0.625rem',
+      }}>
+        <div style={{
+          fontSize: '0.75rem', fontWeight: 600,
+          color: 'var(--text-secondary)',
+          textTransform: 'uppercase', letterSpacing: '0.08em',
+        }}>{chain.name}</div>
+        {hasVideo && (
+          <button
+            onClick={() => setVideoOpen(v => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.3rem',
+              padding: '0.1875rem 0.5rem',
+              background: videoOpen ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+              border: `0.5px solid ${videoOpen ? 'var(--accent)' : 'var(--border)'}`,
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.625rem', fontWeight: 600,
+              color: videoOpen ? 'var(--accent)' : 'var(--text-muted)',
+              cursor: 'pointer', fontFamily: 'var(--font-body)',
+              transition: 'all 0.15s',
+            }}
+          >
+            {videoOpen ? '✕ Close' : '▶ Watch'}
+          </button>
+        )}
+      </div>
+
+      {/* Video embed */}
+      {videoOpen && media.map(m => {
+        const videoId = getYouTubeId(m.url)
+        if (!videoId) return null
+        return (
+          <div key={m.id} style={{
+            position: 'relative', width: '100%',
+            paddingBottom: '56.25%', /* 16:9 */
+            marginBottom: '0.625rem',
+            borderRadius: 'var(--radius-md)',
+            overflow: 'hidden',
+            background: 'var(--bg-subtle)',
+            border: '0.5px solid var(--border)',
+          }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title={chain.name}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{
+                position: 'absolute', top: 0, left: 0,
+                width: '100%', height: '100%', border: 'none',
+              }}
+            />
+          </div>
+        )
+      })}
+
+      {/* Move pills */}
+      {chain.moves.length === 0 ? (
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          No moves
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          flexWrap: 'wrap', gap: 0,
+        }}>
+          {chain.moves.map((move, i) => {
+            const conf = move.confidence
+            const color = conf ? confidenceColor(conf) : 'var(--border)'
+            const bg = conf ? confidenceBg(conf) : 'var(--bg-subtle)'
+            return (
+              <div key={`${move.id}-${i}`} style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{
+                  background: bg, border: `1.5px solid ${color}`,
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.25rem 0.5rem',
+                  fontSize: '0.6875rem', fontWeight: 500,
+                  color: conf ? color : 'var(--text-secondary)',
+                  whiteSpace: 'nowrap',
+                  display: 'flex', alignItems: 'center', gap: '0.3rem',
+                }}>
+                  <span style={{ color: 'var(--text-move)', fontWeight: 600 }}>
+                    {move.name}
+                  </span>
+                  {conf ? (
+                    <span style={{
+                      fontWeight: 700, fontSize: '0.625rem',
+                      fontFamily: 'var(--font-display)', opacity: 0.9,
+                    }}>{conf}</span>
+                  ) : (
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>—</span>
+                  )}
+                  {move.is_favourite && (
+                    <span style={{ fontSize: '0.5rem', color: 'var(--comp-ready)' }}>★</span>
+                  )}
+                </div>
+                {i < chain.moves.length - 1 && (
+                  <div style={{
+                    fontSize: '0.6875rem', color: 'var(--text-muted)',
+                    padding: '0 0.2rem', flexShrink: 0,
+                  }}>→</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Chain completion bar */}
+      {chain.moves.length > 0 && (() => {
+        const rated = chain.moves.filter(m => m.confidence != null).length
+        const pct = (rated / chain.moves.length) * 100
+        const barColor = rated === 0 ? 'var(--border)'
+          : rated === chain.moves.length ? confidenceColor(5)
+          : confidenceColor(3)
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            gap: '0.5rem', marginTop: '0.625rem',
+          }}>
+            <div style={{
+              flex: 1, height: '0.1875rem', borderRadius: '0.125rem',
+              background: 'var(--bg-subtle)',
+            }}>
+              <div style={{
+                width: `${pct}%`, height: '100%',
+                borderRadius: '0.125rem', background: barColor,
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+            <span style={{
+              fontSize: '0.6rem', color: 'var(--text-muted)',
+              fontWeight: 500, whiteSpace: 'nowrap',
+            }}>{rated}/{chain.moves.length} rated</span>
+          </div>
+        )
+      })()}
     </div>
   )
 }
