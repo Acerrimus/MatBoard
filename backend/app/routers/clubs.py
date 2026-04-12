@@ -1,5 +1,3 @@
-# backend/app/routers/clubs.py
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, validator
 from typing import Optional, Literal
@@ -61,6 +59,7 @@ class ClubMoveCreate(BaseModel):
     from_position_id: str
     to_position_id: str
     description: Optional[str] = ""
+    styles: Optional[list[str]] = None
 
     @validator("name")
     def name_valid(cls, v):
@@ -81,6 +80,7 @@ class ClubMoveCreate(BaseModel):
 class ClubPositionCreate(BaseModel):
     name: str
     description: Optional[str] = ""
+    styles: Optional[list[str]] = None
 
     @validator("name")
     def name_valid(cls, v):
@@ -312,6 +312,7 @@ def update_member_role(
 
     return {"user_id": member_id, "role": body.role}
 
+
 @router.delete("/{club_id}/members/{member_id}")
 def remove_member(
     club_id: str,
@@ -345,6 +346,7 @@ def remove_member(
 
     return {"status": "removed", "user_id": member_id}
 
+
 # ── Club content creation ─────────────────────────────────────────────────────
 
 @router.post("/{club_id}/moves")
@@ -359,6 +361,7 @@ def create_club_move(
     - Caller must be a coach in the club
     - Both positions must exist in the DB
     - Name validated by schema (2-100 chars), also enforced by DB constraint
+    - Defaults to both folkstyle+freestyle if no styles specified
     """
     assert_coach_in_club(club_id, user.id, client)
     verify_positions_exist(body.from_position_id, body.to_position_id, client)
@@ -374,6 +377,8 @@ def create_club_move(
         "to_position_id":   body.to_position_id,
         "club_id":          club_id,
         "created_by":       user.id,
+        "sport":            "wrestling",
+        "styles":           body.styles or ["folkstyle", "freestyle"],
     }).execute()
 
     if not res.data:
@@ -393,6 +398,7 @@ def create_club_position(
     Creates a position scoped to this club.
     - Caller must be a coach in the club
     - Name validated by schema (2-100 chars), also enforced by DB constraint
+    - Defaults to both folkstyle+freestyle if no styles specified
     """
     assert_coach_in_club(club_id, user.id, client)
 
@@ -405,6 +411,8 @@ def create_club_position(
         "description": body.description,
         "club_id":     club_id,
         "created_by":  user.id,
+        "sport":       "wrestling",
+        "styles":      body.styles or ["folkstyle", "freestyle"],
     }).execute()
 
     if not res.data:

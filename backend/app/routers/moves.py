@@ -1,5 +1,3 @@
-# backend/app/routers/moves.py
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, validator
 from typing import Optional
@@ -16,6 +14,7 @@ class PersonalMoveCreate(BaseModel):
     from_position_id: str
     to_position_id: str
     description: Optional[str] = ""
+    styles: Optional[list[str]] = None
 
     @validator("name")
     def name_valid(cls, v):
@@ -100,6 +99,7 @@ def create_personal_move(
     - created_by is always the authenticated user
     - Both positions must exist in the DB
     - Name validated by schema (2-100 chars), also enforced by DB constraint
+    - Defaults to both folkstyle+freestyle if no styles specified
     """
     verify_positions_exist(body.from_position_id, body.to_position_id, client)
 
@@ -107,13 +107,15 @@ def create_personal_move(
     slug = make_unique_slug(slug, user.id[:8], client)
 
     res = client.table("moves").insert({
-    "name":             body.name,
-    "slug":             slug,
-    "description":      body.description,
-    "from_position_id": body.from_position_id,
-    "to_position_id":   body.to_position_id,
-    "club_id":          None,
-    "created_by":       user.id,
+        "name":             body.name,
+        "slug":             slug,
+        "description":      body.description,
+        "from_position_id": body.from_position_id,
+        "to_position_id":   body.to_position_id,
+        "club_id":          None,
+        "created_by":       user.id,
+        "sport":            "wrestling",
+        "styles":           body.styles or ["folkstyle", "freestyle"],
     }).execute()
 
     if not res.data:
