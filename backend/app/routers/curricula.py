@@ -113,6 +113,20 @@ async def get_curriculum(
         .execute()
     )
 
+    chain_ids = [c["id"] for c in chains_resp.data]
+
+    # Fetch all chain media in one query
+    media_by_chain = {}
+    if chain_ids:
+        media_resp = (
+            supabase.table("curriculum_chain_media")
+            .select("id, curriculum_chain_id, url, media_type, content_type")
+            .in_("curriculum_chain_id", chain_ids)
+            .execute()
+        )
+        for m in media_resp.data:
+            media_by_chain.setdefault(m["curriculum_chain_id"], []).append(m)
+
     chains = []
     for chain in chains_resp.data:
         chain_moves_resp = (
@@ -148,6 +162,7 @@ async def get_curriculum(
             "name": chain["name"],
             "position": chain["position"],
             "moves": moves,
+            "media": media_by_chain.get(chain["id"], []),
         })
 
     return {
@@ -334,7 +349,7 @@ async def list_club_curricula(
     Returns curricula with chains + moves for any club member.
     Includes both global seed curricula (club_id IS NULL) and
     club-owned curricula. Athletes get their own progress attached
-    to each move.
+    to each move. Chain media (videos) attached to each chain.
     """
     # Verify membership
     membership_resp = (
@@ -395,6 +410,18 @@ async def list_club_curricula(
     else:
         chain_moves_resp = type("R", (), {"data": []})()
 
+    # Get all chain media in one query
+    media_by_chain = {}
+    if chain_ids:
+        media_resp = (
+            supabase.table("curriculum_chain_media")
+            .select("id, curriculum_chain_id, url, media_type, content_type")
+            .in_("curriculum_chain_id", chain_ids)
+            .execute()
+        )
+        for m in media_resp.data:
+            media_by_chain.setdefault(m["curriculum_chain_id"], []).append(m)
+
     # Collect all move IDs
     all_move_ids = list({cm["move_id"] for cm in chain_moves_resp.data})
 
@@ -448,6 +475,7 @@ async def list_club_curricula(
             "name": chain["name"],
             "position": chain["position"],
             "moves": moves_list,
+            "media": media_by_chain.get(chain["id"], []),
         })
 
     # Assemble final response
