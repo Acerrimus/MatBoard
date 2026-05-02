@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 from app.auth import get_current_user, get_supabase_client
+from app.limiter import limiter
 
 router = APIRouter()
 
@@ -59,6 +60,7 @@ def get_progress_for_move(
 
 
 @router.post("/bulk-rate")
+@limiter.limit("30/minute")
 def bulk_rate_progress(
     body: BulkRateRequest,
     user=Depends(get_current_user),
