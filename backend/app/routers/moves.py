@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, validator
 from typing import Optional
 from app.auth import get_current_user, get_supabase_client
+from app.limiter import limiter
 from app.utils import slugify, make_unique_slug, verify_positions_exist
 
 router = APIRouter()
@@ -88,7 +89,9 @@ def get_move(
 
 
 @router.post("/personal")
+@limiter.limit("30/minute")
 def create_personal_move(
+    request: Request,
     body: PersonalMoveCreate,
     user=Depends(get_current_user),
     client=Depends(get_supabase_client),

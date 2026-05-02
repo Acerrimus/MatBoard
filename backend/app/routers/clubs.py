@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, validator
 from typing import Optional, Literal
 from app.auth import get_current_user, get_supabase_client
+from app.limiter import limiter
 from app.utils import slugify, make_unique_slug, make_unique_position_slug, verify_positions_exist
 
 router = APIRouter()
@@ -101,7 +102,9 @@ class ClubPositionCreate(BaseModel):
 # ── Club CRUD ─────────────────────────────────────────────────────────────────
 
 @router.post("/")
+@limiter.limit("10/minute")
 def create_club(
+    request: Request,
     body: ClubCreate,
     user=Depends(get_current_user),
     client=Depends(get_supabase_client),
@@ -130,7 +133,9 @@ def create_club(
 
 
 @router.post("/join")
+@limiter.limit("10/minute")
 def join_club(
+    request: Request,
     body: ClubJoin,
     user=Depends(get_current_user),
     client=Depends(get_supabase_client),
@@ -350,7 +355,9 @@ def remove_member(
 # ── Club content creation ─────────────────────────────────────────────────────
 
 @router.post("/{club_id}/moves")
+@limiter.limit("30/minute")
 def create_club_move(
+    request: Request,
     club_id: str,
     body: ClubMoveCreate,
     user=Depends(get_current_user),
@@ -388,7 +395,9 @@ def create_club_move(
 
 
 @router.post("/{club_id}/positions")
+@limiter.limit("30/minute")
 def create_club_position(
+    request: Request,
     club_id: str,
     body: ClubPositionCreate,
     user=Depends(get_current_user),
