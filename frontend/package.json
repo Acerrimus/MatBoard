@@ -12,6 +12,8 @@
   "dependencies": {
     "@sentry/react": "^10.48.0",
     "@supabase/supabase-js": "^2.99.3",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "@xyflow/react": "^12.10.1",
     "dagre": "^0.8.5",
     "lucide-react": "^0.577.0",
