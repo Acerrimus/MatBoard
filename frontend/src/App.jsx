@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Navigation from './components/Navigation'
 import GraphPage from './pages/GraphPage'
@@ -174,6 +175,7 @@ export default function App() {
           } />
         </Routes>
       </AuthProvider>
+      <Analytics />
     </BrowserRouter>
   )
 }
