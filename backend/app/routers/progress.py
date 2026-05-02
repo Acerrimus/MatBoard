@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 from app.auth import get_current_user, get_supabase_client
@@ -62,6 +62,7 @@ def get_progress_for_move(
 @router.post("/bulk-rate")
 @limiter.limit("30/minute")
 def bulk_rate_progress(
+    request: Request,
     body: BulkRateRequest,
     user=Depends(get_current_user),
     client=Depends(get_supabase_client)
@@ -69,7 +70,6 @@ def bulk_rate_progress(
     if not body.ratings:
         return {"count": 0}
 
-    # Build rows for user_move_progress
     progress_rows = [
         {
             "user_id": user.id,
@@ -80,7 +80,6 @@ def bulk_rate_progress(
         for r in body.ratings
     ]
 
-    # Build rows for user_board
     board_rows = [
         {
             "user_id": user.id,
@@ -89,12 +88,10 @@ def bulk_rate_progress(
         for r in body.ratings
     ]
 
-    # Bulk upsert progress
     client.table("user_move_progress") \
         .upsert(progress_rows, on_conflict="user_id,move_id") \
         .execute()
 
-    # Bulk upsert board
     client.table("user_board") \
         .upsert(board_rows, on_conflict="user_id,move_id") \
         .execute()
